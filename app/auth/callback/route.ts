@@ -1,109 +1,42 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase/server'
 
-export async function GET(request: Request) {
-  const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') || '/'
-  const error = requestUrl.searchParams.get('error')
-  const errorDescription = requestUrl.searchParams.get('error_description')
-  const origin = requestUrl.origin
+function safeNextPath(input: string | null | undefined) {
+  if (!input) return '/'
+  if (!input.startsWith('/')) return '/'
+  if (input.startsWith('//')) return '/'
+  return input
+}
 
-  const safeNext =
-    next.startsWith('/') && !next.startsWith('//') ? next : '/'
-
-  if (error) {
-    return NextResponse.redirect(
-      new URL(
-        `/auth/login?error=${encodeURIComponent(
-          errorDescription || error
-        )}&next=${encodeURIComponent(safeNext)}`,
-        origin
-      ),
-      { status: 303 }
-    )
-  }
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url)
+  const code = url.searchParams.get('code')
+  const next = safeNextPath(url.searchParams.get('next'))
 
   if (!code) {
     return NextResponse.redirect(
       new URL(
         `/auth/login?error=${encodeURIComponent(
-          '로그인 인증 코드가 없습니다.'
-        )}&next=${encodeURIComponent(safeNext)}`,
-        origin
-      ),
-      { status: 303 }
+          '로그인 승인 코드가 없습니다. 다시 시도해 주세요.'
+        )}&next=${encodeURIComponent(next)}`,
+        url.origin
+      )
     )
   }
 
   const supabase = await supabaseServer()
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(
-    code
-  )
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-  if (exchangeError) {
+  if (error) {
     return NextResponse.redirect(
       new URL(
         `/auth/login?error=${encodeURIComponent(
-          exchangeError.message
-        )}&next=${encodeURIComponent(safeNext)}`,
-        origin
-      ),
-      { status: 303 }
+          '소셜 로그인 세션 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+        )}&next=${encodeURIComponent(next)}`,
+        url.origin
+      )
     )
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (user) {
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    if (!existingProfile) {
-      const meta = user.user_metadata ?? {}
-
-      const full_name =
-        String(
-          meta.full_name ||
-            meta.name ||
-            meta.user_name ||
-            meta.nickname ||
-            ''
-        ).trim() || null
-
-      const username =
-        String(meta.preferred_username || meta.user_name || '').trim() || null
-
-      const phone_number =
-        String(user.phone || meta.phone || '').trim() || null
-
-      await supabase.from('profiles').upsert(
-        {
-          id: user.id,
-          email: user.email ?? null,
-          full_name,
-          username,
-          phone_number,
-        },
-        { onConflict: 'id' }
-      )
-    } else {
-      await supabase
-        .from('profiles')
-        .update({
-          email: user.email ?? null,
-          phone_number: user.phone ?? null,
-        })
-        .eq('id', user.id)
-    }
-  }
-
-  return NextResponse.redirect(new URL(safeNext, origin), {
-    status: 303,
-  })
+  return NextResponse.redirect(new URL(next, url.origin))
 }
