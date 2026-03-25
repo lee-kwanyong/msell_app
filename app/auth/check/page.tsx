@@ -1,203 +1,204 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
+import { supabaseServer } from "@/lib/supabase/server";
 
-type ProfileRow = {
-  id: string;
-  username: string | null;
-  avatar_url: string | null;
-  role: string | null;
-  is_banned: boolean | null;
-  created_at: string | null;
-  updated_at: string | null;
+type AuthCheckPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    ok?: string;
+    next?: string;
+  }>;
 };
 
-export default function AuthCheckPage() {
-  const [loading, setLoading] = useState(true);
-  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
-  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export default async function AuthCheckPage({
+  searchParams,
+}: AuthCheckPageProps) {
+  const supabase = await supabaseServer();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
 
-  async function load() {
-    setLoading(true);
-    setError(null);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+  const error = resolvedSearchParams?.error;
+  const ok = resolvedSearchParams?.ok;
+  const next = resolvedSearchParams?.next || "/";
 
-    if (userError) {
-      setError(userError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (!user) {
-      setSessionEmail(null);
-      setSessionUserId(null);
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-
-    setSessionEmail(user.email ?? null);
-    setSessionUserId(user.id);
-
-    const { data: profileRow, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, username, avatar_url, role, is_banned, created_at, updated_at")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      setError(profileError.message);
-      setLoading(false);
-      return;
-    }
-
-    setProfile((profileRow as ProfileRow | null) ?? null);
-    setLoading(false);
-  }
-
-  async function handleLogout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    await load();
-  }
-
-  useEffect(() => {
-    load();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      load();
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  const isLoggedIn = !!user;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/" className="text-sm text-gray-600 hover:underline">
-            ← Home
-          </Link>
-          <h1 className="mt-2 text-2xl font-semibold">Auth Check</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            현재 로그인 상태와 profiles 연결 상태를 확인하는 페이지
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f6f1e7",
+        padding: "40px 20px 80px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 720,
+          margin: "0 auto",
+        }}
+      >
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #eadfcf",
+            borderRadius: 24,
+            padding: 28,
+            boxShadow: "0 10px 30px rgba(47,36,23,0.06)",
+          }}
+        >
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 30,
+              lineHeight: 1.2,
+              color: "#2f2417",
+              fontWeight: 800,
+            }}
+          >
+            인증 상태 확인
+          </h1>
+
+          <p
+            style={{
+              marginTop: 12,
+              marginBottom: 0,
+              color: "#6b5b4b",
+              fontSize: 15,
+              lineHeight: 1.7,
+            }}
+          >
+            현재 로그인 세션과 인증 결과를 확인하는 페이지입니다.
           </p>
-        </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={load}
-            className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50"
+          <div
+            style={{
+              marginTop: 22,
+              display: "grid",
+              gap: 14,
+            }}
           >
-            Refresh
-          </button>
-          <button
-            onClick={handleLogout}
-            className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <div className="rounded-2xl border p-4">
-        <div className="mb-3 text-sm font-medium">Session Status</div>
-
-        {loading ? (
-          <div className="text-sm text-gray-600">Loading...</div>
-        ) : sessionUserId ? (
-          <div className="space-y-2 text-sm">
-            <div>
-              <span className="font-medium">로그인 상태:</span> Logged in
-            </div>
-            <div>
-              <span className="font-medium">Email:</span> {sessionEmail ?? "-"}
-            </div>
-            <div className="break-all">
-              <span className="font-medium">User ID:</span> {sessionUserId}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3 text-sm">
-            <div>
-              <span className="font-medium">로그인 상태:</span> Not logged in
-            </div>
-            <Link
-              href="/auth/login?next=/auth/check"
-              className="inline-block rounded-xl border px-4 py-2 text-sm hover:bg-gray-50"
+            <div
+              style={{
+                borderRadius: 18,
+                padding: 16,
+                border: "1px solid #eadfcf",
+                background: "#fcfaf6",
+              }}
             >
-              Login Page
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "#8b7a67",
+                  marginBottom: 6,
+                }}
+              >
+                세션 상태
+              </div>
+              <div
+                style={{
+                  fontSize: 16,
+                  color: "#2f2417",
+                  fontWeight: 700,
+                }}
+              >
+                {isLoggedIn ? "로그인됨" : "로그인되지 않음"}
+              </div>
+              {user?.email ? (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 14,
+                    color: "#5f5142",
+                  }}
+                >
+                  {user.email}
+                </div>
+              ) : null}
+            </div>
+
+            {ok ? (
+              <div
+                style={{
+                  borderRadius: 18,
+                  padding: 16,
+                  border: "1px solid #cdb38d",
+                  background: "#fffaf2",
+                  color: "#2f2417",
+                }}
+              >
+                <strong>성공:</strong> {ok}
+              </div>
+            ) : null}
+
+            {error ? (
+              <div
+                style={{
+                  borderRadius: 18,
+                  padding: 16,
+                  border: "1px solid #e6c2c2",
+                  background: "#fff7f7",
+                  color: "#7a2e2e",
+                }}
+              >
+                <strong>오류:</strong> {error}
+              </div>
+            ) : null}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              marginTop: 24,
+            }}
+          >
+            <Link
+              href={next}
+              style={{
+                textDecoration: "none",
+                padding: "12px 16px",
+                borderRadius: 12,
+                background: "#2f2417",
+                color: "#ffffff",
+                fontWeight: 700,
+              }}
+            >
+              계속 진행
+            </Link>
+
+            <Link
+              href="/auth/login"
+              style={{
+                textDecoration: "none",
+                padding: "12px 16px",
+                borderRadius: 12,
+                background: "#eadfcf",
+                color: "#2f2417",
+                fontWeight: 700,
+              }}
+            >
+              로그인으로 이동
+            </Link>
+
+            <Link
+              href="/"
+              style={{
+                textDecoration: "none",
+                padding: "12px 16px",
+                borderRadius: 12,
+                background: "#f3ede3",
+                color: "#2f2417",
+                fontWeight: 700,
+              }}
+            >
+              홈으로
             </Link>
           </div>
-        )}
-      </div>
-
-      <div className="rounded-2xl border p-4">
-        <div className="mb-3 text-sm font-medium">Profile Row Status</div>
-
-        {loading ? (
-          <div className="text-sm text-gray-600">Loading...</div>
-        ) : !sessionUserId ? (
-          <div className="text-sm text-gray-600">
-            로그인해야 profile row를 확인할 수 있음
-          </div>
-        ) : profile ? (
-          <div className="space-y-2 text-sm">
-            <div className="font-medium text-green-700">profiles row 연결됨</div>
-            <div className="break-all">
-              <span className="font-medium">id:</span> {profile.id}
-            </div>
-            <div>
-              <span className="font-medium">username:</span>{" "}
-              {profile.username ?? "NULL"}
-            </div>
-            <div>
-              <span className="font-medium">role:</span> {profile.role ?? "NULL"}
-            </div>
-            <div>
-              <span className="font-medium">is_banned:</span>{" "}
-              {String(profile.is_banned)}
-            </div>
-            <div>
-              <span className="font-medium">created_at:</span>{" "}
-              {profile.created_at ?? "-"}
-            </div>
-          </div>
-        ) : (
-          <div className="text-sm text-red-700">
-            로그인 유저는 있지만 profiles row를 찾지 못함
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-2xl border p-4 text-sm text-gray-700">
-        <div className="font-medium">판단 기준</div>
-        <div className="mt-2 space-y-1">
-          <div>Logged in 이 보이면 세션 정상</div>
-          <div>profiles row 연결됨 이 보이면 trigger 포함 전체 정상</div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
