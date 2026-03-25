@@ -1,0 +1,79 @@
+뉴스레터 구독자 자산
+Mailchimp
+Substack
+Beehiiv
+ConvertKit
+
+
+YouTube 채널+영상 150개+월 수익 데이터
+
+Msell 거래 =운영권 인수인계 + 접근권한 이전 + 자산 패키지 이전 + 운영 인수인계 지원
+
+
+운영권 인수인계 , 접근권한이전
+
+YouTube → 브랜드 계정 관리자/소유자 이전
+Discord → Owner 이전
+Telegram → Owner/Admin 이전
+Facebook Page → Admin 권한 이전
+Naver Cafe → 매니저 권한 이전
+
+
+운영 방법 교육
+광고 세팅 설명
+커뮤니티 관리 방법
+콘텐츠 제작 가이드
+
+Msell 거래 =
+운영권 인수인계+
+접근권한 이전+자산 패키지 이전+운영 인수인계 지원
+
+
+
+
+
+에스크로(Escrow) + 단계별 딜 프로세스 이게 없으면 거래가 거의 안 일어난다.
+
+Msell에서 거래하는 것은
+
+YouTube 채널 Discord 커뮤니티 Telegram 채널 Website Domain Newsletter 같은 디지털 자산이야.
+
+문제는 이거다.
+
+판매자 입장
+돈을 먼저 받지 않으면자산을 넘기기 무섭다.
+
+구매자 입장
+자산을 먼저 받지 않으면 돈을 보내기 무섭다.
+
+
+
+Buyer → 돈 입금 → Escrow
+Seller → 자산 이전
+Buyer → 확인
+Escrow → Seller에게 지급
+
+
+1단계 NDA 체결
+2단계 증빙 열람
+3단계 구매자 오퍼 제출
+4단계 에스크로 입금
+5단계자산 이전
+(YouTube Owner transfer)
+(Discord Owner transfer)
+(Domain transfer)
+6단계 구매자 확인
+7단계 에스크로 지급
+
+#
+Deal Flow: 딜룸 + 단계 + 에스크로 상태
+Verification: 검증(최소 admin 검증이라도)
+Liquidity Engine: buyer intent + 자동 매칭/알림
+Asset Productization: 플랫폼별 스펙 강제 + 구조화된 메트릭/증빙
+
+##################
+1 Supply Engine (매물)
+2 Liquidity Engine (매칭)
+3 Verification Engine (신뢰)
+4 Deal Flow Engine (거래 진행)
+5 Escrow Engine (지급)
