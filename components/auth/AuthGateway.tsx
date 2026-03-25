@@ -7,7 +7,7 @@ type Props = {
   next?: string
 }
 
-type LoadingType = null | 'google' | 'kakao' | 'naver'
+type LoadingType = null | 'google' | 'naver'
 
 function safeNextPath(input: string | null | undefined) {
   if (!input) return '/'
@@ -21,9 +21,6 @@ export default function AuthGateway({ next = '/' }: Props) {
   const [loading, setLoading] = useState<LoadingType>(null)
   const [error, setError] = useState('')
 
-  const naverProvider =
-    process.env.NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID?.trim() || 'custom:naver'
-
   async function signInWithOAuth(type: LoadingType) {
     if (!type) return
 
@@ -35,14 +32,9 @@ export default function AuthGateway({ next = '/' }: Props) {
       const origin = window.location.origin
       const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`
 
-      const provider =
-        type === 'google'
-          ? 'google'
-          : type === 'kakao'
-          ? 'kakao'
-          : (naverProvider as 'custom:naver')
+      const provider = type === 'google' ? 'google' : 'custom:naver'
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo,
@@ -52,6 +44,16 @@ export default function AuthGateway({ next = '/' }: Props) {
 
       if (error) {
         setError(readableOAuthError(error.message, type))
+        setLoading(null)
+        return
+      }
+
+      if (!data?.url) {
+        setError(
+          type === 'google'
+            ? '구글 로그인 URL 생성에 실패했습니다.'
+            : '네이버 로그인 URL 생성에 실패했습니다.'
+        )
         setLoading(null)
         return
       }
@@ -73,16 +75,6 @@ export default function AuthGateway({ next = '/' }: Props) {
       >
         <span style={logoStyle}>G</span>
         <span>{loading === 'google' ? '구글 연결 중...' : '구글로 로그인'}</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={() => signInWithOAuth('kakao')}
-        disabled={loading !== null}
-        style={socialButtonStyle}
-      >
-        <span style={{ ...logoStyle, background: '#FEE500', color: '#191600' }}>K</span>
-        <span>{loading === 'kakao' ? '카카오 연결 중...' : '카카오로 로그인'}</span>
       </button>
 
       <button
@@ -119,21 +111,23 @@ export default function AuthGateway({ next = '/' }: Props) {
 }
 
 function readableOAuthError(message: string, provider: Exclude<LoadingType, null>) {
-  const providerLabel =
-    provider === 'google' ? '구글' : provider === 'kakao' ? '카카오' : '네이버'
-
+  const providerLabel = provider === 'google' ? '구글' : '네이버'
   const lower = message.toLowerCase()
 
   if (lower.includes('provider is not enabled')) {
-    return `${providerLabel} 로그인 공급자가 Supabase에서 아직 정상 활성화되지 않았습니다. Supabase Authentication > Providers에서 다시 저장한 뒤 재시도해 주세요.`
+    return `${providerLabel} 로그인 공급자가 Supabase에서 아직 정상 활성화되지 않았습니다.`
   }
 
   if (lower.includes('custom oauth providers are disabled')) {
-    return `네이버 커스텀 공급자 호출이 거부되었습니다. Supabase의 맞춤형 공급업체에서 식별자를 다시 확인하고, NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID 값이 실제 식별자와 같은지 확인해 주세요.`
+    return `네이버 커스텀 공급자 호출이 거부되었습니다. Supabase의 Custom Provider 설정을 다시 확인해 주세요.`
+  }
+
+  if (lower.includes('missing provider id')) {
+    return `네이버 공급자 식별자를 찾지 못했습니다. Supabase Custom Provider ID가 custom:naver로 정확히 연결되어 있는지 다시 확인해 주세요.`
   }
 
   if (lower.includes('redirect')) {
-    return `${providerLabel} 로그인 리디렉션 설정이 맞지 않습니다. Supabase URL Configuration과 각 개발자 콘솔의 Redirect URI를 다시 확인해 주세요.`
+    return `${providerLabel} 로그인 리디렉션 설정이 맞지 않습니다. Supabase와 네이버 개발자센터의 Callback URL을 다시 확인해 주세요.`
   }
 
   return message
