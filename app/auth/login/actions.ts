@@ -1,16 +1,12 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { headers } from 'next/headers'
-import { createServerActionClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { supabaseServer } from '@/lib/supabase/server'
 
 function safeNextPath(input: string | null | undefined) {
   if (!input) return '/'
-
   if (!input.startsWith('/')) return '/'
   if (input.startsWith('//')) return '/'
-
   return input
 }
 
@@ -21,14 +17,13 @@ export async function loginAction(formData: FormData) {
 
   if (!email || !password) {
     redirect(
-      `/auth/login?error=${encodeURIComponent('이메일과 비밀번호를 입력해 주세요.')}&next=${encodeURIComponent(
-        next
-      )}`
+      `/auth/login?error=${encodeURIComponent(
+        '이메일과 비밀번호를 입력해 주세요.'
+      )}&next=${encodeURIComponent(next)}`
     )
   }
 
-  const cookieStore = await cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = await supabaseServer()
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
