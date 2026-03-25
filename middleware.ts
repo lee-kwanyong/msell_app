@@ -1,49 +1,99 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { NextRequest, NextResponse } from 'next/server'
 
-type CookieToSet = {
-  name: string;
-  value: string;
-  options?: CookieOptions;
-};
+const MOBILE_PREFIX = '/m'
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request,
-  });
+function isStaticPath(pathname: string) {
+  return (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/icons') ||
+    pathname.startsWith('/images') ||
+    pathname.startsWith('/manifest') ||
+    pathname.startsWith('/sw.js') ||
+    pathname.startsWith('/robots.txt') ||
+    pathname.startsWith('/sitemap.xml') ||
+    /\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|txt|xml)$/i.test(pathname)
+  )
+}
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: CookieToSet[]) {
-          for (const cookie of cookiesToSet) {
-            request.cookies.set(cookie.name, cookie.value);
-          }
+function isMobileUserAgent(userAgent: string) {
+  const ua = userAgent.toLowerCase()
 
-          response = NextResponse.next({
-            request,
-          });
+  return (
+    ua.includes('iphone') ||
+    ua.includes('ipod') ||
+    ua.includes('android') ||
+    ua.includes('mobile') ||
+    ua.includes('windows phone') ||
+    ua.includes('opera mini') ||
+    ua.includes('iemobile') ||
+    ua.includes('blackberry') ||
+    ua.includes('silk')
+  )
+}
 
-          for (const cookie of cookiesToSet) {
-            response.cookies.set(cookie.name, cookie.value, cookie.options);
-          }
-        },
-      },
-    }
-  );
+function hasMobileEquivalent(pathname: string) {
+  return (
+    pathname === '/' ||
+    pathname === '/listings' ||
+    pathname === '/auth/login' ||
+    pathname === '/auth/signup'
+  )
+}
 
-  await supabase.auth.getUser();
+function toMobilePath(pathname: string) {
+  if (pathname === '/') return '/m'
+  return `${MOBILE_PREFIX}${pathname}`
+}
 
-  return response;
+function toDesktopPath(pathname: string) {
+  if (pathname === '/m') return '/'
+  return pathname.replace(/^\/m/, '') || '/'
+}
+
+export function middleware(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl
+
+  if (isStaticPath(pathname)) {
+    return NextResponse.next()
+  }
+
+  const ua = request.headers.get('user-agent') || ''
+  const isMobile = isMobileUserAgent(ua)
+  const isMobileRoute = pathname === '/m' || pathname.startsWith('/m/')
+
+  const view = searchParams.get('view')
+
+  if (view === 'desktop' && isMobileRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = toDesktopPath(pathname)
+    url.searchParams.delete('view')
+    return NextResponse.redirect(url)
+  }
+
+  if (view === 'mobile' && !isMobileRoute && hasMobileEquivalent(pathname)) {
+    const url = request.nextUrl.clone()
+    url.pathname = toMobilePath(pathname)
+    url.searchParams.delete('view')
+    return NextResponse.redirect(url)
+  }
+
+  if (isMobile && !isMobileRoute && hasMobileEquivalent(pathname)) {
+    const url = request.nextUrl.clone()
+    url.pathname = toMobilePath(pathname)
+    return NextResponse.redirect(url)
+  }
+
+  if (!isMobile && isMobileRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = toDesktopPath(pathname)
+    return NextResponse.redirect(url)
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|xml)$).*)",
-  ],
-};
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}
