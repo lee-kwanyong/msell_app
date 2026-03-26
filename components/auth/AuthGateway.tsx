@@ -18,6 +18,8 @@ const PROVIDER_LABEL: Record<ProviderKey, string> = {
   kakao: '카카오로 계속하기',
 }
 
+const NAVER_PROVIDER_ID = 'custom:naver'
+
 export default function AuthGateway({
   mode = 'login',
   mobile = false,
@@ -66,9 +68,7 @@ export default function AuthGateway({
 
       const result =
         provider === 'naver'
-          ? await startCustomOAuth(
-              process.env.NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID || 'custom:naver'
-            )
+          ? await startCustomOAuth(NAVER_PROVIDER_ID)
           : await startBuiltInOAuth(provider)
 
       if (result.error) {
