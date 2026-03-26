@@ -41,11 +41,11 @@ export default function AuthGateway({
 
       const providerValue =
         provider === 'naver'
-          ? (process.env.NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID || 'custom:naver')
+          ? process.env.NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID || 'custom:naver'
           : provider
 
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: providerValue as 'google' | 'kakao' | 'azure' | 'github' | 'custom',
+        provider: providerValue as any,
         options: {
           redirectTo: oauthCallbackUrl,
           queryParams:
