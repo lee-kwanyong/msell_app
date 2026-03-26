@@ -3,18 +3,25 @@ import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import { updateAccountAction } from './actions'
 
-export default async function AccountPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{
-    error?: string
-    success?: string
-  }>
-}) {
-  const params = searchParams ? await searchParams : undefined
-  const error = params?.error ?? ''
-  const success = params?.success ?? ''
+export const dynamic = 'force-dynamic'
 
+type PageProps = {
+  searchParams?: Promise<{
+    success?: string
+    error?: string
+    welcome?: string
+  }>
+}
+
+function pickFirstString(...values: Array<unknown>): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return ''
+}
+
+export default async function AccountPage({ searchParams }: PageProps) {
+  const params = (await searchParams) || {}
   const supabase = await supabaseServer()
 
   const {
@@ -31,150 +38,239 @@ export default async function AccountPage({
     .eq('id', user.id)
     .maybeSingle()
 
+  const metadata = user.user_metadata ?? {}
+  const identities = Array.isArray(user.identities) ? user.identities : []
+  const firstIdentityData =
+    identities.find((item: any) => item?.identity_data)?.identity_data ?? {}
+
+  const fullName = pickFirstString(
+    profile?.full_name,
+    metadata?.full_name,
+    metadata?.name,
+    metadata?.nickname,
+    firstIdentityData?.name,
+    firstIdentityData?.full_name,
+    firstIdentityData?.nickname,
+  )
+
+  const username = pickFirstString(
+    profile?.username,
+    metadata?.username,
+    metadata?.preferred_username,
+    metadata?.user_name,
+    firstIdentityData?.preferred_username,
+    firstIdentityData?.nickname,
+    user.email ? user.email.split('@')[0] : '',
+  )
+
+  const email = pickFirstString(
+    profile?.email,
+    user.email,
+    metadata?.email,
+    firstIdentityData?.email,
+  )
+
+  const phoneNumber = pickFirstString(
+    profile?.phone_number,
+    metadata?.phone_number,
+    metadata?.phone,
+    user.phone,
+    firstIdentityData?.mobile,
+    firstIdentityData?.phone_number,
+  )
+
+  const gender =
+    profile?.gender === 'male' || profile?.gender === 'female'
+      ? profile.gender
+      : ''
+
   return (
     <main
       style={{
         minHeight: '100vh',
         background: '#f6f1e7',
-        padding: '32px 16px 80px',
+        padding: '28px 16px 48px',
       }}
     >
       <div
         style={{
-          maxWidth: 760,
+          width: '100%',
+          maxWidth: 1060,
           margin: '0 auto',
-          display: 'grid',
-          gap: 18,
         }}
       >
         <section
           style={{
             background: '#ffffff',
             border: '1px solid #eadfcf',
-            borderRadius: 28,
-            padding: 28,
-            boxShadow: '0 16px 40px rgba(47, 36, 23, 0.06)',
+            borderRadius: 32,
+            padding: '28px 24px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 16,
+            flexWrap: 'wrap',
           }}
         >
-          <div
+          <div>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                color: '#8a6a43',
+                marginBottom: 10,
+              }}
+            >
+              ACCOUNT SETTINGS
+            </div>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 54,
+                lineHeight: 1,
+                letterSpacing: '-0.04em',
+                color: '#20170f',
+                fontWeight: 800,
+              }}
+            >
+              계정 수정
+            </h1>
+            <p
+              style={{
+                margin: '14px 0 0',
+                fontSize: 15,
+                lineHeight: 1.8,
+                color: '#6b5b4b',
+              }}
+            >
+              이름, 연락처, 성별 등 기본 정보를 수정하세요.
+            </p>
+          </div>
+
+          <Link
+            href="/"
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: 16,
-              flexWrap: 'wrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 88,
+              height: 40,
+              padding: '0 16px',
+              borderRadius: 16,
+              background: '#eadfcf',
+              color: '#2f2417',
+              fontSize: 14,
+              fontWeight: 700,
+              textDecoration: 'none',
             }}
           >
-            <div>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  color: '#8a745b',
-                  marginBottom: 10,
-                }}
-              >
-                ACCOUNT SETTINGS
-              </div>
-
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 32,
-                  lineHeight: 1.15,
-                  fontWeight: 900,
-                  color: '#241b11',
-                }}
-              >
-                계정 수정
-              </h1>
-
-              <p
-                style={{
-                  margin: '12px 0 0',
-                  color: '#6a5743',
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                }}
-              >
-                이름, 연락처, 성별 등 기본 정보를 수정하세요.
-              </p>
-            </div>
-
-            <Link href="/my" style={secondaryButtonStyle}>
-              마이페이지
-            </Link>
-          </div>
+            마이페이지
+          </Link>
         </section>
+
+        {(params.success || params.error || params.welcome) && (
+          <section
+            style={{
+              marginTop: 18,
+              borderRadius: 24,
+              padding: '16px 18px',
+              background: params.error ? '#fff7ed' : '#f5efe4',
+              border: params.error
+                ? '1px solid #fed7aa'
+                : '1px solid #eadfcf',
+              color: params.error ? '#9a3412' : '#6b5b4b',
+              fontSize: 14,
+              lineHeight: 1.7,
+            }}
+          >
+            {params.error
+              ? decodeURIComponent(params.error)
+              : params.success
+                ? decodeURIComponent(params.success)
+                : '소셜 로그인 정보가 연결되었습니다. 비어 있는 항목을 확인하고 저장해주세요.'}
+          </section>
+        )}
 
         <section
           style={{
+            marginTop: 18,
             background: '#ffffff',
             border: '1px solid #eadfcf',
-            borderRadius: 24,
-            padding: 24,
+            borderRadius: 32,
+            padding: 22,
           }}
         >
-          {error ? (
-            <div style={errorBoxStyle}>{decodeURIComponent(error)}</div>
-          ) : null}
+          <form action={updateAccountAction}>
+            <div style={{ display: 'grid', gap: 18 }}>
+              <Field label="이름">
+                <input
+                  name="full_name"
+                  defaultValue={fullName}
+                  placeholder="이름을 입력하세요"
+                  style={inputStyle}
+                />
+              </Field>
 
-          {success ? (
-            <div style={successBoxStyle}>{decodeURIComponent(success)}</div>
-          ) : null}
+              <Field label="아이디">
+                <input
+                  name="username"
+                  defaultValue={username}
+                  placeholder="아이디를 입력하세요"
+                  style={inputStyle}
+                />
+              </Field>
 
-          <form action={updateAccountAction} style={{ display: 'grid', gap: 16 }}>
-            <Field label="이름">
-              <input
-                name="full_name"
-                defaultValue={profile?.full_name || ''}
-                required
-                style={inputStyle}
-              />
-            </Field>
+              <Field label="이메일">
+                <input
+                  value={email}
+                  readOnly
+                  disabled
+                  style={{
+                    ...inputStyle,
+                    background: '#f4ede2',
+                    color: '#7a6958',
+                  }}
+                />
+              </Field>
 
-            <Field label="아이디">
-              <input
-                name="username"
-                defaultValue={profile?.username || ''}
-                required
-                style={inputStyle}
-              />
-            </Field>
+              <Field label="연락처">
+                <input
+                  name="phone_number"
+                  defaultValue={phoneNumber}
+                  placeholder="연락처를 입력하세요"
+                  style={inputStyle}
+                />
+              </Field>
 
-            <Field label="이메일">
-              <input
-                value={profile?.email || user.email || ''}
-                disabled
-                style={{ ...inputStyle, background: '#f5efe6', color: '#7a6a55' }}
-              />
-            </Field>
+              <Field label="성별">
+                <select
+                  name="gender"
+                  defaultValue={gender}
+                  style={inputStyle}
+                >
+                  <option value="">선택 안 함</option>
+                  <option value="male">남성</option>
+                  <option value="female">여성</option>
+                </select>
+              </Field>
 
-            <Field label="연락처">
-              <input
-                name="phone_number"
-                defaultValue={profile?.phone_number || ''}
-                style={inputStyle}
-              />
-            </Field>
-
-            <Field label="성별">
-              <select
-                name="gender"
-                defaultValue={profile?.gender || ''}
-                style={inputStyle}
+              <button
+                type="submit"
+                style={{
+                  height: 52,
+                  border: 'none',
+                  borderRadius: 16,
+                  background: '#2f2417',
+                  color: '#fffdf8',
+                  fontSize: 16,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
               >
-                <option value="">선택 안 함</option>
-                <option value="male">남성</option>
-                <option value="female">여성</option>
-                <option value="other">기타</option>
-              </select>
-            </Field>
-
-            <button type="submit" style={primaryButtonStyle}>
-              저장하기
-            </button>
+                저장하기
+              </button>
+            </div>
           </form>
         </section>
       </div>
@@ -194,7 +290,7 @@ function Field({
       <span
         style={{
           fontSize: 14,
-          fontWeight: 800,
+          fontWeight: 700,
           color: '#2f2417',
         }}
       >
@@ -207,61 +303,13 @@ function Field({
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  minHeight: 52,
+  height: 46,
   borderRadius: 14,
-  border: '1px solid #ddcfba',
+  border: '1px solid #dbcbb5',
   background: '#fffdf9',
   padding: '0 14px',
   fontSize: 15,
-  color: '#241b11',
+  color: '#20170f',
   outline: 'none',
   boxSizing: 'border-box',
-}
-
-const primaryButtonStyle: React.CSSProperties = {
-  width: '100%',
-  minHeight: 54,
-  border: 'none',
-  borderRadius: 14,
-  background: '#2f2417',
-  color: '#ffffff',
-  fontSize: 15,
-  fontWeight: 800,
-  cursor: 'pointer',
-}
-
-const secondaryButtonStyle: React.CSSProperties = {
-  textDecoration: 'none',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 44,
-  padding: '0 16px',
-  borderRadius: 12,
-  background: '#eadfcf',
-  color: '#2f2417',
-  fontSize: 14,
-  fontWeight: 800,
-}
-
-const errorBoxStyle: React.CSSProperties = {
-  marginBottom: 16,
-  padding: '14px 16px',
-  borderRadius: 14,
-  background: '#fff4f2',
-  border: '1px solid #f1d0c8',
-  color: '#9a3f2d',
-  fontSize: 14,
-  fontWeight: 700,
-}
-
-const successBoxStyle: React.CSSProperties = {
-  marginBottom: 16,
-  padding: '14px 16px',
-  borderRadius: 14,
-  background: '#f4fbf4',
-  border: '1px solid #d5ead5',
-  color: '#2f6b3d',
-  fontSize: 14,
-  fontWeight: 700,
 }

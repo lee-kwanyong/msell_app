@@ -56,18 +56,6 @@ export default async function MobileLoginPage({ searchParams }: PageProps) {
           >
             간편 로그인
           </h1>
-
-          <p
-            style={{
-              margin: '10px 0 0',
-              fontSize: 14,
-              lineHeight: 1.6,
-              color: '#6b5b4b',
-            }}
-          >
-            모바일에서도 구글, 네이버, 카카오 로그인을 바로 사용할 수 있게
-            정리했습니다.
-          </p>
         </div>
 
         <div
