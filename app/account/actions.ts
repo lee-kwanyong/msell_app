@@ -36,7 +36,6 @@ export async function updateAccountAction(formData: FormData) {
   const usernameRaw = normalizeText(formData.get('username'))
   const username = normalizeUsername(usernameRaw)
   const phoneNumber = normalizeText(formData.get('phone_number'))
-  const gender = normalizeText(formData.get('gender'))
 
   if (username && username.length < 2) {
     redirect('/account?error=' + encodeURIComponent('사용자명은 2자 이상이어야 합니다.'))
@@ -48,7 +47,6 @@ export async function updateAccountAction(formData: FormData) {
     full_name: fullName,
     username,
     phone_number: phoneNumber,
-    gender,
   }
 
   const { error } = await supabase

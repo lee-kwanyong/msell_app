@@ -51,12 +51,6 @@ function makeUsernameCandidate(email: string, fullName: string, fallback: string
   return normalized || fallback
 }
 
-function mapNaverGender(value: string) {
-  if (value === 'M') return 'male'
-  if (value === 'F') return 'female'
-  return null
-}
-
 async function fetchNaverProfile(accessToken: string) {
   const response = await fetch('https://openapi.naver.com/v1/nid/me', {
     method: 'GET',
@@ -203,11 +197,6 @@ export async function GET(request: Request) {
     identityData?.phone_number
   )
 
-  const gender = firstString(
-    mapNaverGender(firstString(naverProfile?.gender)),
-    metadata.gender
-  )
-
   const fallbackUsername = `user_${user.id.slice(0, 8)}`
   const finalUsername = username
     ? makeUsernameCandidate(username, fullName, fallbackUsername)
@@ -219,7 +208,6 @@ export async function GET(request: Request) {
     full_name: fullName || null,
     username: finalUsername || null,
     phone_number: phoneNumber || null,
-    gender: gender || null,
   }
 
   if (avatarUrl) {
