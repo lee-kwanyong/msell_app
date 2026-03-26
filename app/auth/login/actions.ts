@@ -3,7 +3,12 @@
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 
-function safeNextPath(input: string | null | undefined) {
+function text(formData: FormData, key: string) {
+  const value = formData.get(key)
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function safeNextPath(input: string) {
   if (!input) return '/'
   if (!input.startsWith('/')) return '/'
   if (input.startsWith('//')) return '/'
@@ -11,19 +16,19 @@ function safeNextPath(input: string | null | undefined) {
 }
 
 export async function loginAction(formData: FormData) {
-  const email = String(formData.get('email') || '').trim().toLowerCase()
-  const password = String(formData.get('password') || '')
-  const next = safeNextPath(String(formData.get('next') || '/'))
+  const supabase = await supabaseServer()
 
-  if (!email || !password) {
-    redirect(
-      `/auth/login?error=${encodeURIComponent(
-        '이메일과 비밀번호를 입력해 주세요.'
-      )}&next=${encodeURIComponent(next)}`
-    )
+  const email = text(formData, 'email').toLowerCase()
+  const password = text(formData, 'password')
+  const next = safeNextPath(text(formData, 'next'))
+
+  if (!email) {
+    redirect(`/auth/login?error=${encodeURIComponent('이메일을 입력해주세요.')}&next=${encodeURIComponent(next)}`)
   }
 
-  const supabase = await supabaseServer()
+  if (!password) {
+    redirect(`/auth/login?error=${encodeURIComponent('비밀번호를 입력해주세요.')}&next=${encodeURIComponent(next)}`)
+  }
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -32,11 +37,9 @@ export async function loginAction(formData: FormData) {
 
   if (error) {
     redirect(
-      `/auth/login?error=${encodeURIComponent(
-        '로그인에 실패했습니다. 이메일 또는 비밀번호를 확인해 주세요.'
-      )}&next=${encodeURIComponent(next)}`
+      `/auth/login?error=${encodeURIComponent(error.message || '이메일 로그인에 실패했습니다.')}&next=${encodeURIComponent(next)}`
     )
   }
 
-  redirect(next)
+  redirect(next || '/')
 }

@@ -23,6 +23,22 @@ function getInitial(text: string) {
   return (text || 'U').slice(0, 1).toUpperCase()
 }
 
+function getProviderLabel(provider?: string | null) {
+  switch (provider) {
+    case 'google':
+      return 'Google 로그인'
+    case 'kakao':
+      return 'Kakao 로그인'
+    case 'naver':
+    case 'custom:naver':
+      return 'Naver 로그인'
+    case 'email':
+      return '이메일 로그인'
+    default:
+      return '로그인'
+  }
+}
+
 export default async function Header() {
   const supabase = await supabaseServer()
 
@@ -52,10 +68,7 @@ export default async function Header() {
     user?.email?.split('@')[0]
   )
 
-  const displayEmail = firstString(
-    profile?.email,
-    user?.email
-  )
+  const displayEmail = firstString(profile?.email, user?.email)
 
   const avatarUrl = firstString(
     profile?.avatar_url,
@@ -68,6 +81,7 @@ export default async function Header() {
     user?.user_metadata?.provider
   )
 
+  const providerLabel = getProviderLabel(provider)
   const isAdmin = profile?.role === 'admin'
 
   return (
@@ -179,7 +193,7 @@ export default async function Header() {
                     borderRadius: 999,
                     padding: '8px 12px 8px 8px',
                     minWidth: 0,
-                    maxWidth: 320,
+                    maxWidth: 340,
                   }}
                 >
                   <div
@@ -217,6 +231,7 @@ export default async function Header() {
                     style={{
                       minWidth: 0,
                       display: 'grid',
+                      gap: 2,
                     }}
                   >
                     <span
@@ -242,8 +257,19 @@ export default async function Header() {
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {provider ? `${provider} · ` : ''}
-                      {displayEmail || ''}
+                      {providerLabel}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: '#8a7458',
+                        lineHeight: 1.2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      연결 이메일: {displayEmail || '없음'}
                     </span>
                   </div>
                 </div>
@@ -279,7 +305,7 @@ export default async function Header() {
 
         @media (max-width: 640px) {
           .msell-header-user a[href="/account"] > div {
-            max-width: 180px !important;
+            max-width: 200px !important;
           }
         }
       `}</style>

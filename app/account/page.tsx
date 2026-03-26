@@ -58,16 +58,16 @@ function getRoleLabel(role?: string | null) {
 function getProviderLabel(provider?: string | null) {
   switch (provider) {
     case 'google':
-      return 'Google'
+      return 'Google 로그인'
     case 'kakao':
-      return 'Kakao'
+      return 'Kakao 로그인'
     case 'naver':
     case 'custom:naver':
-      return 'Naver'
+      return 'Naver 로그인'
     case 'email':
-      return 'Email'
+      return '이메일 로그인'
     default:
-      return provider || '-'
+      return '알 수 없음'
   }
 }
 
@@ -142,36 +142,6 @@ function Field({
         placeholder={placeholder}
         style={inputStyle}
       />
-    </label>
-  )
-}
-
-function SelectField({
-  label,
-  name,
-  defaultValue,
-}: {
-  label: string
-  name: string
-  defaultValue?: string
-}) {
-  return (
-    <label style={{ display: 'grid', gap: 8 }}>
-      <span
-        style={{
-          fontSize: 13,
-          color: '#7a654d',
-          fontWeight: 800,
-        }}
-      >
-        {label}
-      </span>
-      <select name={name} defaultValue={defaultValue || ''} style={inputStyle}>
-        <option value="">선택 안 함</option>
-        <option value="male">남성</option>
-        <option value="female">여성</option>
-        <option value="other">기타</option>
-      </select>
     </label>
   )
 }
@@ -252,6 +222,8 @@ export default async function AccountPage({
     metadata.picture
   )
 
+  const providerLabel = getProviderLabel(provider)
+
   return (
     <main
       style={{
@@ -322,7 +294,7 @@ export default async function AccountPage({
                 maxWidth: 720,
               }}
             >
-              소셜 로그인 이후 동기화된 값을 확인하고, 필요한 항목은 직접 수정해서 저장할 수 있습니다.
+              로그인 방식과 연결 이메일은 서로 다른 값입니다. 네이버 로그인이라도 연결 이메일은 Gmail일 수 있습니다.
             </p>
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -399,7 +371,7 @@ export default async function AccountPage({
                     wordBreak: 'break-word',
                   }}
                 >
-                  {email || '이메일 없음'}
+                  연결 이메일: {email || '없음'}
                 </div>
               </div>
             </div>
@@ -411,7 +383,7 @@ export default async function AccountPage({
                 gap: 10,
               }}
             >
-              <MiniStat label="로그인 방식" value={getProviderLabel(provider)} />
+              <MiniStat label="로그인 방식" value={providerLabel} />
               <MiniStat label="권한" value={getRoleLabel(profile?.role)} />
               <MiniStat label="계정 상태" value={profile?.is_banned ? '정지' : '정상'} />
               <MiniStat label="가입 시각" value={formatDate(user.created_at)} />
@@ -461,7 +433,8 @@ export default async function AccountPage({
         >
           <InfoCard label="이름" value={fullName || '-'} />
           <InfoCard label="닉네임 / 사용자명" value={username || '-'} />
-          <InfoCard label="이메일" value={email || '-'} />
+          <InfoCard label="로그인 방식" value={providerLabel} />
+          <InfoCard label="연결 이메일" value={email || '-'} />
           <InfoCard label="연락처" value={phoneNumber || '-'} />
           <InfoCard label="성별" value={gender || '-'} />
           <InfoCard label="프로필 생성일" value={formatDate(profile?.created_at)} />
@@ -498,7 +471,7 @@ export default async function AccountPage({
                 lineHeight: 1.7,
               }}
             >
-              소셜 로그인으로 들어온 값이 비어 있거나 어색하면 여기서 직접 수정해 저장하면 됩니다.
+              아래 정보는 서비스 내 프로필 값입니다. 로그인 방식 자체는 여기서 바뀌지 않습니다.
             </p>
           </div>
 
@@ -532,10 +505,11 @@ export default async function AccountPage({
                 placeholder="연락처를 입력하세요"
               />
 
-              <SelectField
-                label="성별"
-                name="gender"
-                defaultValue={gender}
+              <Field
+                label="로그인 방식"
+                name="provider_readonly"
+                defaultValue={providerLabel}
+                placeholder=""
               />
             </div>
 
@@ -556,7 +530,7 @@ export default async function AccountPage({
                   fontWeight: 800,
                 }}
               >
-                로그인 이메일
+                연결 이메일
               </div>
               <div
                 style={{
@@ -575,7 +549,7 @@ export default async function AccountPage({
                   lineHeight: 1.6,
                 }}
               >
-                이메일은 현재 로그인 계정 기준으로 표시되며 여기서는 수정하지 않습니다.
+                이 이메일은 로그인 제공자에서 전달된 연결 이메일입니다. 네이버 로그인이라도 Gmail 주소일 수 있습니다.
               </div>
             </div>
 
