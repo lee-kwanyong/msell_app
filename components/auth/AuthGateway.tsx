@@ -18,7 +18,8 @@ const PROVIDER_LABEL: Record<ProviderKey, string> = {
   kakao: '카카오로 계속하기',
 }
 
-const NAVER_PROVIDER_ID = 'custom:naver'
+const NAVER_PROVIDER_ID =
+  process.env.NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID || 'custom:msell'
 
 export default function AuthGateway({
   mode = 'login',
