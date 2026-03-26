@@ -14,13 +14,19 @@ export async function GET(request: NextRequest) {
   if (error) {
     const message = encodeURIComponent(errorDescription || error)
     return NextResponse.redirect(
-      new URL(`${loginPath}?error=${message}&next=${encodeURIComponent(next)}`, requestUrl.origin)
+      new URL(
+        `${loginPath}?error=${message}&next=${encodeURIComponent(next)}`,
+        requestUrl.origin
+      )
     )
   }
 
   if (!code) {
     return NextResponse.redirect(
-      new URL(`${loginPath}?error=${encodeURIComponent('missing_code')}&next=${encodeURIComponent(next)}`, requestUrl.origin)
+      new URL(
+        `${loginPath}?error=${encodeURIComponent('missing_code')}&next=${encodeURIComponent(next)}`,
+        requestUrl.origin
+      )
     )
   }
 
@@ -28,9 +34,14 @@ export async function GET(request: NextRequest) {
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
   if (exchangeError) {
-    const message = encodeURIComponent(exchangeError.message || 'oauth_callback_failed')
+    const message = encodeURIComponent(
+      exchangeError.message || 'oauth_callback_failed'
+    )
     return NextResponse.redirect(
-      new URL(`${signupPath}?error=${message}&next=${encodeURIComponent(next)}`, requestUrl.origin)
+      new URL(
+        `${signupPath}?error=${message}&next=${encodeURIComponent(next)}`,
+        requestUrl.origin
+      )
     )
   }
 
