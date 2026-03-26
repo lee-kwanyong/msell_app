@@ -1,216 +1,135 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase/client'
 
 type AuthGatewayProps = {
-  mode?: 'login' | 'signup'
-  mobile?: boolean
+  next?: string
 }
 
-type ProviderKey = 'google' | 'naver' | 'kakao'
-type BuiltInOAuthProvider = 'google' | 'kakao'
-
-const PROVIDER_LABEL: Record<ProviderKey, string> = {
-  google: 'Google로 계속하기',
-  naver: '네이버로 계속하기',
-  kakao: '카카오로 계속하기',
+function safeNextPath(input?: string) {
+  if (!input) return '/'
+  if (!input.startsWith('/')) return '/'
+  if (input.startsWith('//')) return '/'
+  return input
 }
 
-const NAVER_PROVIDER_ID = 'custom:naver'
-
-export default function AuthGateway({
-  mode = 'login',
-  mobile = false,
-}: AuthGatewayProps) {
-  const searchParams = useSearchParams()
-  const next = searchParams.get('next') || (mobile ? '/m' : '/')
-  const errorText = searchParams.get('error')
-  const [loadingProvider, setLoadingProvider] = useState<ProviderKey | null>(null)
-
-  const supabase = useMemo(() => supabaseBrowser(), [])
-
-  const oauthCallbackUrl = useMemo(() => {
-    if (typeof window === 'undefined') return ''
-    const url = new URL('/auth/callback', window.location.origin)
-    url.searchParams.set('next', next)
-    return url.toString()
-  }, [next])
-
-  async function startBuiltInOAuth(provider: BuiltInOAuthProvider) {
-    return supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: oauthCallbackUrl,
-        queryParams:
-          provider === 'kakao'
-            ? {
-                prompt: 'login',
-              }
-            : undefined,
-      },
-    })
+function providerLabel(provider: 'google' | 'custom:naver' | 'kakao') {
+  switch (provider) {
+    case 'google':
+      return 'Google'
+    case 'custom:naver':
+      return 'Naver'
+    case 'kakao':
+      return 'Kakao'
+    default:
+      return '로그인'
   }
+}
 
-  async function startCustomOAuth(providerId: string) {
-    return supabase.auth.signInWithOAuth({
-      provider: providerId as never,
-      options: {
-        redirectTo: oauthCallbackUrl,
-      },
-    })
-  }
+export default function AuthGateway({ next }: AuthGatewayProps) {
+  const router = useRouter()
+  const supabase = supabaseBrowser()
+  const [loadingProvider, setLoadingProvider] = useState<string>('')
 
-  async function handleOAuth(provider: ProviderKey) {
+  const redirectTo =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNextPath(next))}`
+      : undefined
+
+  async function handleOAuthLogin(provider: 'google' | 'custom:naver' | 'kakao') {
     try {
       setLoadingProvider(provider)
 
-      const result =
-        provider === 'naver'
-          ? await startCustomOAuth(NAVER_PROVIDER_ID)
-          : await startBuiltInOAuth(provider)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo,
+        },
+      })
 
-      if (result.error) {
-        const message = encodeURIComponent(
-          result.error.message || 'oauth_start_failed'
-        )
-        window.location.href = `${mobile ? '/m' : ''}/auth/${mode}?error=${message}&next=${encodeURIComponent(next)}`
+      if (error) {
+        router.push(`/auth/login?error=${encodeURIComponent(error.message || `${providerLabel(provider)} 로그인에 실패했습니다.`)}&next=${encodeURIComponent(safeNextPath(next))}`)
         return
       }
-    } catch (err) {
+    } catch (error) {
       const message =
-        err instanceof Error ? err.message : 'unexpected_oauth_error'
-      window.location.href = `${mobile ? '/m' : ''}/auth/${mode}?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`
+        error instanceof Error ? error.message : '소셜 로그인 처리 중 오류가 발생했습니다.'
+      router.push(`/auth/login?error=${encodeURIComponent(message)}&next=${encodeURIComponent(safeNextPath(next))}`)
     } finally {
-      setLoadingProvider(null)
+      setLoadingProvider('')
     }
   }
 
   return (
-    <div
-      style={{
-        width: '100%',
-        display: 'grid',
-        gap: 12,
-      }}
-    >
-      <div
+    <div style={{ display: 'grid', gap: 10 }}>
+      <button
+        type="button"
+        onClick={() => handleOAuthLogin('google')}
+        disabled={!!loadingProvider}
         style={{
-          display: 'grid',
-          gap: 10,
+          ...socialButtonStyle,
+          background: '#ffffff',
+          color: '#241b11',
+          border: '1px solid #d9d2c7',
         }}
       >
-        <SocialButton
-          brand="google"
-          text={PROVIDER_LABEL.google}
-          loading={loadingProvider === 'google'}
-          onClick={() => handleOAuth('google')}
-        />
-        <SocialButton
-          brand="naver"
-          text={PROVIDER_LABEL.naver}
-          loading={loadingProvider === 'naver'}
-          onClick={() => handleOAuth('naver')}
-        />
-        <SocialButton
-          brand="kakao"
-          text={PROVIDER_LABEL.kakao}
-          loading={loadingProvider === 'kakao'}
-          onClick={() => handleOAuth('kakao')}
-        />
-      </div>
+        <span style={iconStyle}>G</span>
+        <span>{loadingProvider === 'google' ? '이동 중...' : 'Google로 계속하기'}</span>
+      </button>
 
-      {errorText ? (
-        <div
-          style={{
-            borderRadius: 14,
-            padding: '12px 14px',
-            background: '#fff7ed',
-            border: '1px solid #fed7aa',
-            color: '#9a3412',
-            fontSize: 13,
-            lineHeight: 1.5,
-            wordBreak: 'break-word',
-          }}
-        >
-          {decodeURIComponent(errorText)}
-        </div>
-      ) : null}
+      <button
+        type="button"
+        onClick={() => handleOAuthLogin('custom:naver')}
+        disabled={!!loadingProvider}
+        style={{
+          ...socialButtonStyle,
+          background: '#03c75a',
+          color: '#ffffff',
+          border: '1px solid #03c75a',
+        }}
+      >
+        <span style={iconStyle}>N</span>
+        <span>{loadingProvider === 'custom:naver' ? '이동 중...' : '네이버로 계속하기'}</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleOAuthLogin('kakao')}
+        disabled={!!loadingProvider}
+        style={{
+          ...socialButtonStyle,
+          background: '#fee500',
+          color: '#241b11',
+          border: '1px solid #e8cf00',
+        }}
+      >
+        <span style={iconStyle}>K</span>
+        <span>{loadingProvider === 'kakao' ? '이동 중...' : '카카오로 계속하기'}</span>
+      </button>
     </div>
   )
 }
 
-function SocialButton({
-  brand,
-  text,
-  loading,
-  onClick,
-}: {
-  brand: ProviderKey
-  text: string
-  loading?: boolean
-  onClick: () => void
-}) {
-  const styles = getBrandStyle(brand)
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={loading}
-      style={{
-        width: '100%',
-        height: 54,
-        borderRadius: 16,
-        border: styles.border,
-        background: styles.background,
-        color: styles.color,
-        fontSize: 15,
-        fontWeight: 700,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        cursor: loading ? 'default' : 'pointer',
-        transition: 'all 0.15s ease',
-        opacity: loading ? 0.7 : 1,
-      }}
-    >
-      <span
-        style={{
-          display: 'inline-flex',
-          width: 22,
-          justifyContent: 'center',
-          fontWeight: 800,
-        }}
-      >
-        {brand === 'google' ? 'G' : brand === 'naver' ? 'N' : 'K'}
-      </span>
-      <span>{loading ? '이동 중...' : text}</span>
-    </button>
-  )
+const socialButtonStyle: React.CSSProperties = {
+  height: 54,
+  borderRadius: 16,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 10,
+  fontSize: 15,
+  fontWeight: 800,
+  cursor: 'pointer',
+  width: '100%',
 }
 
-function getBrandStyle(brand: ProviderKey) {
-  switch (brand) {
-    case 'google':
-      return {
-        background: '#ffffff',
-        color: '#1f2937',
-        border: '1px solid #d1d5db',
-      }
-    case 'naver':
-      return {
-        background: '#03c75a',
-        color: '#ffffff',
-        border: '1px solid #03c75a',
-      }
-    case 'kakao':
-      return {
-        background: '#fee500',
-        color: '#191919',
-        border: '1px solid #f2d600',
-      }
-  }
+const iconStyle: React.CSSProperties = {
+  width: 18,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontWeight: 900,
+  flexShrink: 0,
 }
