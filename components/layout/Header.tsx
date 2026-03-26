@@ -1,170 +1,314 @@
-import Link from "next/link";
+import Link from 'next/link'
+import { supabaseServer } from '@/lib/supabase/server'
 
-export default function Header() {
-  return (
-    <header style={header}>
-      <div style={inner}>
-        <Link href="/" style={brandLink}>
-          <div style={markWrap}>
-            <div style={markShadow} />
-            <div style={mark}>M</div>
-          </div>
-
-          <div style={brandTextWrap}>
-            <div style={brandTitle}>Msell</div>
-            <div style={brandSub}>Digital Asset Marketplace</div>
-          </div>
-        </Link>
-
-        <nav style={nav}>
-          <Link href="/listings" className="msell-nav-pill" style={navLink}>
-            거래목록
-          </Link>
-          <Link
-            href="/listings/create"
-            className="msell-nav-pill"
-            style={navLink}
-          >
-            등록하기
-          </Link>
-          <Link
-            href="/my/listings"
-            className="msell-nav-pill"
-            style={navLink}
-          >
-            내 자산
-          </Link>
-          <Link href="/my/deals" className="msell-nav-pill" style={navLink}>
-            내 거래
-          </Link>
-          <Link href="/account" className="msell-nav-pill" style={navLink}>
-            계정
-          </Link>
-
-          <form action="/auth/logout" method="post" style={{ margin: 0 }}>
-            <button
-              type="submit"
-              className="msell-dark-pill"
-              style={logoutButton}
-            >
-              로그아웃
-            </button>
-          </form>
-        </nav>
-      </div>
-    </header>
-  );
+type ProfileRow = {
+  id?: string | null
+  email?: string | null
+  full_name?: string | null
+  username?: string | null
+  avatar_url?: string | null
+  role?: string | null
 }
 
-const header: React.CSSProperties = {
-  position: "sticky",
-  top: 0,
-  zIndex: 50,
-  background: "rgba(246, 241, 231, 0.9)",
-  backdropFilter: "blur(12px)",
-  borderBottom: "1px solid #e8ddcd",
-};
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim()
+    }
+  }
+  return ''
+}
 
-const inner: React.CSSProperties = {
-  maxWidth: 1480,
-  margin: "0 auto",
-  padding: "18px 32px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 20,
-};
+function getInitial(text: string) {
+  return (text || 'U').slice(0, 1).toUpperCase()
+}
 
-const brandLink: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 14,
-  textDecoration: "none",
-};
+export default async function Header() {
+  const supabase = await supabaseServer()
 
-const markWrap: React.CSSProperties = {
-  position: "relative",
-  width: 54,
-  height: 54,
-};
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-const markShadow: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  borderRadius: 18,
-  background: "rgba(47,36,23,0.12)",
-  transform: "translateY(4px) scale(0.96)",
-  filter: "blur(8px)",
-};
+  let profile: ProfileRow | null = null
 
-const mark: React.CSSProperties = {
-  position: "relative",
-  width: 54,
-  height: 54,
-  borderRadius: 18,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background:
-    "linear-gradient(135deg, #2f2417 0%, #4a3823 55%, #2f2417 100%)",
-  color: "#f6f1e7",
-  fontSize: 28,
-  fontWeight: 900,
-  boxShadow: "0 12px 24px rgba(47,36,23,0.18)",
-};
+  if (user) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, username, avatar_url, role')
+      .eq('id', user.id)
+      .maybeSingle()
 
-const brandTextWrap: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 2,
-};
+    profile = (data as ProfileRow | null) ?? null
+  }
 
-const brandTitle: React.CSSProperties = {
-  fontSize: 22,
-  lineHeight: 1,
-  fontWeight: 900,
-  color: "#2f2417",
-};
+  const displayName = firstString(
+    profile?.full_name,
+    profile?.username,
+    user?.user_metadata?.full_name,
+    user?.user_metadata?.name,
+    user?.user_metadata?.nickname,
+    user?.user_metadata?.preferred_username,
+    user?.email?.split('@')[0]
+  )
 
-const brandSub: React.CSSProperties = {
-  fontSize: 11,
-  lineHeight: 1.2,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "#8a6f4d",
-  fontWeight: 800,
-};
+  const displayEmail = firstString(
+    profile?.email,
+    user?.email
+  )
 
-const nav: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: 10,
-};
+  const avatarUrl = firstString(
+    profile?.avatar_url,
+    user?.user_metadata?.avatar_url,
+    user?.user_metadata?.picture
+  )
 
-const navLink: React.CSSProperties = {
-  textDecoration: "none",
-  color: "#2f2417",
-  fontSize: 14,
-  fontWeight: 800,
-  padding: "12px 18px",
+  const isAdmin = profile?.role === 'admin'
+
+  return (
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        backdropFilter: 'blur(14px)',
+        background: 'rgba(246, 241, 231, 0.86)',
+        borderBottom: '1px solid #eadfcf',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            minWidth: 0,
+            flex: 1,
+          }}
+        >
+          <Link
+            href="/"
+            style={{
+              textDecoration: 'none',
+              color: '#241b11',
+              fontWeight: 900,
+              fontSize: 22,
+              letterSpacing: '-0.03em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Msell
+          </Link>
+
+          <nav
+            className="msell-header-nav"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Link href="/" style={navButtonStyle}>
+              홈
+            </Link>
+            <Link href="/listings" style={navButtonStyle}>
+              거래목록
+            </Link>
+            {user ? (
+              <>
+                <Link href="/my/listings" style={navButtonStyle}>
+                  내 매물
+                </Link>
+                <Link href="/my/deals" style={navButtonStyle}>
+                  내 거래
+                </Link>
+                <Link href="/account" style={navButtonStyle}>
+                  계정
+                </Link>
+                {isAdmin ? (
+                  <Link href="/admin" style={navButtonStyle}>
+                    관리자
+                  </Link>
+                ) : null}
+              </>
+            ) : null}
+          </nav>
+        </div>
+
+        <div
+          className="msell-header-user"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            flexShrink: 0,
+          }}
+        >
+          {user ? (
+            <>
+              <Link
+                href="/account"
+                style={{
+                  textDecoration: 'none',
+                  color: '#2f2417',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    background: '#fffaf2',
+                    border: '1px solid #ddcfba',
+                    borderRadius: 999,
+                    padding: '8px 12px 8px 8px',
+                    minWidth: 0,
+                    maxWidth: 280,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      background: '#2f2417',
+                      color: '#ffffff',
+                      display: 'grid',
+                      placeItems: 'center',
+                      fontWeight: 900,
+                      fontSize: 14,
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl}
+                        alt="프로필"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      getInitial(displayName || displayEmail || 'U')
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      minWidth: 0,
+                      display: 'grid',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 900,
+                        color: '#241b11',
+                        lineHeight: 1.2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {displayName || '회원'}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: '#8a7458',
+                        lineHeight: 1.2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {displayEmail || ''}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+
+              <Link href="/auth/logout" style={primaryButtonStyle}>
+                로그아웃
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login" style={navButtonStyle}>
+                로그인
+              </Link>
+              <Link href="/auth/signup" style={primaryButtonStyle}>
+                회원가입
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 980px) {
+          .msell-header-nav {
+            display: none !important;
+          }
+
+          .msell-header-user {
+            gap: 8px !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .msell-header-user a[href="/account"] > div {
+            max-width: 180px !important;
+          }
+        }
+      `}</style>
+    </header>
+  )
+}
+
+const navButtonStyle: React.CSSProperties = {
+  height: 40,
+  padding: '0 14px',
   borderRadius: 999,
-  border: "1px solid #d9ccb8",
-  background: "rgba(255,255,255,0.7)",
-  boxShadow: "0 4px 10px rgba(47,36,23,0.03)",
-  transition: "all 0.18s ease",
-};
-
-const logoutButton: React.CSSProperties = {
-  border: "none",
-  background: "#2f2417",
-  color: "#f6f1e7",
-  fontSize: 14,
+  border: '1px solid #ddcfba',
+  background: '#fffaf2',
+  color: '#2f2417',
+  textDecoration: 'none',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: 13,
   fontWeight: 800,
-  padding: "12px 18px",
+  whiteSpace: 'nowrap',
+}
+
+const primaryButtonStyle: React.CSSProperties = {
+  height: 40,
+  padding: '0 14px',
   borderRadius: 999,
-  cursor: "pointer",
-  boxShadow: "0 8px 18px rgba(47,36,23,0.12)",
-  transition: "all 0.18s ease",
-};
+  border: '1px solid #2f2417',
+  background: '#2f2417',
+  color: '#ffffff',
+  textDecoration: 'none',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: 13,
+  fontWeight: 800,
+  whiteSpace: 'nowrap',
+}
