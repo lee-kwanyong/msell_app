@@ -83,14 +83,9 @@ export async function GET(request: Request) {
 
   const metadata = (user.user_metadata || {}) as Record<string, unknown>
   const identities = Array.isArray(user.identities) ? user.identities : []
-
   const identityData = identities.find(Boolean)?.identity_data as Record<string, unknown> | undefined
 
-  const email = firstString(
-    user.email,
-    metadata.email,
-    identityData?.email
-  )
+  const email = firstString(user.email, metadata.email, identityData?.email)
 
   const fullName = firstString(
     metadata.full_name,
@@ -125,12 +120,6 @@ export async function GET(request: Request) {
     identityData?.phone_number
   )
 
-  const provider = firstString(
-    user.app_metadata?.provider,
-    metadata.provider,
-    identityData?.provider
-  )
-
   const finalUsername = username || makeUsernameCandidate(email, fullName, user.id)
 
   const profilePayload: Record<string, unknown> = {
@@ -143,10 +132,6 @@ export async function GET(request: Request) {
 
   if (avatarUrl) {
     profilePayload.avatar_url = avatarUrl
-  }
-
-  if (provider) {
-    profilePayload.provider = provider
   }
 
   const { error: upsertError } = await supabase

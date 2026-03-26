@@ -16,7 +16,6 @@ type ProfileRow = {
   role?: string | null
   is_banned?: boolean | null
   avatar_url?: string | null
-  provider?: string | null
   created_at?: string | null
 }
 
@@ -217,11 +216,7 @@ export default async function AccountPage({
   const profile = (profileData as ProfileRow | null) ?? null
   const metadata = (user.user_metadata || {}) as Record<string, unknown>
 
-  const email = firstString(
-    profile?.email,
-    user.email,
-    metadata.email
-  )
+  const email = firstString(profile?.email, user.email, metadata.email)
 
   const fullName = firstString(
     profile?.full_name,
@@ -244,13 +239,9 @@ export default async function AccountPage({
     metadata.phone
   )
 
-  const gender = firstString(
-    profile?.gender,
-    metadata.gender
-  )
+  const gender = firstString(profile?.gender, metadata.gender)
 
   const provider = firstString(
-    profile?.provider,
     user.app_metadata?.provider,
     metadata.provider
   )

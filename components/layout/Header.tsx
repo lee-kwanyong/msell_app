@@ -63,6 +63,11 @@ export default async function Header() {
     user?.user_metadata?.picture
   )
 
+  const provider = firstString(
+    user?.app_metadata?.provider,
+    user?.user_metadata?.provider
+  )
+
   const isAdmin = profile?.role === 'admin'
 
   return (
@@ -174,7 +179,7 @@ export default async function Header() {
                     borderRadius: 999,
                     padding: '8px 12px 8px 8px',
                     minWidth: 0,
-                    maxWidth: 280,
+                    maxWidth: 320,
                   }}
                 >
                   <div
@@ -237,6 +242,7 @@ export default async function Header() {
                         textOverflow: 'ellipsis',
                       }}
                     >
+                      {provider ? `${provider} · ` : ''}
                       {displayEmail || ''}
                     </span>
                   </div>
