@@ -10,6 +10,7 @@ type AuthGatewayProps = {
 }
 
 type ProviderKey = 'google' | 'naver' | 'kakao'
+type BuiltInOAuthProvider = 'google' | 'kakao'
 
 const PROVIDER_LABEL: Record<ProviderKey, string> = {
   google: 'Google로 계속하기',
@@ -35,30 +36,45 @@ export default function AuthGateway({
     return url.toString()
   }, [next])
 
+  async function startBuiltInOAuth(provider: BuiltInOAuthProvider) {
+    return supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: oauthCallbackUrl,
+        queryParams:
+          provider === 'kakao'
+            ? {
+                prompt: 'login',
+              }
+            : undefined,
+      },
+    })
+  }
+
+  async function startCustomOAuth(providerId: string) {
+    return supabase.auth.signInWithOAuth({
+      provider: providerId as never,
+      options: {
+        redirectTo: oauthCallbackUrl,
+      },
+    })
+  }
+
   async function handleOAuth(provider: ProviderKey) {
     try {
       setLoadingProvider(provider)
 
-      const providerValue =
+      const result =
         provider === 'naver'
-          ? process.env.NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID || 'custom:naver'
-          : provider
+          ? await startCustomOAuth(
+              process.env.NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID || 'custom:naver'
+            )
+          : await startBuiltInOAuth(provider)
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: providerValue as any,
-        options: {
-          redirectTo: oauthCallbackUrl,
-          queryParams:
-            provider === 'kakao'
-              ? {
-                  prompt: 'login',
-                }
-              : undefined,
-        },
-      })
-
-      if (error) {
-        const message = encodeURIComponent(error.message || 'oauth_start_failed')
+      if (result.error) {
+        const message = encodeURIComponent(
+          result.error.message || 'oauth_start_failed'
+        )
         window.location.href = `${mobile ? '/m' : ''}/auth/${mode}?error=${message}&next=${encodeURIComponent(next)}`
         return
       }
@@ -131,7 +147,7 @@ function SocialButton({
   loading,
   onClick,
 }: {
-  brand: 'google' | 'naver' | 'kakao'
+  brand: ProviderKey
   text: string
   loading?: boolean
   onClick: () => void
@@ -176,7 +192,7 @@ function SocialButton({
   )
 }
 
-function getBrandStyle(brand: 'google' | 'naver' | 'kakao') {
+function getBrandStyle(brand: ProviderKey) {
   switch (brand) {
     case 'google':
       return {
