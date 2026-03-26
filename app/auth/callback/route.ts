@@ -3,6 +3,23 @@ import { supabaseServer } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
+type NaverProfileResponse = {
+  resultcode?: string
+  message?: string
+  response?: {
+    id?: string
+    nickname?: string
+    name?: string
+    email?: string
+    gender?: string
+    age?: string
+    birthday?: string
+    birthyear?: string
+    mobile?: string
+    profile_image?: string
+  }
+}
+
 function safeNextPath(input: string | null | undefined) {
   if (!input) return '/'
   if (!input.startsWith('/')) return '/'
@@ -19,14 +36,47 @@ function firstString(...values: unknown[]) {
   return ''
 }
 
-function makeUsernameCandidate(email: string, fullName: string, userId: string) {
-  const localPart = email.split('@')[0] || ''
-  const base = firstString(localPart, fullName, `user_${userId.slice(0, 8)}`)
+function normalizeUsername(value: string) {
+  return value
     .toLowerCase()
     .replace(/\s+/g, '')
     .replace(/[^a-z0-9_]/g, '')
+    .trim()
+}
 
-  return base || `user_${userId.slice(0, 8)}`
+function makeUsernameCandidate(email: string, fullName: string, fallback: string) {
+  const localPart = email.split('@')[0] || ''
+  const base = firstString(localPart, fullName, fallback)
+  const normalized = normalizeUsername(base)
+  return normalized || fallback
+}
+
+function mapNaverGender(value: string) {
+  if (value === 'M') return 'male'
+  if (value === 'F') return 'female'
+  return null
+}
+
+async function fetchNaverProfile(accessToken: string) {
+  const response = await fetch('https://openapi.naver.com/v1/nid/me', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: 'no-store',
+  })
+
+  if (!response.ok) {
+    return null
+  }
+
+  const json = (await response.json()) as NaverProfileResponse
+
+  if (json.resultcode !== '00' || !json.response) {
+    return null
+  }
+
+  return json.response
 }
 
 export async function GET(request: Request) {
@@ -54,7 +104,8 @@ export async function GET(request: Request) {
 
   const supabase = await supabaseServer()
 
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+  const { data: exchangeData, error: exchangeError } =
+    await supabase.auth.exchangeCodeForSession(code)
 
   if (exchangeError) {
     const loginUrl = new URL('/auth/login', origin)
@@ -85,9 +136,38 @@ export async function GET(request: Request) {
   const identities = Array.isArray(user.identities) ? user.identities : []
   const identityData = identities.find(Boolean)?.identity_data as Record<string, unknown> | undefined
 
-  const email = firstString(user.email, metadata.email, identityData?.email)
+  const provider = firstString(
+    user.app_metadata?.provider,
+    metadata.provider,
+    identityData?.provider
+  )
+
+  let naverProfile: NaverProfileResponse['response'] | null = null
+
+  if (provider === 'custom:naver' || provider === 'naver') {
+    const providerToken =
+      typeof exchangeData?.session?.provider_token === 'string'
+        ? exchangeData.session.provider_token
+        : ''
+
+    if (providerToken) {
+      try {
+        naverProfile = await fetchNaverProfile(providerToken)
+      } catch {
+        naverProfile = null
+      }
+    }
+  }
+
+  const email = firstString(
+    naverProfile?.email,
+    user.email,
+    metadata.email,
+    identityData?.email
+  )
 
   const fullName = firstString(
+    naverProfile?.name,
     metadata.full_name,
     metadata.name,
     metadata.nickname,
@@ -102,10 +182,12 @@ export async function GET(request: Request) {
     metadata.username,
     identityData?.user_name,
     identityData?.preferred_username,
-    identityData?.username
+    identityData?.username,
+    naverProfile?.nickname
   )
 
   const avatarUrl = firstString(
+    naverProfile?.profile_image,
     metadata.avatar_url,
     metadata.picture,
     identityData?.avatar_url,
@@ -113,6 +195,7 @@ export async function GET(request: Request) {
   )
 
   const phoneNumber = firstString(
+    naverProfile?.mobile,
     user.phone,
     metadata.phone,
     metadata.phone_number,
@@ -120,7 +203,15 @@ export async function GET(request: Request) {
     identityData?.phone_number
   )
 
-  const finalUsername = username || makeUsernameCandidate(email, fullName, user.id)
+  const gender = firstString(
+    mapNaverGender(firstString(naverProfile?.gender)),
+    metadata.gender
+  )
+
+  const fallbackUsername = `user_${user.id.slice(0, 8)}`
+  const finalUsername = username
+    ? makeUsernameCandidate(username, fullName, fallbackUsername)
+    : makeUsernameCandidate(email, fullName, fallbackUsername)
 
   const profilePayload: Record<string, unknown> = {
     id: user.id,
@@ -128,6 +219,7 @@ export async function GET(request: Request) {
     full_name: fullName || null,
     username: finalUsername || null,
     phone_number: phoneNumber || null,
+    gender: gender || null,
   }
 
   if (avatarUrl) {
@@ -148,5 +240,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(loginUrl, { status: 303 })
   }
 
-  return NextResponse.redirect(new URL(next, origin), { status: 303 })
+  return NextResponse.redirect(new URL('/account', origin), { status: 303 })
 }
