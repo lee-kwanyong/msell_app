@@ -1,164 +1,200 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase/client'
 
-type Props = {
-  next?: string
+type AuthGatewayProps = {
+  mode?: 'login' | 'signup'
+  mobile?: boolean
 }
 
-type LoadingType = null | 'google' | 'naver'
+type ProviderKey = 'google' | 'naver' | 'kakao'
 
-function safeNextPath(input: string | null | undefined) {
-  if (!input) return '/'
-  if (!input.startsWith('/')) return '/'
-  if (input.startsWith('//')) return '/'
-  return input
+const PROVIDER_LABEL: Record<ProviderKey, string> = {
+  google: 'Google로 계속하기',
+  naver: '네이버로 계속하기',
+  kakao: '카카오로 계속하기',
 }
 
-export default function AuthGateway({ next = '/' }: Props) {
+export default function AuthGateway({
+  mode = 'login',
+  mobile = false,
+}: AuthGatewayProps) {
+  const searchParams = useSearchParams()
+  const next = searchParams.get('next') || (mobile ? '/m' : '/')
+  const errorText = searchParams.get('error')
+  const [loadingProvider, setLoadingProvider] = useState<ProviderKey | null>(null)
+
   const supabase = useMemo(() => supabaseBrowser(), [])
-  const [loading, setLoading] = useState<LoadingType>(null)
-  const [error, setError] = useState('')
 
-  async function signInWithOAuth(type: LoadingType) {
-    if (!type) return
+  const oauthCallbackUrl = useMemo(() => {
+    if (typeof window === 'undefined') return ''
+    const url = new URL('/auth/callback', window.location.origin)
+    url.searchParams.set('next', next)
+    return url.toString()
+  }, [next])
 
+  async function handleOAuth(provider: ProviderKey) {
     try {
-      setError('')
-      setLoading(type)
+      setLoadingProvider(provider)
 
-      const safeNext = safeNextPath(next)
-      const origin = window.location.origin
-      const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`
+      const providerValue =
+        provider === 'naver'
+          ? (process.env.NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID || 'custom:naver')
+          : provider
 
-      const provider = type === 'google' ? 'google' : 'custom:naver'
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: providerValue as 'google' | 'kakao' | 'azure' | 'github' | 'custom',
         options: {
-          redirectTo,
-          skipBrowserRedirect: false,
+          redirectTo: oauthCallbackUrl,
+          queryParams:
+            provider === 'kakao'
+              ? {
+                  prompt: 'login',
+                }
+              : undefined,
         },
       })
 
       if (error) {
-        setError(readableOAuthError(error.message, type))
-        setLoading(null)
+        const message = encodeURIComponent(error.message || 'oauth_start_failed')
+        window.location.href = `${mobile ? '/m' : ''}/auth/${mode}?error=${message}&next=${encodeURIComponent(next)}`
         return
       }
-
-      if (!data?.url) {
-        setError(
-          type === 'google'
-            ? '구글 로그인 URL 생성에 실패했습니다.'
-            : '네이버 로그인 URL 생성에 실패했습니다.'
-        )
-        setLoading(null)
-        return
-      }
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : '소셜 로그인 중 오류가 발생했습니다.'
-      )
-      setLoading(null)
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'unexpected_oauth_error'
+      window.location.href = `${mobile ? '/m' : ''}/auth/${mode}?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`
+    } finally {
+      setLoadingProvider(null)
     }
   }
 
   return (
-    <section style={{ display: 'grid', gap: 12 }}>
-      <button
-        type="button"
-        onClick={() => signInWithOAuth('google')}
-        disabled={loading !== null}
-        style={socialButtonStyle}
+    <div
+      style={{
+        width: '100%',
+        display: 'grid',
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: 'grid',
+          gap: 10,
+        }}
       >
-        <span style={logoStyle}>G</span>
-        <span>{loading === 'google' ? '구글 연결 중...' : '구글로 로그인'}</span>
-      </button>
+        <SocialButton
+          brand="google"
+          text={PROVIDER_LABEL.google}
+          loading={loadingProvider === 'google'}
+          onClick={() => handleOAuth('google')}
+        />
+        <SocialButton
+          brand="naver"
+          text={PROVIDER_LABEL.naver}
+          loading={loadingProvider === 'naver'}
+          onClick={() => handleOAuth('naver')}
+        />
+        <SocialButton
+          brand="kakao"
+          text={PROVIDER_LABEL.kakao}
+          loading={loadingProvider === 'kakao'}
+          onClick={() => handleOAuth('kakao')}
+        />
+      </div>
 
-      <button
-        type="button"
-        onClick={() => signInWithOAuth('naver')}
-        disabled={loading !== null}
-        style={socialButtonStyle}
-      >
-        <span style={{ ...logoStyle, background: '#03C75A', color: '#ffffff' }}>N</span>
-        <span>{loading === 'naver' ? '네이버 연결 중...' : '네이버로 로그인'}</span>
-      </button>
-
-      {error ? (
+      {errorText ? (
         <div
           style={{
-            marginTop: 4,
             borderRadius: 14,
-            background: '#fff4f2',
-            border: '1px solid #f1d0c8',
-            color: '#9a3f2d',
-            fontSize: 14,
-            fontWeight: 700,
-            padding: '14px 16px',
-            lineHeight: 1.6,
-            whiteSpace: 'pre-wrap',
+            padding: '12px 14px',
+            background: '#fff7ed',
+            border: '1px solid #fed7aa',
+            color: '#9a3412',
+            fontSize: 13,
+            lineHeight: 1.5,
             wordBreak: 'break-word',
           }}
         >
-          {error}
+          {decodeURIComponent(errorText)}
         </div>
       ) : null}
-    </section>
+    </div>
   )
 }
 
-function readableOAuthError(message: string, provider: Exclude<LoadingType, null>) {
-  const providerLabel = provider === 'google' ? '구글' : '네이버'
-  const lower = message.toLowerCase()
+function SocialButton({
+  brand,
+  text,
+  loading,
+  onClick,
+}: {
+  brand: 'google' | 'naver' | 'kakao'
+  text: string
+  loading?: boolean
+  onClick: () => void
+}) {
+  const styles = getBrandStyle(brand)
 
-  if (lower.includes('provider is not enabled')) {
-    return `${providerLabel} 로그인 공급자가 Supabase에서 아직 정상 활성화되지 않았습니다.`
-  }
-
-  if (lower.includes('custom oauth providers are disabled')) {
-    return `네이버 커스텀 공급자 호출이 거부되었습니다. Supabase의 Custom Provider 설정을 다시 확인해 주세요.`
-  }
-
-  if (lower.includes('missing provider id')) {
-    return `네이버 공급자 식별자를 찾지 못했습니다. Supabase Custom Provider ID가 custom:naver로 정확히 연결되어 있는지 다시 확인해 주세요.`
-  }
-
-  if (lower.includes('redirect')) {
-    return `${providerLabel} 로그인 리디렉션 설정이 맞지 않습니다. Supabase와 네이버 개발자센터의 Callback URL을 다시 확인해 주세요.`
-  }
-
-  return message
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      style={{
+        width: '100%',
+        height: 54,
+        borderRadius: 16,
+        border: styles.border,
+        background: styles.background,
+        color: styles.color,
+        fontSize: 15,
+        fontWeight: 700,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        cursor: loading ? 'default' : 'pointer',
+        transition: 'all 0.15s ease',
+        opacity: loading ? 0.7 : 1,
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-flex',
+          width: 22,
+          justifyContent: 'center',
+          fontWeight: 800,
+        }}
+      >
+        {brand === 'google' ? 'G' : brand === 'naver' ? 'N' : 'K'}
+      </span>
+      <span>{loading ? '이동 중...' : text}</span>
+    </button>
+  )
 }
 
-const socialButtonStyle: React.CSSProperties = {
-  width: '100%',
-  minHeight: 54,
-  borderRadius: 14,
-  border: '1px solid #ddcfba',
-  background: '#ffffff',
-  color: '#241b11',
-  fontSize: 15,
-  fontWeight: 800,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  justifyContent: 'center',
-}
-
-const logoStyle: React.CSSProperties = {
-  width: 24,
-  height: 24,
-  borderRadius: 999,
-  background: '#f1f1f1',
-  color: '#241b11',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: 13,
-  fontWeight: 900,
-  flexShrink: 0,
+function getBrandStyle(brand: 'google' | 'naver' | 'kakao') {
+  switch (brand) {
+    case 'google':
+      return {
+        background: '#ffffff',
+        color: '#1f2937',
+        border: '1px solid #d1d5db',
+      }
+    case 'naver':
+      return {
+        background: '#03c75a',
+        color: '#ffffff',
+        border: '1px solid #03c75a',
+      }
+    case 'kakao':
+      return {
+        background: '#fee500',
+        color: '#191919',
+        border: '1px solid #f2d600',
+      }
+  }
 }

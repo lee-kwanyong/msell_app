@@ -1,385 +1,458 @@
 import Link from 'next/link'
 import { supabaseServer } from '@/lib/supabase/server'
 
-type ListingRow = {
-  id: string
-  title: string | null
-  category: string | null
-  price: number | null
-  status: string | null
-  description: string | null
+function formatPrice(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === '') return '가격 미정'
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return String(value)
+  return `${numeric.toLocaleString('ko-KR')}원`
 }
 
-function formatPrice(value: number | null | undefined) {
-  if (!value || Number.isNaN(value)) return '가격 협의'
-  return `₩${value.toLocaleString('ko-KR')}`
-}
-
-function statusLabel(status: string | null) {
+function getStatusLabel(status?: string | null) {
   switch (status) {
     case 'active':
       return '거래가능'
-    case 'reserved':
-      return '예약중'
-    case 'sold':
-      return '거래종료'
     case 'draft':
       return '임시저장'
     case 'hidden':
       return '숨김'
+    case 'sold':
+      return '거래종료'
     case 'pending_review':
-      return '검토대기'
+      return '검수중'
+    case 'reserved':
+      return '예약중'
     case 'rejected':
       return '반려'
     case 'archived':
       return '보관됨'
     default:
-      return '상태확인'
+      return status || '상태미정'
   }
 }
 
-function summarize(text: string | null | undefined) {
-  if (!text) return '등록된 설명이 없습니다.'
-  return text.length > 72 ? `${text.slice(0, 72)}...` : text
+function getShortDescription(value?: string | null) {
+  if (!value) return '설명이 아직 없습니다.'
+  const cleaned = value
+    .replace(/^\[이전 방식\]\s*.*(\n\n)?/m, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!cleaned) return '설명이 아직 없습니다.'
+  return cleaned.length > 60 ? `${cleaned.slice(0, 60)}...` : cleaned
 }
 
 export default async function MobileHomePage() {
   const supabase = await supabaseServer()
 
-  const { data: listingsRaw } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { data: listings } = await supabase
     .from('listings')
     .select('*')
     .in('status', ['active', 'reserved', 'sold'])
     .order('created_at', { ascending: false })
     .limit(6)
 
-  const listings = ((listingsRaw ?? []) as ListingRow[]).map((item) => ({
-    id: item.id,
-    title: item.title ?? '제목 없음',
-    category: item.category ?? '미분류',
-    price: item.price ?? null,
-    status: item.status ?? null,
-    description: item.description ?? '',
-  }))
+  const { data: myDeals } = user
+    ? await supabase
+        .from('deals')
+        .select('id')
+        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+    : { data: [] as any[] }
 
-  const activeCount = listings.filter((item) => item.status === 'active').length
-  const reservedCount = listings.filter((item) => item.status === 'reserved').length
-  const soldCount = listings.filter((item) => item.status === 'sold').length
+  const { data: notifications } = user
+    ? await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+    : { data: [] as any[] }
+
+  const items = listings ?? []
+  const unreadCount = (notifications ?? []).length
+  const dealCount = (myDeals ?? []).length
+  const activeCount = items.filter((item) => item.status === 'active').length
 
   return (
-    <div style={pageStyle}>
-      <section style={heroCardStyle}>
-        <div style={badgeStyle}>MSELL MOBILE</div>
+    <main
+      style={{
+        minHeight: '100vh',
+        background: '#f6f1e7',
+        padding: '18px 14px 120px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 760,
+          margin: '0 auto',
+          display: 'grid',
+          gap: 14,
+        }}
+      >
+        <section
+          style={{
+            borderRadius: 24,
+            padding: 22,
+            background:
+              'linear-gradient(135deg, rgba(47,36,23,1) 0%, rgba(73,56,36,1) 100%)',
+            color: '#fffdf8',
+            boxShadow: '0 16px 38px rgba(47, 36, 23, 0.12)',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: '0.1em',
+              color: 'rgba(255,248,236,0.78)',
+              marginBottom: 8,
+            }}
+          >
+            MSELL MOBILE
+          </div>
 
-        <h1 style={heroTitleStyle}>
-          모바일에서 더 빠르게
-          <br />
-          자산을 확인하고
-          <br />
-          거래를 시작하세요
-        </h1>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 30,
+              lineHeight: 1.16,
+              fontWeight: 900,
+            }}
+          >
+            모바일에서 바로
+            <br />
+            거래를 시작하세요
+          </h1>
 
-        <p style={heroDescStyle}>
-          모바일 전용 흐름으로 디지털 자산 목록 확인, 상세 진입, 거래 문의 시작까지
-          자연스럽게 이어집니다.
-        </p>
+          <p
+            style={{
+              margin: '12px 0 0',
+              fontSize: 14,
+              lineHeight: 1.75,
+              color: 'rgba(255,248,236,0.82)',
+            }}
+          >
+            목록 확인, 자산 등록, 거래방 이동까지 한 손 동선에 맞춰 바로 들어갈 수 있게 정리했습니다.
+          </p>
 
-        <div style={actionGridStyle}>
-          <Link href="/m/listings" style={primaryButtonStyle}>
-            모바일 거래목록
-          </Link>
-          <Link href="/listings/create" style={secondaryButtonStyle}>
-            자산 등록하기
-          </Link>
-          <Link href="/?view=desktop" style={ghostButtonStyle}>
-            웹 버전 보기
-          </Link>
-        </div>
-      </section>
+          <div
+            style={{
+              marginTop: 16,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: 8,
+            }}
+          >
+            <HeroMetric label="거래가능" value={String(activeCount)} />
+            <HeroMetric label="내 거래방" value={String(dealCount)} />
+            <HeroMetric label="읽지 않은 알림" value={String(unreadCount)} />
+            <HeroMetric label="최근 자산" value={String(items.length)} />
+          </div>
 
-      <section style={statsGridStyle}>
-        <div style={statCardStyle}>
-          <span style={statLabelStyle}>거래가능</span>
-          <strong style={statValueStyle}>{activeCount}</strong>
-        </div>
-        <div style={statCardStyle}>
-          <span style={statLabelStyle}>예약중</span>
-          <strong style={statValueStyle}>{reservedCount}</strong>
-        </div>
-        <div style={statCardStyle}>
-          <span style={statLabelStyle}>거래종료</span>
-          <strong style={statValueStyle}>{soldCount}</strong>
-        </div>
-      </section>
+          <div
+            style={{
+              marginTop: 14,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 8,
+            }}
+          >
+            <Link href="/m/listings" style={heroPrimaryLinkStyle}>
+              거래목록
+            </Link>
+            <Link href="/m/listings/create" style={heroSecondaryLinkStyle}>
+              자산등록
+            </Link>
+          </div>
+        </section>
 
-      <section style={sectionStyle}>
-        <div style={sectionHeadStyle}>
-          <h2 style={sectionTitleStyle}>최근 자산</h2>
-          <Link href="/m/listings" style={sectionLinkStyle}>
-            전체보기
-          </Link>
-        </div>
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: 10,
+          }}
+        >
+          <QuickMenu href="/m/my/deals" title="내 거래방" desc="대화와 진행 상태 확인" />
+          <QuickMenu href="/m/my/listings" title="내 자산" desc="등록 자산 관리" />
+          <QuickMenu href="/m/account" title="마이페이지" desc="계정 정보와 설정" />
+          <QuickMenu href="/m/listings" title="전체 거래" desc="자산 탐색 시작" />
+        </section>
 
-        <div style={listStyle}>
-          {listings.length === 0 ? (
-            <div style={emptyCardStyle}>아직 등록된 자산이 없습니다.</div>
+        <section
+          style={{
+            background: '#ffffff',
+            border: '1px solid #eadfcf',
+            borderRadius: 22,
+            padding: 16,
+            boxShadow: '0 14px 34px rgba(47, 36, 23, 0.06)',
+            display: 'grid',
+            gap: 14,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 10,
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 900,
+                color: '#241b11',
+              }}
+            >
+              최신 자산
+            </div>
+
+            <Link href="/m/listings" style={smallMoreLinkStyle}>
+              전체 보기
+            </Link>
+          </div>
+
+          {items.length === 0 ? (
+            <div
+              style={{
+                padding: '18px 12px',
+                borderRadius: 16,
+                background: '#fbf7f0',
+                border: '1px solid #efe4d5',
+                textAlign: 'center',
+                color: '#6a5743',
+                fontSize: 14,
+                lineHeight: 1.8,
+              }}
+            >
+              아직 등록된 자산이 없습니다.
+            </div>
           ) : (
-            listings.map((item) => (
-              <Link key={item.id} href={`/listings/${item.id}`} style={cardStyle}>
-                <div style={cardTopStyle}>
-                  <span style={chipStyle}>{item.category}</span>
-                  <span style={softChipStyle}>{statusLabel(item.status)}</span>
-                </div>
+            <div
+              style={{
+                display: 'grid',
+                gap: 10,
+              }}
+            >
+              {items.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/m/listings/${item.id}`}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <article
+                    style={{
+                      background: '#fbf7f0',
+                      border: '1px solid #efe4d5',
+                      borderRadius: 18,
+                      padding: 14,
+                      display: 'grid',
+                      gap: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 8,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <span style={statusBadgeStyle}>{getStatusLabel(item.status)}</span>
+                      {item.category ? (
+                        <span style={categoryBadgeStyle}>{item.category}</span>
+                      ) : null}
+                    </div>
 
-                <h3 style={cardTitleStyle}>{item.title}</h3>
-                <div style={cardPriceStyle}>{formatPrice(item.price)}</div>
-                <p style={cardDescStyle}>{summarize(item.description)}</p>
+                    <div
+                      style={{
+                        fontSize: 16,
+                        lineHeight: 1.45,
+                        fontWeight: 900,
+                        color: '#241b11',
+                        wordBreak: 'keep-all',
+                      }}
+                    >
+                      {item.title || '제목 없음'}
+                    </div>
 
-                <div style={cardBottomStyle}>
-                  <span>상세 보기</span>
-                  <span>→</span>
-                </div>
-              </Link>
-            ))
+                    <div
+                      style={{
+                        fontSize: 22,
+                        lineHeight: 1.2,
+                        fontWeight: 900,
+                        color: '#2f2417',
+                      }}
+                    >
+                      {formatPrice(item.price)}
+                    </div>
+
+                    <div
+                      style={{
+                        color: '#6a5743',
+                        fontSize: 13,
+                        lineHeight: 1.7,
+                        wordBreak: 'keep-all',
+                      }}
+                    >
+                      {getShortDescription(item.description)}
+                    </div>
+                  </article>
+                </Link>
+              ))}
+            </div>
           )}
-        </div>
-      </section>
+        </section>
+      </div>
+    </main>
+  )
+}
+
+function HeroMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        padding: '14px 14px',
+        borderRadius: 16,
+        background: 'rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.08)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          color: 'rgba(255,248,236,0.74)',
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 22,
+          fontWeight: 900,
+          color: '#fffaf2',
+          lineHeight: 1.1,
+        }}
+      >
+        {value}
+      </div>
     </div>
   )
 }
 
-const pageStyle: React.CSSProperties = {
-  width: '100%',
-  maxWidth: 560,
-  margin: '0 auto',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 18,
+function QuickMenu({
+  href,
+  title,
+  desc,
+}: {
+  href: string
+  title: string
+  desc: string
+}) {
+  return (
+    <Link
+      href={href}
+      style={{
+        background: '#ffffff',
+        border: '1px solid #eadfcf',
+        borderRadius: 20,
+        padding: 16,
+        boxShadow: '0 14px 34px rgba(47, 36, 23, 0.06)',
+        textDecoration: 'none',
+        display: 'grid',
+        gap: 6,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 15,
+          fontWeight: 900,
+          color: '#241b11',
+        }}
+      >
+        {title}
+      </div>
+      <div
+        style={{
+          fontSize: 13,
+          lineHeight: 1.7,
+          color: '#6a5743',
+        }}
+      >
+        {desc}
+      </div>
+    </Link>
+  )
 }
 
-const heroCardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #dccfbe',
-  borderRadius: 28,
-  padding: 24,
-  boxShadow: '0 18px 50px rgba(47, 36, 23, 0.08)',
-}
-
-const badgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  minHeight: 30,
-  alignItems: 'center',
-  padding: '0 12px',
-  borderRadius: 999,
-  background: '#f3ebdf',
-  color: '#72593f',
-  fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: '0.08em',
-}
-
-const heroTitleStyle: React.CSSProperties = {
-  margin: '16px 0 0',
-  fontSize: 34,
-  lineHeight: 1.04,
-  letterSpacing: '-0.05em',
-  color: '#241b11',
-  wordBreak: 'keep-all',
-}
-
-const heroDescStyle: React.CSSProperties = {
-  margin: '14px 0 0',
-  color: '#7c6754',
-  fontSize: 15,
-  lineHeight: 1.7,
-  wordBreak: 'keep-all',
-}
-
-const actionGridStyle: React.CSSProperties = {
-  marginTop: 18,
-  display: 'grid',
-  gridTemplateColumns: '1fr',
-  gap: 10,
-}
-
-const baseButtonStyle: React.CSSProperties = {
-  minHeight: 50,
-  borderRadius: 999,
+const heroPrimaryLinkStyle: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '0 16px',
-  fontSize: 15,
-  fontWeight: 800,
-  textDecoration: 'none',
-}
-
-const primaryButtonStyle: React.CSSProperties = {
-  ...baseButtonStyle,
-  background: '#2f2417',
-  border: '1px solid #2f2417',
-  color: '#ffffff',
-}
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...baseButtonStyle,
-  background: '#eadfcf',
-  border: '1px solid #eadfcf',
-  color: '#2f2417',
-}
-
-const ghostButtonStyle: React.CSSProperties = {
-  ...baseButtonStyle,
-  background: '#ffffff',
-  border: '1px solid #dccfbe',
-  color: '#2f2417',
-}
-
-const statsGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-  gap: 10,
-}
-
-const statCardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #dccfbe',
-  borderRadius: 22,
-  padding: '16px 14px',
-  boxShadow: '0 18px 50px rgba(47, 36, 23, 0.08)',
-}
-
-const statLabelStyle: React.CSSProperties = {
-  display: 'block',
-  color: '#7c6754',
-  fontSize: 12,
-  fontWeight: 700,
-}
-
-const statValueStyle: React.CSSProperties = {
-  display: 'block',
-  marginTop: 10,
-  fontSize: 24,
-  lineHeight: 1,
-  letterSpacing: '-0.04em',
+  minHeight: 46,
+  borderRadius: 16,
+  background: '#fffaf4',
   color: '#241b11',
-}
-
-const sectionStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 12,
-}
-
-const sectionHeadStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 12,
-}
-
-const sectionTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 20,
-  letterSpacing: '-0.03em',
-  color: '#241b11',
-}
-
-const sectionLinkStyle: React.CSSProperties = {
-  color: '#2f2417',
-  fontSize: 14,
-  fontWeight: 800,
   textDecoration: 'none',
-}
-
-const listStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 12,
-}
-
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #dccfbe',
-  borderRadius: 24,
-  padding: 18,
-  boxShadow: '0 18px 50px rgba(47, 36, 23, 0.08)',
-  textDecoration: 'none',
-}
-
-const cardTopStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 8,
-  flexWrap: 'wrap',
-}
-
-const chipStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  minHeight: 28,
-  alignItems: 'center',
-  padding: '0 10px',
-  borderRadius: 999,
-  background: '#f3ebdf',
-  color: '#72593f',
-  fontSize: 11,
-  fontWeight: 800,
-}
-
-const softChipStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  minHeight: 28,
-  alignItems: 'center',
-  padding: '0 10px',
-  borderRadius: 999,
-  background: '#f8f5f0',
-  color: '#7b6553',
-  border: '1px solid #dccfbe',
-  fontSize: 11,
-  fontWeight: 800,
-}
-
-const cardTitleStyle: React.CSSProperties = {
-  margin: '14px 0 10px',
-  fontSize: 20,
-  lineHeight: 1.35,
-  letterSpacing: '-0.04em',
-  color: '#241b11',
-  wordBreak: 'keep-all',
-}
-
-const cardPriceStyle: React.CSSProperties = {
-  fontSize: 24,
-  lineHeight: 1,
   fontWeight: 900,
-  letterSpacing: '-0.04em',
-  color: '#241b11',
-}
-
-const cardDescStyle: React.CSSProperties = {
-  margin: '12px 0 0',
-  color: '#7c6754',
   fontSize: 14,
-  lineHeight: 1.65,
 }
 
-const cardBottomStyle: React.CSSProperties = {
-  marginTop: 16,
-  display: 'flex',
+const heroSecondaryLinkStyle: React.CSSProperties = {
+  display: 'inline-flex',
   alignItems: 'center',
-  justifyContent: 'space-between',
-  color: '#7c6754',
-  fontSize: 13,
-  fontWeight: 700,
+  justifyContent: 'center',
+  minHeight: 46,
+  borderRadius: 16,
+  background: '#eadfcf',
+  color: '#241b11',
+  textDecoration: 'none',
+  fontWeight: 800,
+  fontSize: 14,
 }
 
-const emptyCardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #dccfbe',
-  borderRadius: 24,
-  padding: 20,
-  color: '#7c6754',
-  fontSize: 14,
-  boxShadow: '0 18px 50px rgba(47, 36, 23, 0.08)',
+const smallMoreLinkStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: 34,
+  padding: '0 10px',
+  borderRadius: 10,
+  border: '1px solid #e4d6c2',
+  background: '#fffaf4',
+  color: '#241b11',
+  textDecoration: 'none',
+  fontWeight: 800,
+  fontSize: 12,
+}
+
+const statusBadgeStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: 28,
+  padding: '0 10px',
+  borderRadius: 999,
+  background: '#2f2417',
+  color: '#ffffff',
+  fontSize: 11,
+  fontWeight: 800,
+}
+
+const categoryBadgeStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: 28,
+  padding: '0 10px',
+  borderRadius: 999,
+  background: '#f0e5d7',
+  color: '#5b4938',
+  fontSize: 11,
+  fontWeight: 800,
 }

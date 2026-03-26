@@ -1,123 +1,145 @@
-import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase/server";
+import { NextResponse } from 'next/server'
+import { supabaseServer } from '@/lib/supabase/server'
 
-function redirectWithError(message: string) {
-  return NextResponse.redirect(
-    new URL(
-      `/listings/create?error=${encodeURIComponent(message)}`,
-      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-    ),
-    { status: 303 }
-  );
+export const dynamic = 'force-dynamic'
+
+const ALLOWED_STATUS = new Set([
+  'draft',
+  'pending_review',
+  'active',
+  'reserved',
+  'sold',
+  'hidden',
+  'rejected',
+  'archived',
+])
+
+function safePath(input: string | null | undefined, fallback: string) {
+  if (!input) return fallback
+  if (!input.startsWith('/')) return fallback
+  if (input.startsWith('//')) return fallback
+  return input
 }
 
-function redirectTo(path: string) {
-  return NextResponse.redirect(
-    new URL(path, process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
-    { status: 303 }
-  );
+function buildUrl(origin: string, path: string, params?: Record<string, string>) {
+  const url = new URL(path, origin)
+
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      url.searchParams.set(key, value)
+    }
+  }
+
+  return url
+}
+
+function parsePrice(value: string) {
+  const numeric = Number(String(value).replace(/[^\d.-]/g, ''))
+  if (!Number.isFinite(numeric) || numeric < 0) return null
+  return numeric
+}
+
+function buildDescription(description: string, transferMethod: string) {
+  const cleanDescription = description.trim()
+  const cleanTransferMethod = transferMethod.trim()
+
+  if (!cleanTransferMethod) return cleanDescription
+  if (!cleanDescription) return `[이전 방식] ${cleanTransferMethod}`
+
+  return `[이전 방식] ${cleanTransferMethod}\n\n${cleanDescription}`
 }
 
 export async function POST(request: Request) {
-  const supabase = await supabaseServer();
+  const origin = new URL(request.url).origin
+  const formData = await request.formData()
+
+  const title = String(formData.get('title') ?? '').trim()
+  const category = String(formData.get('category') ?? '').trim()
+  const priceRaw = String(formData.get('price') ?? '').trim()
+  const transferMethod = String(formData.get('transfer_method') ?? '').trim()
+  const descriptionRaw = String(formData.get('description') ?? '').trim()
+  const statusRaw = String(formData.get('status') ?? 'active').trim()
+
+  const errorReturnTo = safePath(
+    String(formData.get('error_return_to') ?? formData.get('return_to') ?? '/listings/create'),
+    '/listings/create'
+  )
+
+  const supabase = await supabaseServer()
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    return redirectTo("/auth/login?next=/listings/create");
+    return NextResponse.redirect(
+      buildUrl(origin, '/auth/login', { next: errorReturnTo }).toString(),
+      { status: 303 }
+    )
   }
 
-  const formData = await request.formData();
-
-  const title = String(formData.get("title") ?? "").trim();
-  const category = String(formData.get("category") ?? "").trim();
-  const priceRaw = String(formData.get("price") ?? "").trim();
-  const transferMethod = String(formData.get("transfer_method") ?? "").trim();
-  const descriptionRaw = String(formData.get("description") ?? "").trim();
-  const status = String(formData.get("status") ?? "active").trim();
-
-  const allowedStatus = new Set([
-    "draft",
-    "pending_review",
-    "active",
-    "reserved",
-    "sold",
-    "hidden",
-    "rejected",
-    "archived",
-  ]);
-
-  if (!title || !category || !priceRaw || !transferMethod || !descriptionRaw) {
-    return redirectWithError("필수 항목이 누락되었습니다.");
+  if (!title) {
+    return NextResponse.redirect(
+      buildUrl(origin, errorReturnTo, {
+        error: '제목을 입력해 주세요.',
+      }).toString(),
+      { status: 303 }
+    )
   }
 
-  if (!allowedStatus.has(status)) {
-    return redirectWithError("상태 값이 올바르지 않습니다.");
+  if (!category) {
+    return NextResponse.redirect(
+      buildUrl(origin, errorReturnTo, {
+        error: '카테고리를 선택해 주세요.',
+      }).toString(),
+      { status: 303 }
+    )
   }
 
-  const price = Number(priceRaw);
-
-  if (!Number.isFinite(price) || price < 0) {
-    return redirectWithError("가격은 0 이상의 숫자로 입력해주세요.");
+  const price = parsePrice(priceRaw)
+  if (priceRaw && price === null) {
+    return NextResponse.redirect(
+      buildUrl(origin, errorReturnTo, {
+        error: '가격 형식이 올바르지 않습니다.',
+      }).toString(),
+      { status: 303 }
+    )
   }
 
-  const description = `[이전 방식] ${transferMethod}\n\n${descriptionRaw}`;
+  const status = ALLOWED_STATUS.has(statusRaw) ? statusRaw : 'active'
+  const description = buildDescription(descriptionRaw, transferMethod)
 
-  const basePayload = {
+  const payload: Record<string, any> = {
     user_id: user.id,
     title,
     category,
-    price,
     status,
     description,
-  };
-
-  const candidatePayloads = [
-    {
-      ...basePayload,
-      transfer_method: transferMethod,
-    },
-    {
-      ...basePayload,
-    },
-  ];
-
-  let insertedRow:
-    | {
-        id?: string | number;
-        [key: string]: unknown;
-      }
-    | null = null;
-
-  let lastError: string | null = null;
-
-  for (const payload of candidatePayloads) {
-    const { data, error } = await supabase
-      .from("listings")
-      .insert(payload)
-      .select("*")
-      .single();
-
-    if (!error && data) {
-      insertedRow = data;
-      lastError = null;
-      break;
-    }
-
-    lastError = error?.message ?? "insert_failed";
   }
 
-  if (!insertedRow?.id) {
-    return redirectWithError(
-      lastError === "insert_failed"
-        ? "매물 등록에 실패했습니다."
-        : `매물 등록 실패: ${lastError}`
-    );
+  if (price !== null) {
+    payload.price = price
   }
 
-  return redirectTo(
-    `/listings/${insertedRow.id}?success=${encodeURIComponent("매물이 등록되었습니다.")}`
-  );
+  const { data, error } = await supabase
+    .from('listings')
+    .insert(payload)
+    .select('id')
+    .single()
+
+  if (error || !data?.id) {
+    return NextResponse.redirect(
+      buildUrl(origin, errorReturnTo, {
+        error: error?.message || '자산 등록에 실패했습니다.',
+      }).toString(),
+      { status: 303 }
+    )
+  }
+
+  return NextResponse.redirect(
+    buildUrl(origin, `/listings/${data.id}`, {
+      success: '자산이 등록되었습니다.',
+    }).toString(),
+    { status: 303 }
+  )
 }

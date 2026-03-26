@@ -1,13 +1,6 @@
 import Link from 'next/link'
 import AuthGateway from '@/components/auth/AuthGateway'
-import { signupAction } from '@/app/auth/signup/actions'
-
-type PageProps = {
-  searchParams?: Promise<{
-    next?: string
-    error?: string
-  }>
-}
+import { signupAction } from './actions'
 
 function safeNextPath(input: string | null | undefined) {
   if (!input) return '/'
@@ -16,263 +9,262 @@ function safeNextPath(input: string | null | undefined) {
   return input
 }
 
-export default async function MobileSignupPage({ searchParams }: PageProps) {
-  const params = (await searchParams) ?? {}
-  const next = safeNextPath(params.next)
-  const error = params.error ? decodeURIComponent(params.error) : ''
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    error?: string
+    success?: string
+    next?: string
+  }>
+}) {
+  const pageParams = searchParams ? await searchParams : undefined
+  const error = pageParams?.error ?? ''
+  const success = pageParams?.success ?? ''
+  const next = safeNextPath(pageParams?.next)
 
   return (
-    <div style={pageStyle}>
-      <section style={cardStyle}>
-        <div style={badgeStyle}>MSELL SIGNUP</div>
+    <main
+      style={{
+        minHeight: '100vh',
+        background: '#f6f1e7',
+        padding: '40px 16px 88px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 640,
+          margin: '0 auto',
+        }}
+      >
+        <section
+          style={{
+            background: '#ffffff',
+            border: '1px solid #eadfcf',
+            borderRadius: 28,
+            padding: 28,
+            boxShadow: '0 16px 40px rgba(47, 36, 23, 0.06)',
+          }}
+        >
+          <div style={{ marginBottom: 24, textAlign: 'center' }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                color: '#8a745b',
+                marginBottom: 10,
+              }}
+            >
+              MSELL SIGN UP
+            </div>
 
-        <h1 style={titleStyle}>모바일 회원가입</h1>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 32,
+                lineHeight: 1.15,
+                fontWeight: 900,
+                color: '#241b11',
+              }}
+            >
+              회원가입
+            </h1>
 
-        <p style={descStyle}>
-          모바일 회원가입도 구글, 카카오, 네이버를 우선 진입으로 사용하고 이메일 가입은
-          보조 방식으로 둡니다.
-        </p>
+            <p
+              style={{
+                margin: '12px auto 0',
+                fontSize: 14,
+                lineHeight: 1.7,
+                color: '#6a5743',
+                maxWidth: 420,
+              }}
+            >
+              필요한 정보만 입력하고 바로 시작할 수 있게 정리했습니다.
+            </p>
+          </div>
 
-        {error ? <div style={errorBoxStyle}>{error}</div> : null}
+          {error ? (
+            <div style={errorBoxStyle}>{decodeURIComponent(error)}</div>
+          ) : null}
 
-        <div style={socialSectionStyle}>
-          <div style={socialHeadStyle}>
-            <h2 style={sectionTitleStyle}>소셜 계정으로 바로 시작</h2>
-            <p style={sectionDescStyle}>배포형 구조 기준 기본 회원가입 흐름입니다.</p>
+          {success ? (
+            <div style={successBoxStyle}>{decodeURIComponent(success)}</div>
+          ) : null}
+
+          <form
+            action={signupAction}
+            style={{
+              display: 'grid',
+              gap: 16,
+            }}
+          >
+            <input type="hidden" name="next" value={next} />
+
+            <div
+              style={{
+                display: 'grid',
+                gap: 16,
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              }}
+              className="msell-signup-grid"
+            >
+              <Field label="이름" required>
+                <input
+                  type="text"
+                  name="full_name"
+                  required
+                  placeholder="이름"
+                  style={inputStyle}
+                />
+              </Field>
+
+              <Field label="아이디" required>
+                <input
+                  type="text"
+                  name="username"
+                  required
+                  placeholder="영문/숫자 조합"
+                  style={inputStyle}
+                />
+              </Field>
+
+              <Field label="연락처">
+                <input
+                  type="tel"
+                  name="phone_number"
+                  placeholder="01012345678"
+                  style={inputStyle}
+                />
+              </Field>
+
+              <Field label="성별">
+                <select name="gender" defaultValue="" style={inputStyle}>
+                  <option value="">선택 안 함</option>
+                  <option value="male">남성</option>
+                  <option value="female">여성</option>
+                  <option value="other">기타</option>
+                </select>
+              </Field>
+            </div>
+
+            <Field label="이메일" required>
+              <input
+                type="email"
+                name="email"
+                required
+                placeholder="you@example.com"
+                style={inputStyle}
+              />
+            </Field>
+
+            <Field label="비밀번호" required>
+              <input
+                type="password"
+                name="password"
+                required
+                minLength={8}
+                placeholder="8자 이상"
+                style={inputStyle}
+              />
+            </Field>
+
+            <Field label="비밀번호 확인" required>
+              <input
+                type="password"
+                name="password_confirm"
+                required
+                minLength={8}
+                placeholder="비밀번호를 다시 입력하세요"
+                style={inputStyle}
+              />
+            </Field>
+
+            <button type="submit" style={submitButtonStyle}>
+              회원가입하기
+            </button>
+          </form>
+
+          <div style={dividerWrapStyle}>
+            <div style={dividerLineStyle} />
+            <span style={dividerTextStyle}>SOCIAL SIGN UP</span>
+            <div style={dividerLineStyle} />
           </div>
 
           <AuthGateway next={next} />
-        </div>
 
-        <div style={dividerWrapStyle}>
-          <div style={dividerLineStyle} />
-          <span style={dividerTextStyle}>EMAIL SIGNUP</span>
-          <div style={dividerLineStyle} />
-        </div>
-
-        <form action={signupAction} style={formStyle}>
-          <input type="hidden" name="next" value={next} />
-
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>이름</span>
-            <input
-              type="text"
-              name="full_name"
-              required
-              placeholder="이름을 입력하세요"
-              style={inputStyle}
-            />
-          </label>
-
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>성별</span>
-            <select name="gender" required style={inputStyle}>
-              <option value="">성별을 선택하세요</option>
-              <option value="male">남성</option>
-              <option value="female">여성</option>
-              <option value="other">기타</option>
-            </select>
-          </label>
-
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>연락처</span>
-            <input
-              type="tel"
-              name="phone_number"
-              required
-              placeholder="연락처를 입력하세요"
-              style={inputStyle}
-            />
-          </label>
-
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>이메일</span>
-            <input
-              type="email"
-              name="email"
-              required
-              placeholder="you@example.com"
-              style={inputStyle}
-            />
-          </label>
-
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>비밀번호</span>
-            <input
-              type="password"
-              name="password"
-              required
-              placeholder="비밀번호를 입력하세요"
-              style={inputStyle}
-            />
-          </label>
-
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>비밀번호 확인</span>
-            <input
-              type="password"
-              name="password_confirm"
-              required
-              placeholder="비밀번호를 다시 입력하세요"
-              style={inputStyle}
-            />
-          </label>
-
-          <button type="submit" style={submitButtonStyle}>
-            이메일로 회원가입
-          </button>
-        </form>
-
-        <div style={footerRowStyle}>
-          <span style={footerTextStyle}>이미 계정이 있나요?</span>
-          <Link
-            href={`/m/auth/login${next !== '/' ? `?next=${encodeURIComponent(next)}` : ''}`}
-            style={footerButtonStyle}
+          <div
+            style={{
+              marginTop: 22,
+              textAlign: 'center',
+              color: '#6b5845',
+              fontSize: 14,
+            }}
           >
-            로그인
-          </Link>
-        </div>
+            이미 계정이 있나요?{' '}
+            <Link
+              href={`/auth/login${next !== '/' ? `?next=${encodeURIComponent(next)}` : ''}`}
+              style={{
+                color: '#2f2417',
+                fontWeight: 800,
+                textDecoration: 'none',
+              }}
+            >
+              로그인
+            </Link>
+          </div>
+        </section>
+      </div>
 
-        <div style={bottomLinksStyle}>
-          <Link href="/auth/signup?view=desktop" style={textLinkStyle}>
-            웹 회원가입 보기
-          </Link>
-          <Link href="/m" style={textLinkStyle}>
-            모바일 홈
-          </Link>
-        </div>
-      </section>
-    </div>
+      <style>{`
+        @media (max-width: 720px) {
+          .msell-signup-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+    </main>
   )
 }
 
-const pageStyle: React.CSSProperties = {
-  width: '100%',
-  maxWidth: 560,
-  margin: '0 auto',
-}
-
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #dccfbe',
-  borderRadius: 28,
-  padding: 24,
-  boxShadow: '0 18px 50px rgba(47, 36, 23, 0.08)',
-}
-
-const badgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  minHeight: 30,
-  alignItems: 'center',
-  padding: '0 12px',
-  borderRadius: 999,
-  background: '#f3ebdf',
-  color: '#72593f',
-  fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: '0.08em',
-}
-
-const titleStyle: React.CSSProperties = {
-  margin: '16px 0 0',
-  fontSize: 30,
-  lineHeight: 1.08,
-  letterSpacing: '-0.05em',
-  color: '#241b11',
-}
-
-const descStyle: React.CSSProperties = {
-  margin: '12px 0 0',
-  color: '#7c6754',
-  fontSize: 15,
-  lineHeight: 1.7,
-  wordBreak: 'keep-all',
-}
-
-const errorBoxStyle: React.CSSProperties = {
-  marginTop: 16,
-  borderRadius: 14,
-  background: '#fff4f2',
-  border: '1px solid #f1d0c8',
-  color: '#9a3f2d',
-  fontSize: 14,
-  fontWeight: 700,
-  padding: '14px 16px',
-  lineHeight: 1.6,
-  whiteSpace: 'pre-wrap',
-  wordBreak: 'break-word',
-}
-
-const socialSectionStyle: React.CSSProperties = {
-  marginTop: 18,
-  display: 'grid',
-  gap: 12,
-}
-
-const socialHeadStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 6,
-}
-
-const sectionTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 18,
-  fontWeight: 900,
-  letterSpacing: '-0.03em',
-  color: '#241b11',
-}
-
-const sectionDescStyle: React.CSSProperties = {
-  margin: 0,
-  color: '#7c6754',
-  fontSize: 14,
-  lineHeight: 1.6,
-}
-
-const dividerWrapStyle: React.CSSProperties = {
-  marginTop: 22,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-}
-
-const dividerLineStyle: React.CSSProperties = {
-  flex: 1,
-  height: 1,
-  background: '#e6d9c9',
-}
-
-const dividerTextStyle: React.CSSProperties = {
-  color: '#9a7f60',
-  fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: '0.12em',
-}
-
-const formStyle: React.CSSProperties = {
-  marginTop: 18,
-  display: 'grid',
-  gap: 14,
-}
-
-const labelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 8,
-}
-
-const labelTextStyle: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 800,
-  color: '#241b11',
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string
+  required?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <label
+      style={{
+        display: 'grid',
+        gap: 8,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 14,
+          fontWeight: 800,
+          color: '#241b11',
+        }}
+      >
+        {label}
+        {required ? <span style={{ color: '#9a3f2d', marginLeft: 4 }}>*</span> : null}
+      </span>
+      {children}
+    </label>
+  )
 }
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
   minHeight: 52,
   borderRadius: 14,
-  border: '1px solid #ddcfba',
+  border: '1px solid #e5d7c3',
   background: '#fffdf9',
-  padding: '0 16px',
+  padding: '0 14px',
   fontSize: 15,
   color: '#241b11',
   outline: 'none',
@@ -281,8 +273,8 @@ const inputStyle: React.CSSProperties = {
 const submitButtonStyle: React.CSSProperties = {
   width: '100%',
   minHeight: 54,
-  borderRadius: 14,
-  border: '1px solid #2f2417',
+  borderRadius: 16,
+  border: 'none',
   background: '#2f2417',
   color: '#ffffff',
   fontSize: 15,
@@ -290,47 +282,44 @@ const submitButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-const footerRowStyle: React.CSSProperties = {
-  marginTop: 16,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 12,
-}
-
-const footerTextStyle: React.CSSProperties = {
-  color: '#7c6754',
+const errorBoxStyle: React.CSSProperties = {
+  marginBottom: 16,
+  padding: '14px 16px',
+  borderRadius: 14,
+  background: '#fff4f2',
+  border: '1px solid #f1d0c8',
+  color: '#9a3f2d',
   fontSize: 14,
   fontWeight: 700,
 }
 
-const footerButtonStyle: React.CSSProperties = {
-  minHeight: 42,
-  padding: '0 16px',
-  borderRadius: 999,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#eadfcf',
-  border: '1px solid #eadfcf',
-  color: '#2f2417',
+const successBoxStyle: React.CSSProperties = {
+  marginBottom: 16,
+  padding: '14px 16px',
+  borderRadius: 14,
+  background: '#f4fbf4',
+  border: '1px solid #d5ead5',
+  color: '#2f6b3d',
   fontSize: 14,
-  fontWeight: 800,
-  textDecoration: 'none',
+  fontWeight: 700,
 }
 
-const bottomLinksStyle: React.CSSProperties = {
-  marginTop: 18,
+const dividerWrapStyle: React.CSSProperties = {
+  margin: '24px 0 18px',
   display: 'flex',
   alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 12,
-  flexWrap: 'wrap',
+  gap: 10,
 }
 
-const textLinkStyle: React.CSSProperties = {
-  color: '#2f2417',
-  fontSize: 14,
+const dividerLineStyle: React.CSSProperties = {
+  flex: 1,
+  height: 1,
+  background: '#eadfcf',
+}
+
+const dividerTextStyle: React.CSSProperties = {
+  fontSize: 12,
   fontWeight: 800,
-  textDecoration: 'none',
+  letterSpacing: '0.08em',
+  color: '#8a745b',
 }
