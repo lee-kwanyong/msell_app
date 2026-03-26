@@ -79,7 +79,7 @@ export default function AuthGateway({
   const title = mode === 'signup' ? '소셜로 시작하기' : '소셜 로그인'
   const description =
     mode === 'signup'
-      ? '구글, 네이버, 카카오로 빠르게 가입을 시작할 수 있습니다.'
+      ? '구글, 네이버, 카카오로 빠르게 시작할 수 있습니다.'
       : '구글, 네이버, 카카오 계정으로 바로 로그인할 수 있습니다.'
 
   return (
