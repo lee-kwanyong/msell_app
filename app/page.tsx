@@ -1,302 +1,385 @@
 import Link from 'next/link'
 import { supabaseServer } from '@/lib/supabase/server'
 
-function formatPrice(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === '') return '가격 미정'
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return String(value)
-  return `${numeric.toLocaleString('ko-KR')}원`
+export const dynamic = 'force-dynamic'
+
+type ListingRow = {
+  id: string
+  title: string | null
+  category: string | null
+  price: number | string | null
+  status: string | null
+  created_at: string | null
+  description: string | null
 }
 
-function getStatusLabel(status?: string | null) {
+function formatPrice(value: number | string | null | undefined) {
+  const num = typeof value === 'string' ? Number(value) : value
+
+  if (typeof num !== 'number' || Number.isNaN(num)) {
+    return '가격 협의'
+  }
+
+  return `₩${num.toLocaleString('ko-KR')}`
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return '-'
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
+function statusLabel(status: string | null | undefined) {
   switch (status) {
     case 'active':
       return '거래가능'
+    case 'reserved':
+      return '예약중'
+    case 'sold':
+      return '거래종료'
     case 'draft':
       return '임시저장'
     case 'hidden':
       return '숨김'
-    case 'sold':
-      return '거래종료'
     case 'pending_review':
-      return '검수중'
-    case 'reserved':
-      return '예약중'
+      return '검토중'
     case 'rejected':
       return '반려'
     case 'archived':
       return '보관됨'
     default:
-      return status || '상태미정'
+      return '상태확인'
   }
-}
-
-function getShortDescription(value?: string | null) {
-  if (!value) return '설명이 아직 없습니다.'
-  const cleaned = value
-    .replace(/^\[이전 방식\]\s*.*(\n\n)?/m, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  if (!cleaned) return '설명이 아직 없습니다.'
-  return cleaned.length > 90 ? `${cleaned.slice(0, 90)}...` : cleaned
 }
 
 export default async function HomePage() {
   const supabase = await supabaseServer()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [{ data: listings }, { count: activeCount }] = await Promise.all([
+    supabase
+      .from('listings')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(8),
+    supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'active'),
+  ])
 
-  const { data: listings } = await supabase
-    .from('listings')
-    .select('*')
-    .in('status', ['active', 'reserved', 'sold'])
-    .order('created_at', { ascending: false })
-    .limit(12)
-
-  const { data: myListings } = user
-    ? await supabase.from('listings').select('id, status').eq('user_id', user.id)
-    : { data: [] as any[] }
-
-  const { data: myDeals } = user
-    ? await supabase
-        .from('deals')
-        .select('id')
-        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-    : { data: [] as any[] }
-
-  const { data: notifications } = user
-    ? await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_read', false)
-    : { data: [] as any[] }
-
-  const items = listings ?? []
-  const activeListings = items.filter((item) => item.status === 'active').length
-  const soldListings = items.filter((item) => item.status === 'sold').length
-  const myListingCount = (myListings ?? []).length
-  const myDealCount = (myDeals ?? []).length
-  const unreadCount = (notifications ?? []).length
+  const safeListings: ListingRow[] = Array.isArray(listings)
+    ? listings.map((item: any) => ({
+        id: String(item?.id ?? ''),
+        title: item?.title ?? null,
+        category: item?.category ?? null,
+        price: item?.price ?? null,
+        status: item?.status ?? null,
+        created_at: item?.created_at ?? null,
+        description: item?.description ?? null,
+      }))
+    : []
 
   return (
     <main
       style={{
-        minHeight: '100vh',
         background: '#f6f1e7',
-        padding: '32px 16px 96px',
+        minHeight: '100vh',
       }}
     >
-      <div
+      <section
         style={{
-          maxWidth: 1240,
+          maxWidth: 1280,
           margin: '0 auto',
-          display: 'grid',
-          gap: 22,
+          padding: '28px 20px 24px',
         }}
       >
-        <section
+        <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.08fr 0.92fr',
-            gap: 22,
+            gridTemplateColumns: '1.7fr 1fr',
+            gap: 18,
           }}
-          className="msell-home-hero-layout"
+          className="msell-home-hero"
         >
           <div
             style={{
-              borderRadius: 32,
-              padding: 34,
-              background:
-                'linear-gradient(135deg, rgba(47,36,23,1) 0%, rgba(73,56,36,1) 100%)',
-              color: '#fffdf8',
-              boxShadow: '0 20px 48px rgba(47, 36, 23, 0.14)',
-              position: 'relative',
-              overflow: 'hidden',
-              minHeight: 420,
+              background: '#fbf7ef',
+              border: '1px solid #e6dac7',
+              borderRadius: 34,
+              padding: '34px 32px',
             }}
           >
             <div
               style={{
-                position: 'absolute',
-                top: -90,
-                right: -90,
-                width: 260,
-                height: 260,
-                borderRadius: 999,
-                background: 'rgba(255,255,255,0.05)',
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                color: '#8a6a43',
+                marginBottom: 18,
               }}
-            />
+            >
+              MSELL · DIGITAL ASSET MARKETPLACE
+            </div>
+
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 68,
+                lineHeight: 1.02,
+                letterSpacing: '-0.04em',
+                color: '#20170f',
+                fontWeight: 800,
+              }}
+              className="msell-home-title"
+            >
+              디지털 자산 거래를
+              <br />
+              더 간결하게 관리하세요
+            </h1>
+
+            <p
+              style={{
+                margin: '22px 0 0',
+                maxWidth: 860,
+                fontSize: 21,
+                lineHeight: 1.8,
+                color: '#6b5b4b',
+              }}
+              className="msell-home-copy"
+            >
+              가짜 통계, 임의 차트, 샘플 랭킹 없이 실제 등록 자산 중심으로
+              구성했습니다. 지금 등록된 거래가능 자산과 최신 등록 목록만
+              확인할 수 있습니다.
+            </p>
+
             <div
               style={{
-                position: 'absolute',
-                left: -50,
-                bottom: -60,
-                width: 190,
-                height: 190,
-                borderRadius: 999,
-                background: 'rgba(255,255,255,0.04)',
+                display: 'flex',
+                gap: 12,
+                flexWrap: 'wrap',
+                marginTop: 28,
               }}
-            />
-
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <div
+            >
+              <Link
+                href="/listings"
                 style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: '0.12em',
-                  color: 'rgba(255,248,236,0.78)',
-                  marginBottom: 14,
-                }}
-              >
-                DIGITAL ASSET MARKETPLACE
-              </div>
-
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 46,
-                  lineHeight: 1.1,
-                  fontWeight: 900,
-                  letterSpacing: '-0.03em',
-                }}
-              >
-                자산을 올리고
-                <br />
-                바로 거래를 시작하세요
-              </h1>
-
-              <p
-                style={{
-                  margin: '18px 0 0',
-                  maxWidth: 620,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: 50,
+                  padding: '0 22px',
+                  borderRadius: 999,
+                  background: '#2f2417',
+                  color: '#fffdf8',
                   fontSize: 15,
-                  lineHeight: 1.9,
-                  color: 'rgba(255,248,236,0.82)',
+                  fontWeight: 700,
+                  textDecoration: 'none',
                 }}
               >
-                Msell은 디지털 자산 거래를 더 빠르고 직관적으로 연결하는 공간입니다.
-                목록 확인, 상세 진입, 문의 시작, 거래방 이동까지 한 흐름으로 이어집니다.
-              </p>
+                매물 둘러보기
+              </Link>
 
-              <div
+              <Link
+                href="/listings/create"
                 style={{
-                  marginTop: 28,
-                  display: 'flex',
-                  gap: 10,
-                  flexWrap: 'wrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: 50,
+                  padding: '0 22px',
+                  borderRadius: 999,
+                  background: '#eadfcf',
+                  color: '#2f2417',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  textDecoration: 'none',
                 }}
               >
-                <Link href="/listings" style={heroPrimaryLinkStyle}>
-                  거래목록 보기
-                </Link>
-                <Link href="/listings/create" style={heroSecondaryLinkStyle}>
-                  자산 등록하기
-                </Link>
-                {user ? (
-                  <Link href="/my/deals" style={heroGhostLinkStyle}>
-                    내 거래방
-                  </Link>
-                ) : (
-                  <Link href="/auth/login" style={heroGhostLinkStyle}>
-                    로그인
-                  </Link>
-                )}
-              </div>
+                자산 등록하기
+              </Link>
             </div>
           </div>
 
           <div
             style={{
               display: 'grid',
-              gap: 14,
+              gap: 18,
             }}
           >
             <div
               style={{
                 background: '#ffffff',
-                border: '1px solid #eadfcf',
-                borderRadius: 28,
-                padding: 24,
-                boxShadow: '0 16px 40px rgba(47, 36, 23, 0.06)',
-                display: 'grid',
-                gap: 14,
+                border: '1px solid #e6dac7',
+                borderRadius: 30,
+                padding: '28px 24px',
               }}
             >
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: 15,
                   fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  color: '#8a745b',
+                  color: '#8a6a43',
+                  marginBottom: 12,
                 }}
               >
-                QUICK STATUS
+                현재 공개 현황
               </div>
-
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: 10,
+                  fontSize: 44,
+                  fontWeight: 800,
+                  color: '#20170f',
+                  lineHeight: 1.1,
                 }}
               >
-                <KpiCard label="현재 자산" value={String(items.length)} />
-                <KpiCard label="거래가능" value={String(activeListings)} />
-                <KpiCard label="거래종료" value={String(soldListings)} />
-                <KpiCard label="읽지 않은 알림" value={String(unreadCount)} />
+                {activeCount ?? 0}건
               </div>
+              <p
+                style={{
+                  margin: '12px 0 0',
+                  color: '#6b5b4b',
+                  fontSize: 15,
+                  lineHeight: 1.7,
+                }}
+              >
+                거래가능 상태의 실제 등록 자산 기준입니다.
+              </p>
             </div>
 
             <div
               style={{
                 background: '#ffffff',
-                border: '1px solid #eadfcf',
-                borderRadius: 28,
-                padding: 24,
-                boxShadow: '0 16px 40px rgba(47, 36, 23, 0.06)',
-                display: 'grid',
-                gap: 12,
+                border: '1px solid #e6dac7',
+                borderRadius: 30,
+                padding: '28px 24px',
               }}
             >
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 800,
+                  color: '#8a6a43',
+                  marginBottom: 12,
+                }}
+              >
+                운영 방향
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  color: '#6b5b4b',
+                  fontSize: 15,
+                  lineHeight: 1.8,
+                }}
+              >
+                홈에서는 실제 데이터만 보여주고, 상세 수치와 거래 흐름은 각
+                매물 및 거래방에서 확인하는 구조로 정리했습니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <section
+          style={{
+            marginTop: 18,
+            background: '#fffdf8',
+            border: '1px solid #e6dac7',
+            borderRadius: 28,
+            padding: '22px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            <div
+              style={{
+                width: 58,
+                height: 58,
+                borderRadius: 18,
+                background: '#2f2417',
+                color: '#fffdf8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 28,
+                fontWeight: 800,
+                flexShrink: 0,
+              }}
+            >
+              M
+            </div>
+            <div>
               <div
                 style={{
                   fontSize: 12,
                   fontWeight: 800,
                   letterSpacing: '0.08em',
-                  color: '#8a745b',
+                  color: '#8a6a43',
                 }}
               >
-                MY FLOW
+                APP INSTALL
               </div>
-
-              <InfoRow label="내 자산" value={`${myListingCount}개`} />
-              <InfoRow label="내 거래방" value={`${myDealCount}개`} />
-              <InfoRow label="권장 시작" value="목록 확인 → 상세 → 문의 시작" />
+              <div
+                style={{
+                  marginTop: 4,
+                  fontSize: 22,
+                  fontWeight: 800,
+                  color: '#20170f',
+                }}
+              >
+                Msell 앱처럼 바로 실행하세요
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 14,
+                  color: '#6b5b4b',
+                  lineHeight: 1.7,
+                }}
+              >
+                홈 화면에 추가하면 더 빠르게 접속할 수 있습니다.
+              </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            id="install-app-button"
+            style={{
+              height: 44,
+              padding: '0 18px',
+              borderRadius: 999,
+              border: 'none',
+              background: '#2f2417',
+              color: '#fffdf8',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            앱 설치하기
+          </button>
         </section>
 
-        <section
-          style={{
-            background: '#ffffff',
-            border: '1px solid #eadfcf',
-            borderRadius: 30,
-            padding: 24,
-            boxShadow: '0 16px 40px rgba(47, 36, 23, 0.06)',
-            display: 'grid',
-            gap: 18,
-          }}
-        >
+        <section style={{ marginTop: 22 }}>
           <div
             style={{
               display: 'flex',
+              alignItems: 'end',
               justifyContent: 'space-between',
               gap: 12,
-              alignItems: 'center',
+              marginBottom: 14,
               flexWrap: 'wrap',
             }}
           >
@@ -306,44 +389,68 @@ export default async function HomePage() {
                   fontSize: 12,
                   fontWeight: 800,
                   letterSpacing: '0.08em',
-                  color: '#8a745b',
+                  color: '#8a6a43',
                   marginBottom: 8,
                 }}
               >
-                LATEST LISTINGS
+                LIVE LISTINGS
               </div>
               <h2
                 style={{
                   margin: 0,
-                  fontSize: 28,
-                  lineHeight: 1.2,
-                  color: '#241b11',
-                  fontWeight: 900,
+                  fontSize: 38,
+                  lineHeight: 1.1,
+                  color: '#20170f',
+                  fontWeight: 800,
                 }}
               >
                 최신 등록 자산
               </h2>
+              <p
+                style={{
+                  margin: '10px 0 0',
+                  fontSize: 15,
+                  color: '#6b5b4b',
+                  lineHeight: 1.7,
+                }}
+              >
+                실제 등록된 거래가능 자산만 표시합니다.
+              </p>
             </div>
 
-            <Link href="/listings" style={listMoreLinkStyle}>
-              전체 보기
+            <Link
+              href="/listings"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 42,
+                padding: '0 16px',
+                borderRadius: 999,
+                background: '#eadfcf',
+                color: '#2f2417',
+                textDecoration: 'none',
+                fontSize: 14,
+                fontWeight: 700,
+              }}
+            >
+              전체 거래목록 보기
             </Link>
           </div>
 
-          {items.length === 0 ? (
+          {safeListings.length === 0 ? (
             <div
               style={{
-                padding: '28px 20px',
-                borderRadius: 22,
-                background: '#fbf7f0',
-                border: '1px solid #efe4d5',
-                textAlign: 'center',
-                color: '#6a5743',
-                fontSize: 14,
+                background: '#ffffff',
+                border: '1px solid #e6dac7',
+                borderRadius: 28,
+                padding: '34px 24px',
+                color: '#6b5b4b',
+                fontSize: 15,
                 lineHeight: 1.8,
               }}
             >
-              아직 등록된 자산이 없습니다.
+              아직 공개된 자산이 없습니다. 첫 자산을 등록해보세요.
             </div>
           ) : (
             <div
@@ -352,46 +459,68 @@ export default async function HomePage() {
                 gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
                 gap: 14,
               }}
-              className="msell-home-listing-grid"
+              className="msell-home-grid"
             >
-              {items.map((item) => (
+              {safeListings.map((item) => (
                 <Link
                   key={item.id}
                   href={`/listings/${item.id}`}
                   style={{
+                    background: '#ffffff',
+                    border: '1px solid #e6dac7',
+                    borderRadius: 24,
+                    padding: 18,
                     textDecoration: 'none',
+                    color: 'inherit',
+                    minHeight: 220,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
                   }}
                 >
-                  <article
-                    style={{
-                      height: '100%',
-                      background: '#fbf7f0',
-                      border: '1px solid #efe4d5',
-                      borderRadius: 22,
-                      padding: 16,
-                      display: 'grid',
-                      gap: 12,
-                    }}
-                  >
+                  <div>
                     <div
                       style={{
                         display: 'flex',
-                        gap: 8,
-                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                        marginBottom: 14,
                       }}
                     >
-                      <span style={statusBadgeStyle}>{getStatusLabel(item.status)}</span>
-                      {item.category ? (
-                        <span style={categoryBadgeStyle}>{item.category}</span>
-                      ) : null}
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          height: 30,
+                          padding: '0 12px',
+                          borderRadius: 999,
+                          background: '#f3eadb',
+                          color: '#6d5333',
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {item.category || '기타'}
+                      </span>
+
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: '#8a6a43',
+                        }}
+                      >
+                        {statusLabel(item.status)}
+                      </span>
                     </div>
 
                     <div
                       style={{
-                        fontSize: 17,
-                        lineHeight: 1.45,
-                        fontWeight: 900,
-                        color: '#241b11',
+                        fontSize: 22,
+                        lineHeight: 1.35,
+                        fontWeight: 800,
+                        color: '#20170f',
                         wordBreak: 'keep-all',
                       }}
                     >
@@ -400,9 +529,10 @@ export default async function HomePage() {
 
                     <div
                       style={{
-                        fontSize: 22,
+                        marginTop: 12,
+                        fontSize: 28,
                         lineHeight: 1.2,
-                        fontWeight: 900,
+                        fontWeight: 800,
                         color: '#2f2417',
                       }}
                     >
@@ -411,192 +541,76 @@ export default async function HomePage() {
 
                     <div
                       style={{
-                        color: '#6a5743',
-                        fontSize: 13,
+                        marginTop: 12,
+                        color: '#6b5b4b',
+                        fontSize: 14,
                         lineHeight: 1.7,
-                        wordBreak: 'keep-all',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
                       }}
                     >
-                      {getShortDescription(item.description)}
+                      {item.description || '설명이 아직 등록되지 않았습니다.'}
                     </div>
-                  </article>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 18,
+                      paddingTop: 14,
+                      borderTop: '1px solid #efe4d4',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                      fontSize: 13,
+                      color: '#8a6a43',
+                    }}
+                  >
+                    <span>등록일</span>
+                    <span>{formatDate(item.created_at)}</span>
+                  </div>
                 </Link>
               ))}
             </div>
           )}
         </section>
-      </div>
+      </section>
 
       <style>{`
-        @media (max-width: 980px) {
-          .msell-home-hero-layout {
+        @media (max-width: 1180px) {
+          .msell-home-hero {
             grid-template-columns: 1fr !important;
           }
 
-          .msell-home-listing-grid {
+          .msell-home-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .msell-home-title {
+            font-size: 52px !important;
+          }
+
+          .msell-home-copy {
+            font-size: 18px !important;
           }
         }
 
-        @media (max-width: 720px) {
-          .msell-home-listing-grid {
+        @media (max-width: 760px) {
+          .msell-home-grid {
             grid-template-columns: 1fr !important;
+          }
+
+          .msell-home-title {
+            font-size: 38px !important;
+          }
+
+          .msell-home-copy {
+            font-size: 15px !important;
           }
         }
       `}</style>
     </main>
   )
-}
-
-function KpiCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        padding: '14px 14px',
-        borderRadius: 18,
-        background: '#fbf7f0',
-        border: '1px solid #efe4d5',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          color: '#8a745b',
-          marginBottom: 6,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 24,
-          fontWeight: 900,
-          color: '#241b11',
-          lineHeight: 1.1,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  )
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        gap: 14,
-        padding: '12px 14px',
-        borderRadius: 16,
-        background: '#fbf7f0',
-        border: '1px solid #efe4d5',
-      }}
-    >
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: '#8a745b',
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: 800,
-          color: '#241b11',
-          textAlign: 'right',
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  )
-}
-
-const heroPrimaryLinkStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 48,
-  padding: '0 18px',
-  borderRadius: 16,
-  background: '#fffaf4',
-  color: '#241b11',
-  textDecoration: 'none',
-  fontWeight: 900,
-  fontSize: 14,
-}
-
-const heroSecondaryLinkStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 48,
-  padding: '0 18px',
-  borderRadius: 16,
-  background: '#eadfcf',
-  color: '#241b11',
-  textDecoration: 'none',
-  fontWeight: 800,
-  fontSize: 14,
-}
-
-const heroGhostLinkStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 48,
-  padding: '0 18px',
-  borderRadius: 16,
-  border: '1px solid rgba(255,255,255,0.14)',
-  color: '#fffaf2',
-  textDecoration: 'none',
-  fontWeight: 800,
-  fontSize: 14,
-}
-
-const listMoreLinkStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 42,
-  padding: '0 14px',
-  borderRadius: 14,
-  border: '1px solid #e4d6c2',
-  background: '#fffaf4',
-  color: '#241b11',
-  textDecoration: 'none',
-  fontWeight: 800,
-  fontSize: 14,
-}
-
-const statusBadgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 30,
-  padding: '0 10px',
-  borderRadius: 999,
-  background: '#2f2417',
-  color: '#ffffff',
-  fontSize: 11,
-  fontWeight: 800,
-}
-
-const categoryBadgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 30,
-  padding: '0 10px',
-  borderRadius: 999,
-  background: '#f0e5d7',
-  color: '#5b4938',
-  fontSize: 11,
-  fontWeight: 800,
 }
