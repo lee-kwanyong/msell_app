@@ -68,6 +68,7 @@ export default function AuthGateway({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : '소셜 로그인 처리 중 오류가 발생했습니다.'
+
       router.push(
         `/auth/login?error=${encodeURIComponent(message)}&next=${encodeURIComponent(safeNext)}`
       )
@@ -118,6 +119,7 @@ export default function AuthGateway({
           color: '#241b11',
           border: '1px solid #d9d2c7',
           fontSize: mobile ? 14 : 15,
+          opacity: loadingProvider && loadingProvider !== 'google' ? 0.7 : 1,
         }}
       >
         <span style={iconStyle}>G</span>
@@ -135,6 +137,7 @@ export default function AuthGateway({
           color: '#ffffff',
           border: '1px solid #03c75a',
           fontSize: mobile ? 14 : 15,
+          opacity: loadingProvider && loadingProvider !== 'custom:naver' ? 0.7 : 1,
         }}
       >
         <span style={iconStyle}>N</span>
@@ -152,6 +155,7 @@ export default function AuthGateway({
           color: '#241b11',
           border: '1px solid #e8cf00',
           fontSize: mobile ? 14 : 15,
+          opacity: loadingProvider && loadingProvider !== 'kakao' ? 0.7 : 1,
         }}
       >
         <span style={iconStyle}>K</span>
@@ -170,6 +174,7 @@ const socialButtonStyle: React.CSSProperties = {
   fontWeight: 800,
   cursor: 'pointer',
   width: '100%',
+  transition: 'opacity 0.2s ease',
 }
 
 const iconStyle: React.CSSProperties = {
