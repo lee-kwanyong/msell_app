@@ -44,11 +44,54 @@ function normalizeUsername(value: string) {
     .trim()
 }
 
-function makeUsernameCandidate(email: string, fullName: string, fallback: string) {
+function baseUsernameFromProfile(email: string, fullName: string, nickname: string, fallback: string) {
   const localPart = email.split('@')[0] || ''
-  const base = firstString(localPart, fullName, fallback)
+  const base = firstString(localPart, nickname, fullName, fallback)
   const normalized = normalizeUsername(base)
   return normalized || fallback
+}
+
+async function makeUniqueUsername(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  requested: string,
+  userId: string
+) {
+  const base = normalizeUsername(requested) || `user_${userId.slice(0, 8)}`
+  const reservedSelfSuffix = userId.replace(/-/g, '').slice(0, 8)
+
+  const candidates = [
+    base,
+    `${base}_${reservedSelfSuffix}`,
+    `user_${reservedSelfSuffix}`,
+  ]
+
+  for (const candidate of candidates) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', candidate)
+      .maybeSingle()
+
+    if (!data || data.id === userId) {
+      return candidate
+    }
+  }
+
+  for (let i = 1; i <= 20; i += 1) {
+    const candidate = `${base}_${reservedSelfSuffix}_${i}`
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', candidate)
+      .maybeSingle()
+
+    if (!data || data.id === userId) {
+      return candidate
+    }
+  }
+
+  return `user_${reservedSelfSuffix}_${Date.now().toString().slice(-6)}`
 }
 
 async function fetchNaverProfile(accessToken: string) {
@@ -170,14 +213,10 @@ export async function GET(request: Request) {
     identityData?.nickname
   )
 
-  const username = firstString(
-    metadata.user_name,
-    metadata.preferred_username,
-    metadata.username,
-    identityData?.user_name,
-    identityData?.preferred_username,
-    identityData?.username,
-    naverProfile?.nickname
+  const nickname = firstString(
+    naverProfile?.nickname,
+    metadata.nickname,
+    identityData?.nickname
   )
 
   const avatarUrl = firstString(
@@ -197,10 +236,19 @@ export async function GET(request: Request) {
     identityData?.phone_number
   )
 
-  const fallbackUsername = `user_${user.id.slice(0, 8)}`
-  const finalUsername = username
-    ? makeUsernameCandidate(username, fullName, fallbackUsername)
-    : makeUsernameCandidate(email, fullName, fallbackUsername)
+  const fallbackUsername = `user_${user.id.replace(/-/g, '').slice(0, 8)}`
+  const requestedUsername = baseUsernameFromProfile(
+    email,
+    fullName,
+    nickname,
+    fallbackUsername
+  )
+
+  const finalUsername = await makeUniqueUsername(
+    supabase,
+    requestedUsername,
+    user.id
+  )
 
   const profilePayload: Record<string, unknown> = {
     id: user.id,
