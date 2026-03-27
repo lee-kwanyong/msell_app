@@ -7,14 +7,17 @@ import { supabaseBrowser } from '@/lib/supabase/client'
 
 type Props = {
   mode?: 'login' | 'signup'
+  next?: string
 }
 
-export default function AuthGateway({ mode = 'login' }: Props) {
+export default function AuthGateway({ mode = 'login', next: nextProp }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = useMemo(() => supabaseBrowser(), [])
 
-  const next = searchParams.get('next') || '/'
+  const nextFromQuery = searchParams.get('next') || '/'
+  const next = nextProp || nextFromQuery || '/'
+
   const error = searchParams.get('error') || ''
   const message = searchParams.get('message') || ''
 
