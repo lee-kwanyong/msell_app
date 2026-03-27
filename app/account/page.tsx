@@ -107,63 +107,60 @@ export default async function AccountPage({
       style={{
         background: '#f6f1e7',
         minHeight: 'calc(100vh - 72px)',
-        padding: '40px 20px 80px',
+        padding: '44px 20px 84px',
       }}
     >
-      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <section
           style={{
-            border: '1px solid #e4d8c8',
-            background: 'linear-gradient(180deg, #ffffff 0%, #fcfaf6 100%)',
-            borderRadius: 32,
+            border: '1px solid #e5d9ca',
+            background: '#fcfaf6',
+            borderRadius: 30,
             overflow: 'hidden',
-            boxShadow: '0 24px 60px rgba(47,36,23,0.08)',
+            boxShadow: '0 18px 50px rgba(47,36,23,0.05)',
           }}
         >
           <div
             style={{
-              padding: '34px 34px 26px',
-              borderBottom: '1px solid #eee1d2',
-              background:
-                'radial-gradient(circle at top right, rgba(234,223,207,0.75), transparent 32%), linear-gradient(180deg, #fffdfa 0%, #f9f4ec 100%)',
+              padding: '30px 32px 26px',
+              borderBottom: '1px solid #ece0d2',
+              background: 'linear-gradient(180deg, #fcfaf6 0%, #f7f1e8 100%)',
             }}
           >
             <div
               style={{
                 display: 'flex',
-                gap: 20,
                 justifyContent: 'space-between',
+                gap: 20,
                 alignItems: 'flex-start',
                 flexWrap: 'wrap',
               }}
             >
-              <div style={{ minWidth: 280, flex: '1 1 560px' }}>
+              <div style={{ minWidth: 260, flex: '1 1 520px' }}>
                 <div
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 8,
                     padding: '7px 12px',
                     borderRadius: 999,
-                    background: '#f1e7d8',
-                    color: '#6c5334',
-                    fontSize: 12,
+                    background: '#efe3d2',
+                    color: '#7b6140',
+                    fontSize: 11,
                     fontWeight: 800,
                     letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
                   }}
                 >
-                  Account Center
+                  ACCOUNT CENTER
                 </div>
 
                 <h1
                   style={{
                     margin: '16px 0 10px',
                     fontSize: 42,
-                    lineHeight: 1.08,
-                    color: '#20170f',
+                    lineHeight: 1.04,
+                    letterSpacing: '-0.04em',
                     fontWeight: 900,
-                    letterSpacing: '-0.03em',
+                    color: '#1f1710',
                   }}
                 >
                   내 계정
@@ -172,79 +169,65 @@ export default async function AccountPage({
                 <p
                   style={{
                     margin: 0,
-                    color: '#6c6258',
-                    fontSize: 15,
+                    maxWidth: 640,
+                    color: '#6f655b',
+                    fontSize: 14,
                     lineHeight: 1.7,
-                    maxWidth: 720,
                   }}
                 >
-                  프로필, 연락처, 계정 상태를 한 화면에서 관리합니다. Msell의 전체 거래
-                  흐름과 연결되는 기본 정보 영역입니다.
+                  프로필과 기본 계정 정보를 정리하는 공간입니다. 복잡한 요소는 줄이고,
+                  필요한 정보만 안정적으로 보이도록 구성했습니다.
                 </p>
               </div>
 
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(3, minmax(110px, 1fr))',
-                  gap: 12,
-                  minWidth: 320,
-                  flex: '0 0 auto',
+                  gridTemplateColumns: 'repeat(3, 74px)',
+                  gap: 10,
                 }}
               >
-                <Link
-                  href="/my/listings"
-                  style={{
-                    textDecoration: 'none',
-                    border: '1px solid #e3d6c4',
-                    background: '#fff',
-                    color: '#2f2417',
-                    borderRadius: 18,
-                    padding: '16px 14px',
-                    fontWeight: 800,
-                    textAlign: 'center',
-                    boxShadow: '0 8px 20px rgba(47,36,23,0.05)',
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: '#8b7760', marginBottom: 6 }}>자산</div>
-                  <div style={{ fontSize: 20 }}>{listingCount ?? 0}</div>
-                </Link>
-
-                <Link
-                  href="/my/deals"
-                  style={{
-                    textDecoration: 'none',
-                    border: '1px solid #e3d6c4',
-                    background: '#fff',
-                    color: '#2f2417',
-                    borderRadius: 18,
-                    padding: '16px 14px',
-                    fontWeight: 800,
-                    textAlign: 'center',
-                    boxShadow: '0 8px 20px rgba(47,36,23,0.05)',
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: '#8b7760', marginBottom: 6 }}>거래</div>
-                  <div style={{ fontSize: 20 }}>{dealCount ?? 0}</div>
-                </Link>
-
-                <Link
-                  href="/notifications"
-                  style={{
-                    textDecoration: 'none',
-                    border: '1px solid #e3d6c4',
-                    background: '#fff',
-                    color: '#2f2417',
-                    borderRadius: 18,
-                    padding: '16px 14px',
-                    fontWeight: 800,
-                    textAlign: 'center',
-                    boxShadow: '0 8px 20px rgba(47,36,23,0.05)',
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: '#8b7760', marginBottom: 6 }}>알림</div>
-                  <div style={{ fontSize: 20 }}>{unreadCount ?? 0}</div>
-                </Link>
+                {[
+                  { label: '자산', value: listingCount ?? 0 },
+                  { label: '거래', value: dealCount ?? 0 },
+                  { label: '알림', value: unreadCount ?? 0 },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      border: '1px solid #e2d5c4',
+                      background: '#fff',
+                      borderRadius: 18,
+                      height: 74,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      boxShadow: '0 8px 18px rgba(47,36,23,0.04)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: '#8b7760',
+                        fontWeight: 800,
+                        marginBottom: 6,
+                      }}
+                    >
+                      {item.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 24,
+                        lineHeight: 1,
+                        color: '#1f1710',
+                        fontWeight: 900,
+                      }}
+                    >
+                      {item.value}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -254,11 +237,11 @@ export default async function AccountPage({
               <div
                 style={{
                   marginBottom: 18,
-                  borderRadius: 18,
-                  border: '1px solid #d5e7d0',
-                  background: '#f4fbf1',
+                  borderRadius: 16,
+                  border: '1px solid #d8e7d0',
+                  background: '#f5fbf1',
                   color: '#2a5a21',
-                  padding: '14px 16px',
+                  padding: '13px 15px',
                   fontSize: 14,
                   fontWeight: 700,
                 }}
@@ -271,11 +254,11 @@ export default async function AccountPage({
               <div
                 style={{
                   marginBottom: 18,
-                  borderRadius: 18,
-                  border: '1px solid #efc6c1',
+                  borderRadius: 16,
+                  border: '1px solid #efcdc8',
                   background: '#fff4f2',
                   color: '#8a2f25',
-                  padding: '14px 16px',
+                  padding: '13px 15px',
                   fontSize: 14,
                   fontWeight: 700,
                 }}
@@ -285,31 +268,29 @@ export default async function AccountPage({
             ) : null}
 
             <div
+              className="account-layout"
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1.45fr) minmax(340px, 0.95fr)',
-                gap: 22,
+                gridTemplateColumns: 'minmax(0, 1.45fr) minmax(320px, 0.9fr)',
+                gap: 20,
                 alignItems: 'start',
               }}
-              className="account-grid"
             >
-              <div
+              <section
                 style={{
-                  border: '1px solid #eadfce',
+                  border: '1px solid #e8dccd',
                   background: '#fff',
-                  borderRadius: 28,
+                  borderRadius: 26,
                   padding: 22,
-                  boxShadow: '0 14px 40px rgba(47,36,23,0.04)',
                 }}
               >
                 <div style={{ marginBottom: 18 }}>
                   <div
                     style={{
-                      fontSize: 13,
-                      color: '#8d765a',
+                      fontSize: 12,
+                      color: '#8a7458',
                       fontWeight: 800,
                       marginBottom: 8,
-                      letterSpacing: '-0.01em',
                     }}
                   >
                     프로필 편집
@@ -318,7 +299,8 @@ export default async function AccountPage({
                     style={{
                       margin: 0,
                       fontSize: 24,
-                      color: '#20170f',
+                      lineHeight: 1.15,
+                      color: '#1f1710',
                       fontWeight: 900,
                       letterSpacing: '-0.03em',
                     }}
@@ -329,12 +311,12 @@ export default async function AccountPage({
 
                 <form action={updateAccountAction}>
                   <div
+                    className="account-form-grid"
                     style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                      gap: 16,
+                      gap: 14,
                     }}
-                    className="account-form-grid"
                   >
                     <div>
                       <label
@@ -343,8 +325,8 @@ export default async function AccountPage({
                           display: 'block',
                           marginBottom: 8,
                           fontSize: 13,
-                          fontWeight: 800,
                           color: '#3f3121',
+                          fontWeight: 800,
                         }}
                       >
                         이메일
@@ -356,13 +338,13 @@ export default async function AccountPage({
                         readOnly
                         style={{
                           width: '100%',
-                          height: 54,
-                          borderRadius: 16,
+                          height: 52,
+                          borderRadius: 15,
                           border: '1px solid #e6d8c6',
-                          background: '#f7f2ea',
-                          padding: '0 16px',
-                          color: '#7b6e5f',
-                          fontSize: 15,
+                          background: '#f7f1e7',
+                          padding: '0 15px',
+                          color: '#7c6e5f',
+                          fontSize: 14,
                           outline: 'none',
                         }}
                       />
@@ -375,8 +357,8 @@ export default async function AccountPage({
                           display: 'block',
                           marginBottom: 8,
                           fontSize: 13,
-                          fontWeight: 800,
                           color: '#3f3121',
+                          fontWeight: 800,
                         }}
                       >
                         계정 등급
@@ -388,13 +370,13 @@ export default async function AccountPage({
                         readOnly
                         style={{
                           width: '100%',
-                          height: 54,
-                          borderRadius: 16,
+                          height: 52,
+                          borderRadius: 15,
                           border: '1px solid #e6d8c6',
-                          background: '#f7f2ea',
-                          padding: '0 16px',
-                          color: '#7b6e5f',
-                          fontSize: 15,
+                          background: '#f7f1e7',
+                          padding: '0 15px',
+                          color: '#7c6e5f',
+                          fontSize: 14,
                           outline: 'none',
                         }}
                       />
@@ -407,8 +389,8 @@ export default async function AccountPage({
                           display: 'block',
                           marginBottom: 8,
                           fontSize: 13,
-                          fontWeight: 800,
                           color: '#3f3121',
+                          fontWeight: 800,
                         }}
                       >
                         이름
@@ -420,13 +402,13 @@ export default async function AccountPage({
                         placeholder="이름을 입력하세요"
                         style={{
                           width: '100%',
-                          height: 54,
-                          borderRadius: 16,
+                          height: 52,
+                          borderRadius: 15,
                           border: '1px solid #dfd1bf',
                           background: '#fffdfa',
-                          padding: '0 16px',
+                          padding: '0 15px',
                           color: '#221a12',
-                          fontSize: 15,
+                          fontSize: 14,
                           outline: 'none',
                         }}
                       />
@@ -439,8 +421,8 @@ export default async function AccountPage({
                           display: 'block',
                           marginBottom: 8,
                           fontSize: 13,
-                          fontWeight: 800,
                           color: '#3f3121',
+                          fontWeight: 800,
                         }}
                       >
                         사용자명
@@ -452,13 +434,13 @@ export default async function AccountPage({
                         placeholder="username"
                         style={{
                           width: '100%',
-                          height: 54,
-                          borderRadius: 16,
+                          height: 52,
+                          borderRadius: 15,
                           border: '1px solid #dfd1bf',
                           background: '#fffdfa',
-                          padding: '0 16px',
+                          padding: '0 15px',
                           color: '#221a12',
-                          fontSize: 15,
+                          fontSize: 14,
                           outline: 'none',
                         }}
                       />
@@ -471,8 +453,8 @@ export default async function AccountPage({
                           display: 'block',
                           marginBottom: 8,
                           fontSize: 13,
-                          fontWeight: 800,
                           color: '#3f3121',
+                          fontWeight: 800,
                         }}
                       >
                         연락처
@@ -484,13 +466,13 @@ export default async function AccountPage({
                         placeholder="연락처를 입력하세요"
                         style={{
                           width: '100%',
-                          height: 54,
-                          borderRadius: 16,
+                          height: 52,
+                          borderRadius: 15,
                           border: '1px solid #dfd1bf',
                           background: '#fffdfa',
-                          padding: '0 16px',
+                          padding: '0 15px',
                           color: '#221a12',
-                          fontSize: 15,
+                          fontSize: 14,
                           outline: 'none',
                         }}
                       />
@@ -503,8 +485,8 @@ export default async function AccountPage({
                           display: 'block',
                           marginBottom: 8,
                           fontSize: 13,
-                          fontWeight: 800,
                           color: '#3f3121',
+                          fontWeight: 800,
                         }}
                       >
                         성별
@@ -515,13 +497,13 @@ export default async function AccountPage({
                         defaultValue={gender || ''}
                         style={{
                           width: '100%',
-                          height: 54,
-                          borderRadius: 16,
+                          height: 52,
+                          borderRadius: 15,
                           border: '1px solid #dfd1bf',
                           background: '#fffdfa',
-                          padding: '0 16px',
+                          padding: '0 15px',
                           color: '#221a12',
-                          fontSize: 15,
+                          fontSize: 14,
                           outline: 'none',
                         }}
                       >
@@ -535,31 +517,32 @@ export default async function AccountPage({
 
                   <div
                     style={{
-                      marginTop: 18,
-                      padding: 18,
-                      borderRadius: 22,
-                      border: '1px solid #eee1d2',
-                      background: 'linear-gradient(180deg, #fdfaf6 0%, #f7f1e8 100%)',
+                      marginTop: 16,
+                      border: '1px solid #eee2d3',
+                      background: '#faf5ee',
+                      borderRadius: 18,
+                      padding: '16px 17px',
                     }}
                   >
                     <div
                       style={{
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: 900,
                         color: '#2f2417',
-                        marginBottom: 8,
+                        marginBottom: 6,
                       }}
                     >
                       계정 안내
                     </div>
                     <div
                       style={{
-                        fontSize: 14,
+                        fontSize: 13,
                         lineHeight: 1.7,
                         color: '#756858',
                       }}
                     >
-                      저장 시 profiles와 auth user metadata를 함께 갱신합니다. 이메일은 인증 계정 기준으로 유지됩니다.
+                      저장 시 profiles와 auth user metadata를 함께 갱신합니다. 이메일은
+                      현재 인증 계정 기준으로 유지됩니다.
                     </div>
                   </div>
 
@@ -567,27 +550,27 @@ export default async function AccountPage({
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      gap: 12,
                       alignItems: 'center',
-                      marginTop: 20,
+                      gap: 12,
+                      marginTop: 18,
                       flexWrap: 'wrap',
                     }}
                   >
                     <Link
                       href="/"
                       style={{
-                        textDecoration: 'none',
-                        height: 50,
-                        padding: '0 18px',
-                        borderRadius: 16,
-                        border: '1px solid #e2d5c4',
+                        height: 46,
+                        padding: '0 16px',
+                        borderRadius: 14,
+                        border: '1px solid #e0d4c4',
                         background: '#f7efe4',
                         color: '#2f2417',
+                        textDecoration: 'none',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontWeight: 800,
                         fontSize: 14,
+                        fontWeight: 800,
                       }}
                     >
                       홈으로
@@ -596,172 +579,112 @@ export default async function AccountPage({
                     <button
                       type="submit"
                       style={{
-                        height: 52,
-                        padding: '0 22px',
-                        borderRadius: 16,
+                        height: 48,
+                        padding: '0 20px',
+                        borderRadius: 14,
                         border: 'none',
                         background: 'linear-gradient(180deg, #3a2c1c 0%, #241b11 100%)',
                         color: '#fffaf3',
-                        fontWeight: 900,
                         fontSize: 14,
+                        fontWeight: 900,
                         cursor: 'pointer',
-                        boxShadow: '0 18px 30px rgba(47,36,23,0.2)',
+                        boxShadow: '0 10px 24px rgba(47,36,23,0.18)',
                       }}
                     >
                       계정 저장
                     </button>
                   </div>
                 </form>
-              </div>
+              </section>
 
-              <div style={{ display: 'grid', gap: 18 }}>
-                <section
+              <section
+                style={{
+                  border: '1px solid #e8dccd',
+                  background: '#fff',
+                  borderRadius: 26,
+                  padding: 22,
+                }}
+              >
+                <h3
                   style={{
-                    border: '1px solid #eadfce',
-                    background: '#fff',
-                    borderRadius: 28,
-                    padding: 22,
-                    boxShadow: '0 14px 40px rgba(47,36,23,0.04)',
+                    margin: 0,
+                    fontSize: 24,
+                    lineHeight: 1.1,
+                    color: '#1f1710',
+                    fontWeight: 900,
+                    letterSpacing: '-0.03em',
                   }}
                 >
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: 21,
-                      color: '#20170f',
-                      fontWeight: 900,
-                      letterSpacing: '-0.03em',
-                    }}
-                  >
-                    계정 요약
-                  </h3>
-                  <p
-                    style={{
-                      margin: '8px 0 18px',
-                      color: '#7a6e61',
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    현재 저장된 핵심 프로필입니다.
-                  </p>
+                  계정 요약
+                </h3>
 
-                  <div style={{ display: 'grid', gap: 10 }}>
-                    {[
-                      ['이메일', maskEmail(email)],
-                      ['이름', fullName || '-'],
-                      ['사용자명', username || '-'],
-                      ['연락처', phoneNumber || '-'],
-                      ['성별', genderLabel(gender)],
-                      ['권한', roleLabel(role)],
-                      ['가입일', formatJoinDate(user.created_at)],
-                    ].map(([label, value]) => (
+                <p
+                  style={{
+                    margin: '10px 0 18px',
+                    fontSize: 14,
+                    color: '#7a6d5f',
+                    lineHeight: 1.65,
+                  }}
+                >
+                  현재 저장된 핵심 계정 정보를 간결하게 정리했습니다.
+                </p>
+
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {[
+                    ['이메일', maskEmail(email)],
+                    ['이름', fullName || '-'],
+                    ['사용자명', username || '-'],
+                    ['연락처', phoneNumber || '-'],
+                    ['성별', genderLabel(gender)],
+                    ['권한', roleLabel(role)],
+                    ['가입일', formatJoinDate(user.created_at)],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      style={{
+                        border: '1px solid #ede1d0',
+                        background: '#fcf8f2',
+                        borderRadius: 16,
+                        padding: '12px 14px',
+                      }}
+                    >
                       <div
-                        key={label}
                         style={{
-                          border: '1px solid #ede1d0',
-                          background: '#fcf8f2',
-                          borderRadius: 18,
-                          padding: '13px 14px',
+                          fontSize: 12,
+                          color: '#8b7760',
+                          fontWeight: 800,
+                          marginBottom: 4,
                         }}
                       >
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: '#8b7760',
-                            fontWeight: 800,
-                            marginBottom: 4,
-                          }}
-                        >
-                          {label}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 15,
-                            color: '#20170f',
-                            fontWeight: 800,
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {value}
-                        </div>
+                        {label}
                       </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section
-                  style={{
-                    border: '1px solid #eadfce',
-                    background: '#fff',
-                    borderRadius: 28,
-                    padding: 22,
-                    boxShadow: '0 14px 40px rgba(47,36,23,0.04)',
-                  }}
-                >
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: 21,
-                      color: '#20170f',
-                      fontWeight: 900,
-                      letterSpacing: '-0.03em',
-                    }}
-                  >
-                    빠른 이동
-                  </h3>
-                  <p
-                    style={{
-                      margin: '8px 0 18px',
-                      color: '#7a6e61',
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    자주 쓰는 메뉴로 바로 이동합니다.
-                  </p>
-
-                  <div style={{ display: 'grid', gap: 10 }}>
-                    {[
-                      { href: '/listings/create', label: '새 자산 등록', desc: '새 거래 자산 올리기' },
-                      { href: '/my/listings', label: '내 자산 관리', desc: '등록한 자산 확인' },
-                      { href: '/my/deals', label: '내 거래 관리', desc: '진행 중 거래 확인' },
-                      { href: '/notifications', label: '알림 확인', desc: '미확인 알림 확인' },
-                    ].map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
+                      <div
                         style={{
-                          textDecoration: 'none',
-                          border: '1px solid #eadfce',
-                          background: 'linear-gradient(180deg, #fffdfa 0%, #f8f1e7 100%)',
-                          borderRadius: 18,
-                          padding: '14px 15px',
-                          color: '#2f2417',
+                          fontSize: 15,
+                          color: '#20170f',
+                          fontWeight: 800,
+                          wordBreak: 'break-word',
                         }}
                       >
-                        <div style={{ fontSize: 15, fontWeight: 900, marginBottom: 4 }}>
-                          {item.label}
-                        </div>
-                        <div style={{ fontSize: 13, color: '#7b6f62' }}>{item.desc}</div>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              </div>
+                        {value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           </div>
         </section>
       </div>
 
       <style>{`
-        @media (max-width: 1080px) {
-          .account-grid {
+        @media (max-width: 1024px) {
+          .account-layout {
             grid-template-columns: 1fr !important;
           }
         }
 
-        @media (max-width: 760px) {
+        @media (max-width: 720px) {
           .account-form-grid {
             grid-template-columns: 1fr !important;
           }
