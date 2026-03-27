@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
+import {
+  CATEGORY_LABEL,
+  CategoryBadge,
+  getCategoryLabel,
+} from "@/components/listings/CategoryVisual";
 
 type SearchParams = {
   q?: string;
@@ -31,22 +36,6 @@ const STATUS_LABEL: Record<string, string> = {
   archived: "보관됨",
 };
 
-const CATEGORY_LABEL: Record<string, string> = {
-  instagram: "인스타그램",
-  youtube: "유튜브",
-  tiktok: "틱톡",
-  x: "X",
-  thread: "스레드",
-  website: "웹사이트",
-  ecommerce: "쇼핑몰",
-  blog: "블로그",
-  community: "커뮤니티",
-  digital_product: "디지털상품",
-  domain: "도메인",
-  app: "앱",
-  etc: "기타",
-};
-
 function formatPrice(value: number | string | null) {
   if (value === null || value === undefined || value === "") return "가격협의";
   const num = Number(value);
@@ -65,11 +54,6 @@ function formatDate(value: string | null) {
 
 function getImage(row: ListingRow) {
   return row.thumbnail_url || row.image_url || row.cover_image_url || null;
-}
-
-function getCategoryLabel(category: string | null) {
-  if (!category) return "기타";
-  return CATEGORY_LABEL[category] || category;
 }
 
 function getStatusLabel(status: string | null) {
@@ -122,49 +106,51 @@ export default async function ListingsPage({
       >
         <section
           style={{
-            background: "#ffffff",
-            border: "1px solid #eadfcf",
-            borderRadius: 22,
-            padding: "16px 18px",
-            boxShadow: "0 8px 24px rgba(47,36,23,0.05)",
-            marginBottom: 12,
+            background: "rgba(255,255,255,0.82)",
+            border: "1px solid #e6dac8",
+            borderRadius: 24,
+            padding: "16px",
+            boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
+            backdropFilter: "blur(10px)",
+            marginBottom: 14,
           }}
         >
           <div
             className="msell-listings-toolbar"
             style={{
               display: "grid",
-              gridTemplateColumns: "auto minmax(0, 1fr) auto auto auto",
+              gridTemplateColumns: "auto minmax(0, 1fr) auto",
               alignItems: "center",
-              gap: 10,
+              gap: 12,
             }}
           >
             <div
               style={{
-                minWidth: 180,
+                minWidth: 200,
               }}
             >
               <div
                 style={{
                   fontSize: 11,
                   fontWeight: 800,
-                  letterSpacing: "0.08em",
+                  letterSpacing: "0.1em",
                   color: "#8a7357",
                   marginBottom: 4,
                 }}
               >
-                MSELL LISTINGS
+                MSELL MARKET
               </div>
               <h1
                 style={{
                   margin: 0,
-                  fontSize: 18,
-                  lineHeight: 1.15,
+                  fontSize: 20,
+                  lineHeight: 1.1,
                   color: "#241b11",
-                  fontWeight: 800,
+                  fontWeight: 900,
+                  letterSpacing: "-0.03em",
                 }}
               >
-                거래 가능한 자산
+                거래목록
               </h1>
             </div>
 
@@ -184,10 +170,10 @@ export default async function ListingsPage({
                 type="text"
                 name="q"
                 defaultValue={q}
-                placeholder="제목 또는 설명 검색"
+                placeholder="검색"
                 style={{
-                  height: 42,
-                  borderRadius: 12,
+                  height: 44,
+                  borderRadius: 14,
                   border: "1px solid #decfbc",
                   background: "#fcfaf6",
                   padding: "0 14px",
@@ -202,8 +188,8 @@ export default async function ListingsPage({
                 name="category"
                 defaultValue={category}
                 style={{
-                  height: 42,
-                  borderRadius: 12,
+                  height: 44,
+                  borderRadius: 14,
                   border: "1px solid #decfbc",
                   background: "#fcfaf6",
                   padding: "0 12px",
@@ -214,32 +200,24 @@ export default async function ListingsPage({
                 }}
               >
                 <option value="">전체 카테고리</option>
-                <option value="instagram">인스타그램</option>
-                <option value="youtube">유튜브</option>
-                <option value="tiktok">틱톡</option>
-                <option value="x">X</option>
-                <option value="thread">스레드</option>
-                <option value="website">웹사이트</option>
-                <option value="ecommerce">쇼핑몰</option>
-                <option value="blog">블로그</option>
-                <option value="community">커뮤니티</option>
-                <option value="digital_product">디지털상품</option>
-                <option value="domain">도메인</option>
-                <option value="app">앱</option>
-                <option value="etc">기타</option>
+                {Object.entries(CATEGORY_LABEL).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
 
               <button
                 type="submit"
                 style={{
-                  height: 42,
-                  borderRadius: 12,
+                  height: 44,
+                  borderRadius: 14,
                   border: "1px solid #decfbc",
                   background: "#eadfcf",
                   color: "#2f2417",
                   padding: "0 16px",
                   fontSize: 14,
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: "pointer",
                   whiteSpace: "nowrap",
                 }}
@@ -254,18 +232,19 @@ export default async function ListingsPage({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                height: 42,
-                padding: "0 16px",
-                borderRadius: 12,
+                height: 44,
+                padding: "0 18px",
+                borderRadius: 14,
                 background: "#2f2417",
                 color: "#fff",
                 textDecoration: "none",
                 fontSize: 14,
-                fontWeight: 700,
+                fontWeight: 800,
                 whiteSpace: "nowrap",
+                boxShadow: "0 10px 20px rgba(47,36,23,0.12)",
               }}
             >
-              자산 등록
+              등록하기
             </Link>
           </div>
         </section>
@@ -287,247 +266,209 @@ export default async function ListingsPage({
             style={{
               background: "#fff",
               border: "1px solid #eadfcf",
-              borderRadius: 20,
-              padding: 24,
+              borderRadius: 22,
+              padding: 28,
               textAlign: "center",
               color: "#6e5a43",
+              boxShadow: "0 8px 22px rgba(47,36,23,0.04)",
             }}
           >
             등록된 자산이 없습니다.
           </section>
         ) : (
-          <>
-            <div
-              style={{
-                marginBottom: 10,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 14,
-                  color: "#6e5a43",
-                  fontWeight: 700,
-                }}
-              >
-                총 {listings.length}개
-              </div>
-            </div>
+          <div className="msell-listings-grid">
+            {listings.map((item) => {
+              const image = getImage(item);
 
-            <div className="msell-listings-grid">
-              {listings.map((item) => {
-                const image = getImage(item);
-
-                return (
-                  <Link
-                    key={item.id}
-                    href={`/listings/${item.id}`}
+              return (
+                <Link
+                  key={item.id}
+                  href={`/listings/${item.id}`}
+                  style={{
+                    display: "block",
+                    background: "#ffffff",
+                    border: "1px solid #eadfcf",
+                    borderRadius: 20,
+                    overflow: "hidden",
+                    textDecoration: "none",
+                    color: "inherit",
+                    boxShadow: "0 8px 22px rgba(47,36,23,0.05)",
+                    transition:
+                      "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+                  }}
+                >
+                  <div
                     style={{
-                      display: "block",
-                      background: "#ffffff",
-                      border: "1px solid #eadfcf",
-                      borderRadius: 18,
-                      overflow: "hidden",
-                      textDecoration: "none",
-                      color: "inherit",
-                      boxShadow: "0 8px 22px rgba(47,36,23,0.05)",
-                      transition: "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+                      aspectRatio: "1 / 0.72",
+                      background: image
+                        ? `url(${image}) center/cover no-repeat`
+                        : "linear-gradient(135deg, #f4ece0 0%, #efe4d3 100%)",
+                      borderBottom: "1px solid #f0e5d6",
+                      position: "relative",
                     }}
                   >
                     <div
                       style={{
-                        aspectRatio: "1 / 0.72",
-                        background: image
-                          ? `url(${image}) center/cover no-repeat`
-                          : "linear-gradient(135deg, #f4ece0 0%, #efe4d3 100%)",
-                        borderBottom: "1px solid #f0e5d6",
-                        position: "relative",
+                        position: "absolute",
+                        top: 10,
+                        left: 10,
                       }}
                     >
-                      <div
+                      <CategoryBadge
+                        category={item.category}
+                        label={getCategoryLabel(item.category)}
+                        mode="ghost"
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: 13,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 8,
+                        marginBottom: 9,
+                      }}
+                    >
+                      <span
                         style={{
-                          position: "absolute",
-                          top: 8,
-                          left: 8,
                           display: "inline-flex",
                           alignItems: "center",
-                          height: 24,
+                          height: 22,
                           padding: "0 8px",
                           borderRadius: 999,
-                          background: "rgba(255,255,255,0.94)",
-                          color: "#2f2417",
+                          background: "#f5eee3",
+                          color: "#6b543c",
                           fontSize: 11,
                           fontWeight: 800,
-                          backdropFilter: "blur(8px)",
+                          flexShrink: 0,
                         }}
                       >
-                        {getCategoryLabel(item.category)}
-                      </div>
+                        {getStatusLabel(item.status)}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "#8a7357",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {formatDate(item.created_at)}
+                      </span>
                     </div>
 
                     <div
                       style={{
-                        padding: 12,
+                        minHeight: 40,
+                        fontSize: 14,
+                        lineHeight: 1.42,
+                        fontWeight: 800,
+                        color: "#241b11",
+                        marginBottom: 8,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        letterSpacing: "-0.02em",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 8,
-                          marginBottom: 8,
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            height: 22,
-                            padding: "0 8px",
-                            borderRadius: 999,
-                            background: "#f5eee3",
-                            color: "#6b543c",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {getStatusLabel(item.status)}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: "#8a7357",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {formatDate(item.created_at)}
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          minHeight: 38,
-                          fontSize: 14,
-                          lineHeight: 1.4,
-                          fontWeight: 800,
-                          color: "#241b11",
-                          marginBottom: 8,
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                        }}
-                      >
-                        {item.title || "제목 없음"}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 17,
-                          fontWeight: 900,
-                          color: "#2f2417",
-                          marginBottom: 8,
-                        }}
-                      >
-                        {formatPrice(item.price)}
-                      </div>
-
-                      <div
-                        style={{
-                          minHeight: 32,
-                          fontSize: 12,
-                          lineHeight: 1.45,
-                          color: "#7a654d",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                        }}
-                      >
-                        {item.description || "상세 설명이 아직 등록되지 않았습니다."}
-                      </div>
+                      {item.title || "제목 없음"}
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </>
+
+                    <div
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 900,
+                        color: "#2f2417",
+                        marginBottom: 6,
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      {formatPrice(item.price)}
+                    </div>
+
+                    <div
+                      style={{
+                        minHeight: 32,
+                        fontSize: 12,
+                        lineHeight: 1.45,
+                        color: "#7a654d",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {item.description || ""}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         )}
-      </div>
 
-      <style>{`
-        .msell-listings-grid {
-          display: grid;
-          grid-template-columns: repeat(6, minmax(0, 1fr));
-          gap: 12px;
-        }
-
-        @media (max-width: 1600px) {
-          .msell-listings-toolbar {
-            grid-template-columns: auto minmax(0, 1fr) auto !important;
-          }
-        }
-
-        @media (max-width: 1400px) {
+        <style>{`
           .msell-listings-grid {
+            display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
           }
 
-          .msell-listings-search {
-            grid-template-columns: minmax(0, 1fr) 180px auto !important;
-          }
-        }
-
-        @media (max-width: 1180px) {
-          .msell-listings-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+          @media (max-width: 1540px) {
+            .msell-listings-grid {
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
           }
 
-          .msell-listings-toolbar {
-            grid-template-columns: 1fr !important;
-            align-items: stretch !important;
-          }
-        }
+          @media (max-width: 1240px) {
+            .msell-listings-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
 
-        @media (max-width: 920px) {
-          .msell-listings-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-
-          .msell-listings-search {
-            grid-template-columns: 1fr 1fr auto !important;
-          }
-        }
-
-        @media (max-width: 760px) {
-          .msell-listings-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
+            .msell-listings-toolbar {
+              grid-template-columns: 1fr !important;
+              align-items: stretch !important;
+            }
           }
 
-          .msell-listings-search {
-            grid-template-columns: 1fr !important;
+          @media (max-width: 900px) {
+            .msell-listings-search {
+              grid-template-columns: 1fr 1fr auto !important;
+            }
           }
-        }
 
-        @media (max-width: 520px) {
-          .msell-listings-grid {
-            grid-template-columns: 1fr;
+          @media (max-width: 760px) {
+            .msell-listings-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 10px;
+            }
+
+            .msell-listings-search {
+              grid-template-columns: 1fr !important;
+            }
           }
-        }
 
-        .msell-listings-grid > a:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 14px 28px rgba(47, 36, 23, 0.09);
-          border-color: #d8c4aa;
-        }
-      `}</style>
+          @media (max-width: 520px) {
+            .msell-listings-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          .msell-listings-grid > a:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 28px rgba(47, 36, 23, 0.09);
+            border-color: #d8c4aa;
+          }
+        `}</style>
+      </div>
     </main>
   );
 }

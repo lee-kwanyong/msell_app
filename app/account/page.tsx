@@ -1,666 +1,520 @@
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import type { CSSProperties } from 'react'
-import { supabaseServer } from '@/lib/supabase/server'
-import { updateAccountAction } from './actions'
-
-export const dynamic = 'force-dynamic'
+import { redirect } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
+import { updateAccountAction } from "./actions";
 
 type ProfileRow = {
-  id?: string | null
-  email?: string | null
-  full_name?: string | null
-  username?: string | null
-  phone_number?: string | null
-  role?: string | null
-  is_banned?: boolean | null
-  avatar_url?: string | null
-  created_at?: string | null
-}
+  full_name?: string | null;
+  username?: string | null;
+  phone_number?: string | null;
+  email?: string | null;
+};
 
-function firstString(...values: unknown[]) {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim()
-    }
+type SearchParams = {
+  success?: string;
+  error?: string;
+};
+
+function getMessage(searchParams?: SearchParams) {
+  if (searchParams?.success === "1") {
+    return {
+      type: "success" as const,
+      text: "계정 정보가 저장되었습니다.",
+    };
   }
-  return ''
-}
 
-function formatDate(value?: string | null) {
-  if (!value) return '-'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '-'
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d)
-}
-
-function getRoleLabel(role?: string | null) {
-  switch (role) {
-    case 'admin':
-      return '관리자'
-    case 'operator':
-      return '운영자'
-    case 'member':
-      return '일반회원'
+  switch (searchParams?.error) {
+    case "missing_phone":
+      return {
+        type: "error" as const,
+        text: "연락처를 입력해 주세요.",
+      };
+    case "update_failed":
+      return {
+        type: "error" as const,
+        text: "저장에 실패했습니다.",
+      };
     default:
-      return '회원'
+      return null;
   }
-}
-
-function getProviderLabel(provider?: string | null) {
-  switch (provider) {
-    case 'google':
-      return 'Google 로그인'
-    case 'kakao':
-      return 'Kakao 로그인'
-    case 'naver':
-    case 'custom:naver':
-      return 'Naver 로그인'
-    case 'email':
-      return '이메일 로그인'
-    default:
-      return '알 수 없음'
-  }
-}
-
-function InfoCard({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
-  return (
-    <div
-      style={{
-        background: '#fbf7ef',
-        border: '1px solid #eadfcf',
-        borderRadius: 18,
-        padding: '16px 18px',
-        display: 'grid',
-        gap: 8,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          color: '#8a7357',
-          letterSpacing: '0.05em',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 800,
-          color: '#241b11',
-          lineHeight: 1.5,
-          wordBreak: 'break-word',
-        }}
-      >
-        {value || '-'}
-      </div>
-    </div>
-  )
-}
-
-function Field({
-  label,
-  name,
-  defaultValue,
-  placeholder,
-  required,
-}: {
-  label: string
-  name: string
-  defaultValue?: string
-  placeholder?: string
-  required?: boolean
-}) {
-  return (
-    <label style={{ display: 'grid', gap: 8 }}>
-      <span
-        style={{
-          fontSize: 13,
-          color: '#7a654d',
-          fontWeight: 800,
-        }}
-      >
-        {label}
-      </span>
-      <input
-        name={name}
-        defaultValue={defaultValue}
-        placeholder={placeholder}
-        required={required}
-        style={inputStyle}
-      />
-    </label>
-  )
 }
 
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
+  searchParams?: Promise<SearchParams>;
 }) {
-  const resolvedSearchParams = (await searchParams) ?? {}
-
-  const success = resolvedSearchParams.success
-  const errorParam = resolvedSearchParams.error
-
-  const successFlag =
-    (typeof success === 'string' && success === '1') ||
-    (Array.isArray(success) && success.includes('1'))
-
-  const errorMessage =
-    typeof errorParam === 'string'
-      ? errorParam
-      : Array.isArray(errorParam)
-        ? errorParam[0]
-        : ''
-
-  const supabase = await supabaseServer()
+  const query = (await searchParams) || {};
+  const supabase = await supabaseServer();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/auth/login?next=/account')
+    redirect("/auth/login?next=/account");
   }
 
   const { data: profileData } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle()
+    .from("profiles")
+    .select("full_name, username, phone_number, email")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  const profile = (profileData as ProfileRow | null) ?? null
-  const metadata = (user.user_metadata || {}) as Record<string, unknown>
+  const profile = (profileData || {}) as ProfileRow;
+  const message = getMessage(query);
 
-  const email = firstString(profile?.email, user.email, metadata.email)
+  const emailValue =
+    profile.email ||
+    user.email ||
+    "";
 
-  const fullName = firstString(
-    profile?.full_name,
-    metadata.full_name,
-    metadata.name,
-    metadata.nickname
-  )
-
-  const username = firstString(
-    profile?.username,
-    metadata.user_name,
-    metadata.preferred_username,
-    metadata.username
-  )
-
-  const phoneNumber = firstString(
-    profile?.phone_number,
-    user.phone,
-    metadata.phone_number,
-    metadata.phone
-  )
-
-  const provider = firstString(
-    user.app_metadata?.provider,
-    metadata.provider
-  )
-
-  const avatarUrl = firstString(
-    profile?.avatar_url,
-    metadata.avatar_url,
-    metadata.picture
-  )
-
-  const providerLabel = getProviderLabel(provider)
+  const fullNameValue = profile.full_name || "";
+  const usernameValue = profile.username || "";
+  const phoneValue = profile.phone_number || "";
 
   return (
     <main
       style={{
-        minHeight: '100vh',
-        background: '#f6f1e7',
-        padding: '32px 16px 80px',
+        minHeight: "100vh",
+        background: "#f6f1e7",
       }}
     >
       <div
         style={{
-          maxWidth: 1160,
-          margin: '0 auto',
-          display: 'grid',
-          gap: 20,
+          maxWidth: 980,
+          margin: "0 auto",
+          padding: "20px 16px 56px",
         }}
       >
         <section
-          className="account-hero-grid"
           style={{
-            background: '#ffffff',
-            border: '1px solid #eadfcf',
-            borderRadius: 30,
-            padding: 28,
-            boxShadow: '0 12px 30px rgba(47,36,23,0.06)',
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.15fr) minmax(280px, 0.85fr)',
-            gap: 20,
+            background: "rgba(255,255,255,0.82)",
+            border: "1px solid #e6dac8",
+            borderRadius: 24,
+            padding: 16,
+            boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
+            backdropFilter: "blur(10px)",
+            marginBottom: 14,
           }}
         >
-          <div style={{ display: 'grid', gap: 14 }}>
-            <div
-              style={{
-                width: 'fit-content',
-                minHeight: 34,
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '0 14px',
-                borderRadius: 999,
-                background: '#f1e6d7',
-                color: '#7a664d',
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: '0.08em',
-              }}
-            >
-              ACCOUNT
-            </div>
-
-            <h1
-              style={{
-                margin: 0,
-                color: '#241b11',
-                fontSize: 38,
-                lineHeight: 1.15,
-                fontWeight: 900,
-                letterSpacing: '-0.03em',
-              }}
-            >
-              계정 정보
-            </h1>
-
-            <p
-              style={{
-                margin: 0,
-                color: '#6d5a47',
-                fontSize: 16,
-                lineHeight: 1.85,
-                maxWidth: 720,
-              }}
-            >
-              로그인 방식과 연결 이메일은 서로 다른 값입니다. 네이버 로그인이라도 연결 이메일은 Gmail일 수 있습니다.
-            </p>
-
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <Link href="/my/listings" style={secondaryButtonStyle}>
-                내 매물
-              </Link>
-              <Link href="/my/deals" style={secondaryButtonStyle}>
-                내 거래
-              </Link>
-            </div>
-          </div>
-
           <div
             style={{
-              background: '#fbf7ef',
-              border: '1px solid #eadfcf',
-              borderRadius: 24,
-              padding: 20,
-              display: 'grid',
-              gap: 14,
-              alignContent: 'start',
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) auto",
+              gap: 12,
+              alignItems: "center",
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div>
               <div
                 style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: '50%',
-                  background: '#2f2417',
-                  color: '#ffffff',
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontWeight: 900,
-                  fontSize: 26,
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                }}
-              >
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt="프로필"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                ) : (
-                  (fullName || username || email || 'U').slice(0, 1).toUpperCase()
-                )}
-              </div>
-
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 900,
-                    color: '#241b11',
-                    lineHeight: 1.3,
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {fullName || username || '이름 미등록'}
-                </div>
-                <div
-                  style={{
-                    marginTop: 6,
-                    fontSize: 14,
-                    color: '#7c6955',
-                    lineHeight: 1.5,
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  연결 이메일: {email || '없음'}
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                gap: 10,
-              }}
-            >
-              <MiniStat label="로그인 방식" value={providerLabel} />
-              <MiniStat label="권한" value={getRoleLabel(profile?.role)} />
-              <MiniStat label="계정 상태" value={profile?.is_banned ? '정지' : '정상'} />
-              <MiniStat label="가입 시각" value={formatDate(user.created_at)} />
-            </div>
-          </div>
-        </section>
-
-        {successFlag ? (
-          <div
-            style={{
-              background: '#f4efe6',
-              border: '1px solid #ddcfba',
-              color: '#2f2417',
-              borderRadius: 18,
-              padding: '14px 16px',
-              fontSize: 14,
-              fontWeight: 800,
-            }}
-          >
-            계정 정보가 저장되었습니다.
-          </div>
-        ) : null}
-
-        {errorMessage ? (
-          <div
-            style={{
-              background: '#fff4f1',
-              border: '1px solid #efc6bc',
-              color: '#8b3a2a',
-              borderRadius: 18,
-              padding: '14px 16px',
-              fontSize: 14,
-              fontWeight: 800,
-            }}
-          >
-            {decodeURIComponent(errorMessage)}
-          </div>
-        ) : null}
-
-        <section
-          className="account-info-grid"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: 16,
-          }}
-        >
-          <InfoCard label="이름" value={fullName || '-'} />
-          <InfoCard label="닉네임 / 사용자명" value={username || '-'} />
-          <InfoCard label="로그인 방식" value={providerLabel} />
-          <InfoCard label="연결 이메일" value={email || '-'} />
-          <InfoCard label="연락처" value={phoneNumber || '-'} />
-          <InfoCard label="프로필 생성일" value={formatDate(profile?.created_at)} />
-        </section>
-
-        <section
-          style={{
-            background: '#ffffff',
-            border: '1px solid #eadfcf',
-            borderRadius: 30,
-            padding: 24,
-            boxShadow: '0 12px 30px rgba(47,36,23,0.06)',
-            display: 'grid',
-            gap: 18,
-          }}
-        >
-          <div style={{ display: 'grid', gap: 8 }}>
-            <h2
-              style={{
-                margin: 0,
-                color: '#241b11',
-                fontSize: 24,
-                fontWeight: 900,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              계정 수정
-            </h2>
-            <p
-              style={{
-                margin: 0,
-                color: '#7c6955',
-                fontSize: 14,
-                lineHeight: 1.7,
-              }}
-            >
-              아래 정보는 서비스 내 프로필 값입니다. 로그인 방식 자체는 여기서 바뀌지 않습니다. 연락처를 입력해야 저장할 수 있습니다.
-            </p>
-          </div>
-
-          <form action={updateAccountAction} style={{ display: 'grid', gap: 16 }}>
-            <div
-              className="account-form-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                gap: 16,
-              }}
-            >
-              <Field
-                label="이름"
-                name="full_name"
-                defaultValue={fullName}
-                placeholder="이름을 입력하세요"
-              />
-
-              <Field
-                label="사용자명"
-                name="username"
-                defaultValue={username}
-                placeholder="영문/숫자/언더스코어"
-              />
-
-              <Field
-                label="연락처"
-                name="phone_number"
-                defaultValue={phoneNumber}
-                placeholder="연락처를 입력하세요"
-                required
-              />
-
-              <Field
-                label="로그인 방식"
-                name="provider_readonly"
-                defaultValue={providerLabel}
-                placeholder=""
-              />
-            </div>
-
-            <div
-              style={{
-                background: '#fbf7ef',
-                border: '1px solid #eadfcf',
-                borderRadius: 20,
-                padding: 16,
-                display: 'grid',
-                gap: 8,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#8b7458',
+                  fontSize: 11,
                   fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  color: "#8a7357",
+                  marginBottom: 4,
                 }}
               >
-                연결 이메일
+                ACCOUNT
               </div>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 24,
+                  lineHeight: 1.08,
+                  color: "#241b11",
+                  fontWeight: 900,
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                계정 설정
+              </h1>
+            </div>
+
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: 42,
+                padding: "0 14px",
+                borderRadius: 14,
+                background: "#fff",
+                border: "1px solid #eadfcf",
+                color: "#6e5a43",
+                fontSize: 13,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {emailValue || "이메일 없음"}
+            </div>
+          </div>
+        </section>
+
+        {message ? (
+          <section
+            style={{
+              background: message.type === "success" ? "#f7fbf6" : "#fff5f2",
+              border:
+                message.type === "success"
+                  ? "1px solid #cfe3c8"
+                  : "1px solid #f0c7b6",
+              color: message.type === "success" ? "#2f5d2a" : "#9a3412",
+              borderRadius: 18,
+              padding: "14px 16px",
+              marginBottom: 14,
+              fontSize: 14,
+              fontWeight: 700,
+            }}
+          >
+            {message.text}
+          </section>
+        ) : null}
+
+        <div
+          className="msell-account-layout"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) 320px",
+            gap: 14,
+            alignItems: "start",
+          }}
+        >
+          <section
+            style={{
+              background: "#fff",
+              border: "1px solid #eadfcf",
+              borderRadius: 24,
+              padding: 22,
+              boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
+            }}
+          >
+            <form action={updateAccountAction} style={{ display: "grid", gap: 16 }}>
+              <div style={{ display: "grid", gap: 8 }}>
+                <label
+                  htmlFor="full_name"
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: "#241b11",
+                  }}
+                >
+                  이름
+                </label>
+                <input
+                  id="full_name"
+                  name="full_name"
+                  type="text"
+                  defaultValue={fullNameValue}
+                  placeholder="이름"
+                  style={{
+                    height: 50,
+                    borderRadius: 16,
+                    border: "1px solid #d7c6ae",
+                    background: "#fffdf9",
+                    padding: "0 16px",
+                    fontSize: 14,
+                    color: "#241b11",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gap: 8 }}>
+                <label
+                  htmlFor="username"
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: "#241b11",
+                  }}
+                >
+                  아이디
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  defaultValue={usernameValue}
+                  placeholder="아이디"
+                  style={{
+                    height: 50,
+                    borderRadius: 16,
+                    border: "1px solid #d7c6ae",
+                    background: "#fffdf9",
+                    padding: "0 16px",
+                    fontSize: 14,
+                    color: "#241b11",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gap: 8 }}>
+                <label
+                  htmlFor="phone_number"
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: "#241b11",
+                  }}
+                >
+                  연락처
+                </label>
+                <input
+                  id="phone_number"
+                  name="phone_number"
+                  type="text"
+                  defaultValue={phoneValue}
+                  placeholder="연락처"
+                  required
+                  style={{
+                    height: 50,
+                    borderRadius: 16,
+                    border: "1px solid #d7c6ae",
+                    background: "#fffdf9",
+                    padding: "0 16px",
+                    fontSize: 14,
+                    color: "#241b11",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gap: 8 }}>
+                <label
+                  htmlFor="email"
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: "#241b11",
+                  }}
+                >
+                  이메일
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={emailValue}
+                  readOnly
+                  style={{
+                    height: 50,
+                    borderRadius: 16,
+                    border: "1px solid #e6dac8",
+                    background: "#f8f4ed",
+                    padding: "0 16px",
+                    fontSize: 14,
+                    color: "#6e5a43",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
               <div
                 style={{
-                  fontSize: 16,
-                  color: '#241b11',
-                  fontWeight: 900,
-                  wordBreak: 'break-word',
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginTop: 4,
                 }}
               >
-                {email || '-'}
+                <button
+                  type="submit"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minWidth: 160,
+                    height: 50,
+                    padding: "0 18px",
+                    border: 0,
+                    borderRadius: 16,
+                    background: "#2f2417",
+                    color: "#fff",
+                    fontSize: 15,
+                    fontWeight: 900,
+                    cursor: "pointer",
+                    boxShadow: "0 14px 24px rgba(47,36,23,0.14)",
+                  }}
+                >
+                  저장하기
+                </button>
               </div>
+            </form>
+          </section>
+
+          <aside
+            style={{
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <section
+              style={{
+                background: "#fff",
+                border: "1px solid #eadfcf",
+                borderRadius: 24,
+                padding: 20,
+                boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
+              }}
+            >
               <div
                 style={{
                   fontSize: 12,
-                  color: '#8b7458',
-                  lineHeight: 1.6,
+                  fontWeight: 800,
+                  color: "#8a7357",
+                  letterSpacing: "0.08em",
+                  marginBottom: 12,
                 }}
               >
-                이 이메일은 로그인 제공자에서 전달된 연결 이메일입니다. 네이버 로그인이라도 Gmail 주소일 수 있습니다.
+                ACCOUNT INFO
               </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button type="submit" style={primaryButtonStyle}>
-                저장하기
-              </button>
-              <Link href="/" style={secondaryButtonStyle}>
-                홈으로
-              </Link>
-            </div>
-          </form>
-        </section>
-      </div>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 4,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "#8a7357",
+                      fontWeight: 700,
+                    }}
+                  >
+                    이메일
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      color: "#241b11",
+                      fontWeight: 800,
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {emailValue || "-"}
+                  </span>
+                </div>
 
-      <style>{`
-        @media (max-width: 960px) {
-          .account-hero-grid,
-          .account-info-grid,
-          .account-form-grid {
-            grid-template-columns: 1fr !important;
+                <div
+                  style={{
+                    height: 1,
+                    background: "#f0e5d6",
+                  }}
+                />
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 4,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "#8a7357",
+                      fontWeight: 700,
+                    }}
+                  >
+                    이름
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      color: "#241b11",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {fullNameValue || "-"}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    height: 1,
+                    background: "#f0e5d6",
+                  }}
+                />
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 4,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "#8a7357",
+                      fontWeight: 700,
+                    }}
+                  >
+                    아이디
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      color: "#241b11",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {usernameValue || "-"}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    height: 1,
+                    background: "#f0e5d6",
+                  }}
+                />
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 4,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "#8a7357",
+                      fontWeight: 700,
+                    }}
+                  >
+                    연락처
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      color: "#241b11",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {phoneValue || "-"}
+                  </span>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        <style>{`
+          @media (max-width: 920px) {
+            .msell-account-layout {
+              grid-template-columns: 1fr !important;
+            }
           }
-        }
-      `}</style>
+        `}</style>
+      </div>
     </main>
-  )
-}
-
-function MiniStat({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
-  return (
-    <div
-      style={{
-        background: '#ffffff',
-        border: '1px solid #eadfcf',
-        borderRadius: 16,
-        padding: '14px 14px 12px',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          color: '#8b7458',
-          fontWeight: 800,
-          marginBottom: 6,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 15,
-          color: '#241b11',
-          fontWeight: 900,
-          lineHeight: 1.45,
-          wordBreak: 'break-word',
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  )
-}
-
-const inputStyle: CSSProperties = {
-  width: '100%',
-  height: 48,
-  borderRadius: 14,
-  border: '1px solid #ddcfba',
-  background: '#fffdf9',
-  padding: '0 14px',
-  fontSize: 15,
-  color: '#241b11',
-  outline: 'none',
-  boxSizing: 'border-box',
-}
-
-const primaryButtonStyle: CSSProperties = {
-  height: 46,
-  padding: '0 18px',
-  borderRadius: 999,
-  border: '1px solid #2f2417',
-  background: '#2f2417',
-  color: '#ffffff',
-  textDecoration: 'none',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: 14,
-  fontWeight: 800,
-  whiteSpace: 'nowrap',
-  cursor: 'pointer',
-}
-
-const secondaryButtonStyle: CSSProperties = {
-  height: 44,
-  padding: '0 16px',
-  borderRadius: 999,
-  border: '1px solid #ddcfba',
-  background: '#fffaf2',
-  color: '#2f2417',
-  textDecoration: 'none',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: 14,
-  fontWeight: 800,
-  whiteSpace: 'nowrap',
+  );
 }

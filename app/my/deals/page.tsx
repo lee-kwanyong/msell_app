@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
+import {
+  CategoryBadge,
+  getCategoryLabel,
+} from "@/components/listings/CategoryVisual";
 
 type DealRow = {
-  id?: string;
-  listing_id?: string | null;
+  id: string;
+  listing_id: string | null;
   buyer_id?: string | null;
   seller_id?: string | null;
   status?: string | null;
@@ -13,80 +17,56 @@ type DealRow = {
 };
 
 type ListingRow = {
-  id?: string;
+  id: string;
   title?: string | null;
   category?: string | null;
   price?: number | string | null;
   status?: string | null;
+  thumbnail_url?: string | null;
+  image_url?: string | null;
+  cover_image_url?: string | null;
 };
 
 type NotificationRow = {
-  id?: string;
+  id: string;
   deal_id?: string | null;
   is_read?: boolean | null;
 };
 
 const DEAL_STATUS_LABEL: Record<string, string> = {
-  pending: "진행중",
+  open: "진행중",
   active: "진행중",
+  pending: "대기중",
+  reserved: "예약중",
   completed: "완료",
-  cancelled: "취소",
   closed: "종료",
-};
-
-const DEAL_STATUS_TONE: Record<string, React.CSSProperties> = {
-  pending: {
-    background: "#fff3dd",
-    color: "#946200",
-    border: "1px solid #f1ddab",
-  },
-  active: {
-    background: "#edf8ef",
-    color: "#1d8a43",
-    border: "1px solid #cae9d2",
-  },
-  completed: {
-    background: "#eef4ff",
-    color: "#2d64c8",
-    border: "1px solid #d6e3ff",
-  },
-  cancelled: {
-    background: "#fff0f0",
-    color: "#b23a3a",
-    border: "1px solid #f1cfcf",
-  },
-  closed: {
-    background: "#f3f1f7",
-    color: "#6b5c88",
-    border: "1px solid #ddd6eb",
-  },
+  cancelled: "취소",
 };
 
 function formatPrice(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === "") return "가격 미정";
-  const num =
-    typeof value === "number"
-      ? value
-      : Number(String(value).replace(/[^\d.-]/g, ""));
-  if (Number.isNaN(num)) return String(value);
-  return `₩${num.toLocaleString("ko-KR")}`;
+  if (value === null || value === undefined || value === "") return "가격협의";
+  const num = Number(value);
+  if (Number.isNaN(num)) return "가격협의";
+  return `${num.toLocaleString("ko-KR")}원`;
 }
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("ko-KR");
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "-";
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
 }
 
-function getDealStatusLabel(status?: string | null) {
+function getDealStatusLabel(status: string | null | undefined) {
   if (!status) return "진행중";
-  return DEAL_STATUS_LABEL[status] ?? status;
+  return DEAL_STATUS_LABEL[status] || status;
 }
 
-function getDealStatusTone(status?: string | null) {
-  if (!status) return DEAL_STATUS_TONE.pending;
-  return DEAL_STATUS_TONE[status] ?? DEAL_STATUS_TONE.pending;
+function getImage(row?: ListingRow | null) {
+  if (!row) return null;
+  return row.thumbnail_url || row.image_url || row.cover_image_url || null;
 }
 
 export default async function MyDealsPage() {
@@ -100,507 +80,511 @@ export default async function MyDealsPage() {
     redirect("/auth/login?next=/my/deals");
   }
 
-  const { data: dealsData } = await supabase
+  const { data: dealsData, error: dealsError } = await supabase
     .from("deals")
     .select("*")
     .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false });
 
-  const deals = (dealsData as DealRow[] | null) ?? [];
+  const deals: DealRow[] = Array.isArray(dealsData) ? (dealsData as DealRow[]) : [];
+
   const listingIds = Array.from(
     new Set(deals.map((deal) => deal.listing_id).filter(Boolean))
   ) as string[];
 
-  const dealIds = deals
-    .map((deal) => deal.id)
-    .filter(Boolean) as string[];
+  const { data: listingsData } =
+    listingIds.length > 0
+      ? await supabase.from("listings").select("*").in("id", listingIds)
+      : { data: [] as ListingRow[] };
 
-  const [{ data: listingsData }, { data: notificationsData }] =
-    await Promise.all([
-      listingIds.length
-        ? supabase.from("listings").select("*").in("id", listingIds)
-        : Promise.resolve({ data: [] as ListingRow[] }),
-      dealIds.length
-        ? supabase
-            .from("notifications")
-            .select("*")
-            .in("deal_id", dealIds)
-            .eq("is_read", false)
-        : Promise.resolve({ data: [] as NotificationRow[] }),
-    ]);
+  const listingsMap = new Map<string, ListingRow>(
+    ((listingsData || []) as ListingRow[]).map((item) => [item.id, item])
+  );
 
-  const listingMap = new Map<string, ListingRow>();
-  ((listingsData as ListingRow[] | null) ?? []).forEach((item) => {
-    if (item.id) listingMap.set(item.id, item);
-  });
+  const dealIds = deals.map((deal) => deal.id);
 
-  const unreadCountMap = new Map<string, number>();
-  ((notificationsData as NotificationRow[] | null) ?? []).forEach((item) => {
-    if (!item.deal_id) return;
-    unreadCountMap.set(item.deal_id, (unreadCountMap.get(item.deal_id) ?? 0) + 1);
-  });
+  const { data: notificationsData } =
+    dealIds.length > 0
+      ? await supabase
+          .from("notifications")
+          .select("id, deal_id, is_read")
+          .eq("user_id", user.id)
+          .in("deal_id", dealIds)
+      : { data: [] as NotificationRow[] };
 
-  const rows = deals.map((deal) => {
-    const listing = deal.listing_id ? listingMap.get(deal.listing_id) : undefined;
-    return {
-      id: deal.id || "",
-      status: deal.status || "pending",
-      statusLabel: getDealStatusLabel(deal.status),
-      title: listing?.title?.trim() || "연결된 자산 없음",
-      category: listing?.category?.trim() || "other",
-      priceText: formatPrice(listing?.price),
-      listingStatus: listing?.status || "-",
-      updatedAt: formatDate(deal.updated_at),
-      createdAt: formatDate(deal.created_at),
-      unreadCount: unreadCountMap.get(deal.id || "") ?? 0,
-      isBuyer: deal.buyer_id === user.id,
-    };
-  });
+  const unreadCountByDeal = new Map<string, number>();
 
-  const totalCount = rows.length;
-  const activeCount = rows.filter(
-    (row) => row.status === "pending" || row.status === "active"
+  for (const row of (notificationsData || []) as NotificationRow[]) {
+    if (!row.deal_id || row.is_read) continue;
+    unreadCountByDeal.set(row.deal_id, (unreadCountByDeal.get(row.deal_id) || 0) + 1);
+  }
+
+  const totalCount = deals.length;
+  const activeCount = deals.filter((deal) =>
+    ["open", "active", "pending", null, undefined].includes(
+      deal.status as string | null | undefined
+    )
   ).length;
-  const completedCount = rows.filter((row) => row.status === "completed").length;
-  const unreadTotal = rows.reduce((acc, row) => acc + row.unreadCount, 0);
+  const reservedCount = deals.filter((deal) => deal.status === "reserved").length;
+  const completedCount = deals.filter((deal) =>
+    ["completed", "closed"].includes(deal.status || "")
+  ).length;
 
   return (
-    <main style={pageWrap}>
-      <div style={shell}>
-        <div style={breadcrumbRow}>
-          <Link href="/" style={breadcrumbLink}>
-            홈
-          </Link>
-          <span style={breadcrumbDivider}>/</span>
-          <span style={breadcrumbCurrent}>내 거래</span>
-        </div>
-
-        <section style={heroCard}>
-          <div style={heroTop}>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f6f1e7",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1680,
+          margin: "0 auto",
+          padding: "20px 16px 56px",
+        }}
+      >
+        <section
+          style={{
+            background: "rgba(255,255,255,0.82)",
+            border: "1px solid #e6dac8",
+            borderRadius: 24,
+            padding: 16,
+            boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
+            backdropFilter: "blur(10px)",
+            marginBottom: 14,
+          }}
+        >
+          <div
+            className="msell-mydeals-top"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) auto",
+              gap: 12,
+              alignItems: "center",
+            }}
+          >
             <div>
-              <div style={heroBadge}>MY DEAL FLOW</div>
-              <h1 style={heroTitle}>내 거래 관리</h1>
-              <p style={heroDesc}>
-                현재 진행 중인 문의와 완료된 거래를 한눈에 확인하세요. 새 메시지나
-                상태 변동이 있는 거래는 우선적으로 확인하는 것이 좋습니다.
-              </p>
-            </div>
-
-            <Link href="/listings" style={heroButton}>
-              거래목록 보러가기
-            </Link>
-          </div>
-
-          <div style={heroStats}>
-            <div style={heroStatCard}>
-              <div style={heroStatLabel}>전체 거래</div>
-              <div style={heroStatValue}>{totalCount}개</div>
-            </div>
-            <div style={heroStatCard}>
-              <div style={heroStatLabel}>진행중</div>
-              <div style={heroStatValue}>{activeCount}개</div>
-            </div>
-            <div style={heroStatCard}>
-              <div style={heroStatLabel}>완료</div>
-              <div style={heroStatValue}>{completedCount}개</div>
-            </div>
-            <div style={heroStatCard}>
-              <div style={heroStatLabel}>읽지 않은 알림</div>
-              <div style={heroStatValue}>{unreadTotal}개</div>
-            </div>
-          </div>
-        </section>
-
-        <section style={sectionCard}>
-          <div style={sectionHeader}>
-            <div>
-              <h2 style={sectionTitle}>거래방 목록</h2>
-              <p style={sectionDesc}>
-                카드에서 자산 정보와 최근 상태를 확인한 뒤 거래방으로 이동하세요.
-              </p>
-            </div>
-          </div>
-
-          {rows.length === 0 ? (
-            <div style={emptyState}>
-              <div style={emptyTitle}>아직 시작된 거래가 없습니다.</div>
-              <div style={emptyDesc}>
-                거래목록에서 관심 있는 자산에 문의를 시작하면 여기에 표시됩니다.
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  color: "#8a7357",
+                  marginBottom: 4,
+                }}
+              >
+                MY DEALS
               </div>
-              <Link href="/listings" style={emptyButton}>
-                거래목록으로 이동
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 24,
+                  lineHeight: 1.08,
+                  color: "#241b11",
+                  fontWeight: 900,
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                내 거래
+              </h1>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+              }}
+            >
+              <Link
+                href="/listings"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: 42,
+                  padding: "0 16px",
+                  borderRadius: 14,
+                  background: "#fff",
+                  border: "1px solid #eadfcf",
+                  color: "#2f2417",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                거래목록
+              </Link>
+
+              <Link
+                href="/listings/create"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: 42,
+                  padding: "0 16px",
+                  borderRadius: 14,
+                  background: "#2f2417",
+                  color: "#fff",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  whiteSpace: "nowrap",
+                  boxShadow: "0 10px 20px rgba(47,36,23,0.12)",
+                }}
+              >
+                새 자산 등록
               </Link>
             </div>
-          ) : (
-            <div style={grid}>
-              {rows.map((row) => (
-                <article key={row.id} style={card}>
-                  <div style={cardHead}>
-                    <div style={categoryChip}>{row.category}</div>
+          </div>
+        </section>
+
+        <section
+          className="msell-mydeals-kpis"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: 12,
+            marginBottom: 14,
+          }}
+        >
+          {[
+            { label: "전체", value: totalCount },
+            { label: "진행중", value: activeCount },
+            { label: "예약중", value: reservedCount },
+            { label: "완료", value: completedCount },
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                background: "#fff",
+                border: "1px solid #eadfcf",
+                borderRadius: 20,
+                padding: "18px 18px 16px",
+                boxShadow: "0 8px 22px rgba(47,36,23,0.04)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: "#8a7357",
+                  letterSpacing: "0.08em",
+                  marginBottom: 8,
+                }}
+              >
+                {item.label}
+              </div>
+              <div
+                style={{
+                  fontSize: 28,
+                  lineHeight: 1,
+                  fontWeight: 900,
+                  color: "#241b11",
+                  letterSpacing: "-0.04em",
+                }}
+              >
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {dealsError ? (
+          <section
+            style={{
+              background: "#fff",
+              border: "1px solid #eadfcf",
+              borderRadius: 20,
+              padding: 18,
+              color: "#9a3412",
+            }}
+          >
+            거래 목록을 불러오지 못했습니다.
+          </section>
+        ) : deals.length === 0 ? (
+          <section
+            style={{
+              background: "#fff",
+              border: "1px solid #eadfcf",
+              borderRadius: 22,
+              padding: 28,
+              textAlign: "center",
+              color: "#6e5a43",
+              boxShadow: "0 8px 22px rgba(47,36,23,0.04)",
+            }}
+          >
+            진행 중인 거래가 없습니다.
+          </section>
+        ) : (
+          <div className="msell-mydeals-grid">
+            {deals.map((deal) => {
+              const listing = deal.listing_id
+                ? listingsMap.get(deal.listing_id) || null
+                : null;
+              const unread = unreadCountByDeal.get(deal.id) || 0;
+              const image = getImage(listing);
+              const isBuyer = !!deal.buyer_id && deal.buyer_id === user.id;
+              const roleLabel = isBuyer ? "구매자" : "판매자";
+
+              return (
+                <Link
+                  key={deal.id}
+                  href={`/deal/${deal.id}`}
+                  style={{
+                    display: "block",
+                    background: "#ffffff",
+                    border: "1px solid #eadfcf",
+                    borderRadius: 20,
+                    overflow: "hidden",
+                    textDecoration: "none",
+                    color: "inherit",
+                    boxShadow: "0 8px 22px rgba(47,36,23,0.05)",
+                    transition:
+                      "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      aspectRatio: "1 / 0.62",
+                      background: image
+                        ? `url(${image}) center/cover no-repeat`
+                        : "linear-gradient(135deg, #f4ece0 0%, #efe4d3 100%)",
+                      borderBottom: "1px solid #f0e5d6",
+                      position: "relative",
+                    }}
+                  >
                     <div
                       style={{
-                        ...statusChip,
-                        ...getDealStatusTone(row.status),
+                        position: "absolute",
+                        top: 10,
+                        left: 10,
                       }}
                     >
-                      {row.statusLabel}
-                    </div>
-                  </div>
-
-                  <div style={cardBody}>
-                    <h3 style={cardTitle}>{row.title}</h3>
-                    <p style={cardDesc}>
-                      {row.isBuyer ? "구매 문의로 시작한 거래" : "판매 응답으로 진행 중인 거래"}
-                    </p>
-                  </div>
-
-                  <div style={priceRow}>
-                    <div style={mutedLabel}>대상 자산 가격</div>
-                    <div style={priceValue}>{row.priceText}</div>
-                  </div>
-
-                  <div style={metaGrid}>
-                    <div style={metaBox}>
-                      <div style={metaLabel}>거래 생성일</div>
-                      <div style={metaValue}>{row.createdAt}</div>
-                    </div>
-                    <div style={metaBox}>
-                      <div style={metaLabel}>최근 업데이트</div>
-                      <div style={metaValue}>{row.updatedAt}</div>
-                    </div>
-                  </div>
-
-                  <div style={bottomRow}>
-                    <div style={noticePill}>
-                      읽지 않은 알림 {row.unreadCount}개
+                      <CategoryBadge
+                        category={listing?.category}
+                        label={getCategoryLabel(listing?.category)}
+                        mode="ghost"
+                        size="sm"
+                      />
                     </div>
 
-                    <Link href={`/deal/${row.id}`} style={primaryButton}>
-                      거래방 열기
-                    </Link>
+                    {unread > 0 ? (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 10,
+                          right: 10,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          minWidth: 26,
+                          height: 26,
+                          padding: "0 8px",
+                          borderRadius: 999,
+                          background: "#2f2417",
+                          color: "#fff",
+                          fontSize: 11,
+                          fontWeight: 900,
+                          boxShadow: "0 8px 18px rgba(47,36,23,0.16)",
+                        }}
+                      >
+                        {unread}
+                      </div>
+                    ) : null}
                   </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+
+                  <div
+                    style={{
+                      padding: 14,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 8,
+                        marginBottom: 9,
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          height: 22,
+                          padding: "0 8px",
+                          borderRadius: 999,
+                          background: "#f5eee3",
+                          color: "#6b543c",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {getDealStatusLabel(deal.status)}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "#8a7357",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {formatDate(deal.updated_at || deal.created_at)}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        minHeight: 40,
+                        fontSize: 14,
+                        lineHeight: 1.42,
+                        fontWeight: 800,
+                        color: "#241b11",
+                        marginBottom: 8,
+                        letterSpacing: "-0.02em",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {listing?.title || "연결된 자산 없음"}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 900,
+                        color: "#2f2417",
+                        marginBottom: 10,
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      {formatPrice(listing?.price)}
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr auto",
+                          gap: 8,
+                          alignItems: "center",
+                          fontSize: 12,
+                        }}
+                      >
+                        <span style={{ color: "#8a7357", fontWeight: 700 }}>역할</span>
+                        <span style={{ color: "#241b11", fontWeight: 800 }}>
+                          {roleLabel}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr auto",
+                          gap: 8,
+                          alignItems: "center",
+                          fontSize: 12,
+                        }}
+                      >
+                        <span style={{ color: "#8a7357", fontWeight: 700 }}>카테고리</span>
+                        <CategoryBadge
+                          category={listing?.category}
+                          label={getCategoryLabel(listing?.category)}
+                          mode="light"
+                          size="sm"
+                        />
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr auto",
+                          gap: 8,
+                          alignItems: "center",
+                          fontSize: 12,
+                        }}
+                      >
+                        <span style={{ color: "#8a7357", fontWeight: 700 }}>메시지</span>
+                        <span style={{ color: "#241b11", fontWeight: 800 }}>
+                          {unread > 0 ? `${unread}건 미확인` : "확인됨"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        <style>{`
+          .msell-mydeals-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+          }
+
+          .msell-mydeals-grid > a:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 28px rgba(47, 36, 23, 0.09);
+            border-color: #d8c4aa;
+          }
+
+          @media (max-width: 1540px) {
+            .msell-mydeals-grid {
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+          }
+
+          @media (max-width: 1240px) {
+            .msell-mydeals-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .msell-mydeals-kpis {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+          }
+
+          @media (max-width: 820px) {
+            .msell-mydeals-top {
+              grid-template-columns: 1fr !important;
+              align-items: stretch !important;
+            }
+          }
+
+          @media (max-width: 760px) {
+            .msell-mydeals-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 10px;
+            }
+          }
+
+          @media (max-width: 560px) {
+            .msell-mydeals-grid {
+              grid-template-columns: 1fr;
+            }
+
+            .msell-mydeals-kpis {
+              grid-template-columns: 1fr !important;
+            }
+          }
+        `}</style>
       </div>
     </main>
   );
 }
-
-const pageWrap: React.CSSProperties = {
-  background: "#f6f1e7",
-  padding: "24px 0 40px",
-};
-
-const shell: React.CSSProperties = {
-  maxWidth: 1480,
-  margin: "0 auto",
-  padding: "0 32px",
-};
-
-const breadcrumbRow: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  marginBottom: 16,
-  color: "#8b7457",
-  fontSize: 13,
-  fontWeight: 700,
-};
-
-const breadcrumbLink: React.CSSProperties = {
-  textDecoration: "none",
-  color: "#8b7457",
-};
-
-const breadcrumbDivider: React.CSSProperties = {
-  opacity: 0.7,
-};
-
-const breadcrumbCurrent: React.CSSProperties = {
-  color: "#5e4c37",
-};
-
-const heroCard: React.CSSProperties = {
-  background:
-    "linear-gradient(135deg, rgba(255,255,255,0.78), rgba(243,235,223,0.94))",
-  border: "1px solid #e7dbc8",
-  borderRadius: 34,
-  padding: "30px 30px 24px",
-  boxShadow: "0 20px 45px rgba(47,36,23,0.06)",
-};
-
-const heroTop: React.CSSProperties = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: 20,
-  flexWrap: "wrap",
-};
-
-const heroBadge: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 800,
-  color: "#8a6f4d",
-  letterSpacing: "0.08em",
-};
-
-const heroTitle: React.CSSProperties = {
-  margin: "10px 0 0",
-  fontSize: 44,
-  lineHeight: 1.08,
-  letterSpacing: "-0.03em",
-  fontWeight: 900,
-  color: "#20170f",
-};
-
-const heroDesc: React.CSSProperties = {
-  margin: "14px 0 0",
-  maxWidth: 720,
-  fontSize: 15,
-  lineHeight: 1.85,
-  color: "#68553c",
-};
-
-const heroButton: React.CSSProperties = {
-  textDecoration: "none",
-  background: "#2f2417",
-  color: "#f6f1e7",
-  padding: "14px 20px",
-  borderRadius: 999,
-  fontWeight: 800,
-  fontSize: 14,
-  boxShadow: "0 12px 24px rgba(47,36,23,0.14)",
-};
-
-const heroStats: React.CSSProperties = {
-  marginTop: 20,
-  display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: 14,
-};
-
-const heroStatCard: React.CSSProperties = {
-  background: "rgba(255,255,255,0.82)",
-  border: "1px solid #eadfcf",
-  borderRadius: 24,
-  padding: "18px 18px",
-};
-
-const heroStatLabel: React.CSSProperties = {
-  fontSize: 13,
-  color: "#8a7256",
-  fontWeight: 700,
-};
-
-const heroStatValue: React.CSSProperties = {
-  marginTop: 8,
-  fontSize: 26,
-  fontWeight: 900,
-  color: "#20170f",
-};
-
-const sectionCard: React.CSSProperties = {
-  marginTop: 18,
-  background: "rgba(255,255,255,0.82)",
-  border: "1px solid #e7dbc8",
-  borderRadius: 32,
-  padding: "22px 20px 20px",
-  boxShadow: "0 16px 36px rgba(47,36,23,0.05)",
-};
-
-const sectionHeader: React.CSSProperties = {
-  padding: "4px 4px 14px",
-};
-
-const sectionTitle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 28,
-  lineHeight: 1.2,
-  fontWeight: 900,
-  color: "#20170f",
-};
-
-const sectionDesc: React.CSSProperties = {
-  margin: "8px 0 0",
-  fontSize: 14,
-  lineHeight: 1.8,
-  color: "#7d684d",
-};
-
-const emptyState: React.CSSProperties = {
-  padding: "42px 20px",
-  borderRadius: 24,
-  border: "1px dashed #e3d7c6",
-  background: "#fffcf8",
-  textAlign: "center",
-};
-
-const emptyTitle: React.CSSProperties = {
-  fontSize: 22,
-  fontWeight: 900,
-  color: "#2f2417",
-};
-
-const emptyDesc: React.CSSProperties = {
-  marginTop: 10,
-  fontSize: 14,
-  lineHeight: 1.8,
-  color: "#7d684d",
-};
-
-const emptyButton: React.CSSProperties = {
-  display: "inline-block",
-  marginTop: 16,
-  textDecoration: "none",
-  background: "#2f2417",
-  color: "#f6f1e7",
-  padding: "12px 18px",
-  borderRadius: 999,
-  fontWeight: 800,
-  fontSize: 14,
-};
-
-const grid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: 16,
-};
-
-const card: React.CSSProperties = {
-  background: "#fffdfa",
-  border: "1px solid #eadfcf",
-  borderRadius: 28,
-  padding: "18px 18px",
-  minHeight: 310,
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  boxShadow: "0 12px 30px rgba(47,36,23,0.04)",
-};
-
-const cardHead: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 12,
-};
-
-const categoryChip: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  borderRadius: 999,
-  background: "#f3eadc",
-  color: "#7a6447",
-  border: "1px solid #e7dbc8",
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 800,
-  textTransform: "lowercase",
-};
-
-const statusChip: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 800,
-};
-
-const cardBody: React.CSSProperties = {
-  marginTop: 18,
-};
-
-const cardTitle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 24,
-  lineHeight: 1.35,
-  color: "#2f2417",
-  fontWeight: 900,
-  letterSpacing: "-0.02em",
-};
-
-const cardDesc: React.CSSProperties = {
-  margin: "12px 0 0",
-  fontSize: 14,
-  lineHeight: 1.8,
-  color: "#6f5b42",
-  minHeight: 50,
-};
-
-const priceRow: React.CSSProperties = {
-  marginTop: 20,
-};
-
-const mutedLabel: React.CSSProperties = {
-  fontSize: 12,
-  color: "#8f7758",
-  fontWeight: 700,
-};
-
-const priceValue: React.CSSProperties = {
-  marginTop: 6,
-  fontSize: 30,
-  lineHeight: 1.1,
-  fontWeight: 900,
-  color: "#20170f",
-};
-
-const metaGrid: React.CSSProperties = {
-  marginTop: 18,
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: 10,
-};
-
-const metaBox: React.CSSProperties = {
-  borderRadius: 18,
-  background: "#fcf8f2",
-  border: "1px solid #efe3d3",
-  padding: "12px 12px",
-};
-
-const metaLabel: React.CSSProperties = {
-  fontSize: 12,
-  color: "#8f7758",
-  fontWeight: 700,
-};
-
-const metaValue: React.CSSProperties = {
-  marginTop: 6,
-  fontSize: 14,
-  color: "#2f2417",
-  fontWeight: 800,
-};
-
-const bottomRow: React.CSSProperties = {
-  marginTop: 18,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 12,
-};
-
-const noticePill: React.CSSProperties = {
-  borderRadius: 999,
-  background: "#f3eadc",
-  color: "#7a6447",
-  border: "1px solid #e7dbc8",
-  padding: "10px 12px",
-  fontSize: 12,
-  fontWeight: 800,
-};
-
-const primaryButton: React.CSSProperties = {
-  textDecoration: "none",
-  background: "#2f2417",
-  color: "#f6f1e7",
-  padding: "12px 14px",
-  borderRadius: 999,
-  fontWeight: 800,
-  fontSize: 14,
-  textAlign: "center",
-};
