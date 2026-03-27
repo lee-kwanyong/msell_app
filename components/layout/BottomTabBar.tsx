@@ -1,92 +1,61 @@
+"use client";
+
 import Link from "next/link";
-import { supabaseServer } from "@/lib/supabase/server";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
-function providerLabel(provider?: string | null) {
-  if (!provider) return "Email 로그인";
-  if (provider === "google") return "Google 로그인";
-  if (provider === "kakao") return "Kakao 로그인";
-  if (provider === "custom:naver") return "Naver 로그인";
-  return `${provider} 로그인`;
-}
+const tabs = [
+  { href: "/", label: "홈", icon: "⌂" },
+  { href: "/listings", label: "거래", icon: "◫" },
+  { href: "/listings/create", label: "등록", icon: "+" },
+  { href: "/my/deals", label: "거래방", icon: "○" },
+  { href: "/account", label: "마이", icon: "•" },
+];
 
-type NavItem = {
-  href: string;
-  label: string;
-};
+export default function BottomTabBar() {
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-export default async function Header() {
-  const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    function checkMobile() {
+      setIsMobile(window.innerWidth <= 768);
+    }
 
-  const navItems: NavItem[] = [
-    { href: "/", label: "홈" },
-    { href: "/listings", label: "거래목록" },
-    { href: "/listings/create", label: "자산등록" },
-    { href: "/my/listings", label: "내 매물" },
-    { href: "/my/deals", label: "내 거래" },
-    { href: "/account", label: "계정" },
-  ];
+    setMounted(true);
+    checkMobile();
 
-  const username =
-    (user?.user_metadata?.username as string | undefined) ||
-    (user?.user_metadata?.full_name as string | undefined) ||
-    user?.email?.split("@")[0] ||
-    "게스트";
+    window.addEventListener("resize", checkMobile);
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
 
-  const provider =
-    typeof user?.app_metadata?.provider === "string"
-      ? user.app_metadata.provider
-      : null;
+  if (!mounted || !isMobile) {
+    return null;
+  }
 
   return (
-    <header className="ms-header">
-      <div className="ms-header__inner">
-        <div className="ms-header__left">
-          <Link href="/" className="ms-brand">
-            <span className="ms-brand__logo">M</span>
-            <span className="ms-brand__text">Msell</span>
-          </Link>
+    <nav className="ms-bottom-tabbar" aria-label="모바일 하단 메뉴">
+      <div className="ms-bottom-tabbar__inner">
+        {tabs.map((tab) => {
+          const active =
+            tab.href === "/"
+              ? pathname === "/"
+              : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 
-          <nav className="ms-header__nav" aria-label="주요 메뉴">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href} className="ms-nav-pill">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        <div className="ms-header__right">
-          {user ? (
-            <>
-              <Link href="/account" className="ms-account-chip">
-                <span className="ms-account-chip__avatar">
-                  {username.slice(0, 1).toUpperCase()}
-                </span>
-
-                <span className="ms-account-chip__meta">
-                  <span className="ms-account-chip__name">{username}</span>
-                  <span className="ms-account-chip__provider">
-                    {providerLabel(provider)}
-                  </span>
-                </span>
-              </Link>
-
-              <form action="/auth/logout" method="post">
-                <button type="submit" className="ms-logout-button">
-                  로그아웃
-                </button>
-              </form>
-            </>
-          ) : (
-            <Link href="/auth/login" className="ms-logout-button ms-logout-link">
-              로그인
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`ms-bottom-tabbar__item${active ? " is-active" : ""}`}
+            >
+              <span className="ms-bottom-tabbar__icon">{tab.icon}</span>
+              <span className="ms-bottom-tabbar__label">{tab.label}</span>
             </Link>
-          )}
-        </div>
+          );
+        })}
       </div>
-    </header>
+    </nav>
   );
 }
