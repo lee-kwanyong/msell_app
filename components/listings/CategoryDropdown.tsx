@@ -1,163 +1,261 @@
-'use client'
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from "react";
 
 type CategoryDropdownProps = {
-  name?: string
-  value?: string
-  defaultValue?: string
-  categories?: string[]
-  required?: boolean
-  placeholder?: string
-}
+  name: string;
+  defaultValue?: string;
+  categories?: string[];
+};
 
 const DEFAULT_CATEGORIES = [
-  '인스타그램 계정',
-  '유튜브 채널',
-  '틱톡 계정',
-  '스레드 계정',
-  '엑스 계정',
-  '네이버 블로그',
-  '티스토리 블로그',
-  '워드프레스 사이트',
-  '쇼핑몰',
-  '스마트스토어',
-  '쿠팡 마켓',
-  '도메인',
-  '웹사이트',
-  '앱',
-  '커뮤니티',
-  '카카오톡 채널',
-  '텔레그램 채널',
-  '디스코드 서버',
-  '전자책',
-  '강의 상품',
-  '뉴스레터',
-  '브랜드',
-  '법인',
-  '상표권',
-  '소프트웨어',
-  'SaaS',
-  '자동화 툴',
-  '데이터셋',
-  'API 서비스',
-  '기타 디지털 자산',
-]
+  "유튜브 채널",
+  "인스타그램 계정",
+  "틱톡 계정",
+  "블로그",
+  "카페",
+  "도메인",
+  "웹사이트",
+  "쇼핑몰",
+  "앱",
+  "전자책",
+  "강의",
+  "커뮤니티",
+  "뉴스레터",
+  "디지털 상품",
+  "기타",
+];
 
 function getCategoryIcon(category: string) {
-  const text = category.toLowerCase()
-
-  if (text.includes('인스타')) return '📷'
-  if (text.includes('유튜브')) return '▶️'
-  if (text.includes('틱톡')) return '🎵'
-  if (text.includes('스레드')) return '🧵'
-  if (text.includes('엑스')) return '✕'
-  if (text.includes('블로그')) return '✍️'
-  if (text.includes('워드프레스')) return '🌐'
-  if (text.includes('쇼핑몰')) return '🛍️'
-  if (text.includes('스마트스토어')) return '🏪'
-  if (text.includes('쿠팡')) return '📦'
-  if (text.includes('도메인')) return '🔗'
-  if (text.includes('웹사이트')) return '🖥️'
-  if (text.includes('앱')) return '📱'
-  if (text.includes('커뮤니티')) return '👥'
-  if (text.includes('카카오톡')) return '💬'
-  if (text.includes('텔레그램')) return '✈️'
-  if (text.includes('디스코드')) return '🎮'
-  if (text.includes('전자책')) return '📘'
-  if (text.includes('강의')) return '🎓'
-  if (text.includes('뉴스레터')) return '📰'
-  if (text.includes('브랜드')) return '🏷️'
-  if (text.includes('법인')) return '🏢'
-  if (text.includes('상표권')) return '®️'
-  if (text.includes('소프트웨어')) return '💻'
-  if (text.includes('saas')) return '☁️'
-  if (text.includes('자동화')) return '⚙️'
-  if (text.includes('데이터셋')) return '🗂️'
-  if (text.includes('api')) return '🧩'
-  return '📁'
+  switch (category) {
+    case "유튜브 채널":
+      return "▶";
+    case "인스타그램 계정":
+      return "◎";
+    case "틱톡 계정":
+      return "♪";
+    case "블로그":
+      return "✎";
+    case "카페":
+      return "☕";
+    case "도메인":
+      return "⌘";
+    case "웹사이트":
+      return "◫";
+    case "쇼핑몰":
+      return "▣";
+    case "앱":
+      return "◧";
+    case "전자책":
+      return "▤";
+    case "강의":
+      return "△";
+    case "커뮤니티":
+      return "◌";
+    case "뉴스레터":
+      return "✉";
+    case "디지털 상품":
+      return "◆";
+    default:
+      return "•";
+  }
 }
 
 export default function CategoryDropdown({
-  name = 'category',
-  value,
-  defaultValue = '',
-  categories,
-  required = true,
-  placeholder = '카테고리 선택',
+  name,
+  defaultValue = "",
+  categories = DEFAULT_CATEGORIES,
 }: CategoryDropdownProps) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
-  const [open, setOpen] = useState(false)
-  const categoryList = useMemo(
-    () => (categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES),
-    [categories]
-  )
-
-  const [selected, setSelected] = useState(value ?? defaultValue ?? '')
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(defaultValue);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (typeof value === 'string') {
-      setSelected(value)
-    }
-  }, [value])
+    setSelected(defaultValue || "");
+  }, [defaultValue]);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (!wrapperRef.current) return
-      if (!wrapperRef.current.contains(event.target as Node)) {
-        setOpen(false)
+    function handleOutsideClick(event: MouseEvent) {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(event.target as Node)) {
+        setOpen(false);
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
     }
-  }, [])
 
-  const selectedLabel = selected || placeholder
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  const selectedLabel = selected || "카테고리 선택";
 
   return (
-    <div ref={wrapperRef} className="relative">
-      <input name={name} value={selected} readOnly hidden required={required} />
+    <div ref={rootRef} style={{ position: "relative" }}>
+      <input type="hidden" name={name} value={selected} />
 
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-12 w-full items-center justify-between rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-left text-[15px] text-[#20170f] outline-none transition focus:border-[#8f7556]"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        style={{
+          width: "100%",
+          height: 60,
+          borderRadius: 18,
+          border: "1px solid #eadfcf",
+          background: "#fffdf9",
+          padding: "0 18px",
+          color: selected ? "#24190f" : "#7f684f",
+          fontSize: 16,
+          fontWeight: 700,
+          outline: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          cursor: "pointer",
+          boxShadow: open ? "0 10px 24px rgba(61, 41, 22, 0.08)" : "none",
+        }}
       >
-        <span className={selected ? 'text-[#20170f]' : 'text-[#8d785f]'}>
-          {selected ? `${getCategoryIcon(selected)} ${selectedLabel}` : selectedLabel}
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            minWidth: 0,
+          }}
+        >
+          <span
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 999,
+              background: selected ? "#f2e8db" : "#f7efe4",
+              border: "1px solid #eadfcf",
+              color: "#6d4b2a",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 14,
+              fontWeight: 900,
+              flexShrink: 0,
+            }}
+          >
+            {getCategoryIcon(selectedLabel)}
+          </span>
+          <span
+            style={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {selectedLabel}
+          </span>
         </span>
-        <span className="ml-3 text-[12px] text-[#8d785f]">{open ? '▲' : '▼'}</span>
+
+        <span
+          style={{
+            color: "#8a7156",
+            fontSize: 14,
+            fontWeight: 900,
+            marginLeft: 12,
+            flexShrink: 0,
+          }}
+        >
+          {open ? "▲" : "▼"}
+        </span>
       </button>
 
       {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-72 overflow-y-auto rounded-2xl border border-[#e4d8c7] bg-white p-2 shadow-[0_18px_40px_rgba(47,36,23,0.12)]">
-          {categoryList.map((category) => {
-            const active = selected === category
+        <div
+          role="listbox"
+          aria-label="카테고리 선택"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            zIndex: 30,
+            maxHeight: 360,
+            overflowY: "auto",
+            borderRadius: 18,
+            border: "1px solid #eadfcf",
+            background: "#fffdf9",
+            boxShadow: "0 18px 40px rgba(61, 41, 22, 0.12)",
+            padding: 8,
+          }}
+        >
+          {categories.map((category) => {
+            const active = selected === category;
 
             return (
               <button
                 key={category}
                 type="button"
                 onClick={() => {
-                  setSelected(category)
-                  setOpen(false)
+                  setSelected(category);
+                  setOpen(false);
                 }}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[14px] transition ${
-                  active
-                    ? 'bg-[#f3eadf] text-[#20170f]'
-                    : 'text-[#4c3a2b] hover:bg-[#faf6ef]'
-                }`}
+                role="option"
+                aria-selected={active}
+                style={{
+                  width: "100%",
+                  minHeight: 48,
+                  border: 0,
+                  borderRadius: 14,
+                  background: active ? "#f2e8db" : "transparent",
+                  color: "#24190f",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "0 12px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
               >
-                <span className="text-[16px]">{getCategoryIcon(category)}</span>
-                <span>{category}</span>
+                <span
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    background: "#fbf2e6",
+                    border: "1px solid #eadfcf",
+                    color: "#6d4b2a",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 14,
+                    fontWeight: 900,
+                    flexShrink: 0,
+                  }}
+                >
+                  {getCategoryIcon(category)}
+                </span>
+
+                <span
+                  style={{
+                    fontSize: 15,
+                    fontWeight: active ? 900 : 700,
+                    color: "#24190f",
+                  }}
+                >
+                  {category}
+                </span>
               </button>
-            )
+            );
           })}
         </div>
       ) : null}
     </div>
-  )
+  );
 }

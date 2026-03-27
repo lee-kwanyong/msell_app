@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
+import CategoryDropdown from "@/components/listings/CategoryDropdown";
 
 type SearchParams = Promise<{
   error?: string;
@@ -53,7 +54,7 @@ export default async function CreateListingPage({
       style={{
         minHeight: "100vh",
         background: "#f6f1e7",
-        padding: "32px 20px 80px",
+        padding: "32px 20px 96px",
       }}
     >
       <div
@@ -234,7 +235,7 @@ export default async function CreateListingPage({
                   <input
                     type="text"
                     name="title"
-                    placeholder="예: 수익화 완료 유튜브 채널"
+                    placeholder="예: 팔로워10만"
                     required
                     style={{
                       width: "100%",
@@ -262,32 +263,11 @@ export default async function CreateListingPage({
                   >
                     카테고리
                   </div>
-                  <select
+                  <CategoryDropdown
                     name="category"
-                    required
                     defaultValue=""
-                    style={{
-                      width: "100%",
-                      height: 60,
-                      borderRadius: 18,
-                      border: "1px solid #eadfcf",
-                      background: "#fffdf9",
-                      padding: "0 18px",
-                      color: "#24190f",
-                      fontSize: 16,
-                      fontWeight: 700,
-                      outline: "none",
-                    }}
-                  >
-                    <option value="" disabled>
-                      카테고리 선택
-                    </option>
-                    {CATEGORY_OPTIONS.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
+                    categories={CATEGORY_OPTIONS}
+                  />
                 </label>
 
                 <label style={{ display: "block" }}>
