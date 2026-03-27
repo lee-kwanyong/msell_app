@@ -1,187 +1,168 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabaseBrowser } from '@/lib/supabase/client'
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { supabaseBrowser } from '@/lib/supabase/client';
 
 type AuthGatewayProps = {
-  next?: string
-  mode?: 'login' | 'signup'
-  mobile?: boolean
-}
-
-function safeNextPath(input?: string) {
-  if (!input) return '/'
-  if (!input.startsWith('/')) return '/'
-  if (input.startsWith('//')) return '/'
-  return input
-}
-
-function providerLabel(provider: 'google' | 'custom:naver' | 'kakao') {
-  switch (provider) {
-    case 'google':
-      return 'Google'
-    case 'custom:naver':
-      return 'Naver'
-    case 'kakao':
-      return 'Kakao'
-    default:
-      return '로그인'
-  }
-}
+  mode?: 'login' | 'signup';
+  next?: string;
+};
 
 export default function AuthGateway({
-  next,
   mode = 'login',
-  mobile = false,
+  next = '/',
 }: AuthGatewayProps) {
-  const router = useRouter()
-  const supabase = supabaseBrowser()
-  const [loadingProvider, setLoadingProvider] = useState<string>('')
+  const supabase = useMemo(() => supabaseBrowser(), []);
+  const searchParams = useSearchParams();
+  const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
 
-  const safeNext = safeNextPath(next)
+  const error =
+    searchParams.get('error_description') ||
+    searchParams.get('error') ||
+    '';
 
-  const redirectTo =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`
-      : undefined
+  const nextPath = searchParams.get('next') || next || '/';
 
-  async function handleOAuthLogin(provider: 'google' | 'custom:naver' | 'kakao') {
+  async function handleOAuth(provider: 'google' | 'custom:naver') {
     try {
-      setLoadingProvider(provider)
+      setLoadingProvider(provider);
+
+      const redirectTo =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
+          : undefined;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo,
+          queryParams:
+            provider === 'google'
+              ? {
+                  access_type: 'offline',
+                  prompt: 'select_account',
+                }
+              : undefined,
         },
-      })
+      });
 
       if (error) {
-        router.push(
-          `/auth/login?error=${encodeURIComponent(
-            error.message || `${providerLabel(provider)} 로그인에 실패했습니다.`
-          )}&next=${encodeURIComponent(safeNext)}`
-        )
-        return
+        const loginPath = mode === 'signup' ? '/auth/signup' : '/auth/login';
+        window.location.href = `${loginPath}?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(nextPath)}`;
+        return;
       }
-    } catch (error) {
+    } catch (e) {
       const message =
-        error instanceof Error ? error.message : '소셜 로그인 처리 중 오류가 발생했습니다.'
-
-      router.push(
-        `/auth/login?error=${encodeURIComponent(message)}&next=${encodeURIComponent(safeNext)}`
-      )
+        e instanceof Error ? e.message : '소셜 로그인 중 오류가 발생했습니다.';
+      const loginPath = mode === 'signup' ? '/auth/signup' : '/auth/login';
+      window.location.href = `${loginPath}?error=${encodeURIComponent(message)}&next=${encodeURIComponent(nextPath)}`;
     } finally {
-      setLoadingProvider('')
+      setLoadingProvider(null);
     }
   }
 
-  const title = mode === 'signup' ? '소셜로 시작하기' : '소셜 로그인'
-  const description =
-    mode === 'signup'
-      ? '구글, 네이버, 카카오로 빠르게 시작할 수 있습니다.'
-      : '구글, 네이버, 카카오 계정으로 바로 로그인할 수 있습니다.'
-
   return (
-    <div style={{ display: 'grid', gap: mobile ? 8 : 10 }}>
-      <div style={{ display: 'grid', gap: 6 }}>
+    <div
+      style={{
+        display: 'grid',
+        gap: 12,
+      }}
+    >
+      {error ? (
         <div
           style={{
-            fontSize: mobile ? 12 : 13,
-            color: '#8a7357',
-            fontWeight: 800,
-            letterSpacing: '0.06em',
+            padding: '14px 16px',
+            borderRadius: 16,
+            border: '1px solid #efc2ba',
+            background: '#fff4f2',
+            color: '#9a3d2f',
+            fontSize: 14,
+            fontWeight: 600,
+            lineHeight: 1.5,
           }}
         >
-          {title.toUpperCase()}
+          {error}
         </div>
-        <p
-          style={{
-            margin: 0,
-            color: '#7c6955',
-            fontSize: mobile ? 13 : 14,
-            lineHeight: 1.6,
-          }}
-        >
-          {description}
-        </p>
-      </div>
+      ) : null}
 
       <button
         type="button"
-        onClick={() => handleOAuthLogin('google')}
+        onClick={() => handleOAuth('google')}
         disabled={!!loadingProvider}
         style={{
-          ...socialButtonStyle,
-          height: mobile ? 50 : 54,
+          ...buttonStyle,
           background: '#ffffff',
-          color: '#241b11',
-          border: '1px solid #d9d2c7',
-          fontSize: mobile ? 14 : 15,
-          opacity: loadingProvider && loadingProvider !== 'google' ? 0.7 : 1,
+          color: '#2f2417',
+          border: '1px solid #ddcfbb',
         }}
       >
-        <span style={iconStyle}>G</span>
-        <span>{loadingProvider === 'google' ? '이동 중...' : 'Google로 계속하기'}</span>
+        <span style={iconWrapStyle}>G</span>
+        <span>
+          {loadingProvider === 'google'
+            ? '구글 연결 중...'
+            : mode === 'signup'
+              ? '구글로 회원가입'
+              : '구글로 로그인'}
+        </span>
       </button>
 
       <button
         type="button"
-        onClick={() => handleOAuthLogin('custom:naver')}
+        onClick={() => handleOAuth('custom:naver')}
         disabled={!!loadingProvider}
         style={{
-          ...socialButtonStyle,
-          height: mobile ? 50 : 54,
+          ...buttonStyle,
           background: '#03c75a',
           color: '#ffffff',
           border: '1px solid #03c75a',
-          fontSize: mobile ? 14 : 15,
-          opacity: loadingProvider && loadingProvider !== 'custom:naver' ? 0.7 : 1,
         }}
       >
-        <span style={iconStyle}>N</span>
-        <span>{loadingProvider === 'custom:naver' ? '이동 중...' : '네이버로 계속하기'}</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={() => handleOAuthLogin('kakao')}
-        disabled={!!loadingProvider}
-        style={{
-          ...socialButtonStyle,
-          height: mobile ? 50 : 54,
-          background: '#fee500',
-          color: '#241b11',
-          border: '1px solid #e8cf00',
-          fontSize: mobile ? 14 : 15,
-          opacity: loadingProvider && loadingProvider !== 'kakao' ? 0.7 : 1,
-        }}
-      >
-        <span style={iconStyle}>K</span>
-        <span>{loadingProvider === 'kakao' ? '이동 중...' : '카카오로 계속하기'}</span>
+        <span
+          style={{
+            ...iconWrapStyle,
+            background: 'rgba(255,255,255,0.16)',
+            color: '#ffffff',
+          }}
+        >
+          N
+        </span>
+        <span>
+          {loadingProvider === 'custom:naver'
+            ? '네이버 연결 중...'
+            : mode === 'signup'
+              ? '네이버로 회원가입'
+              : '네이버로 로그인'}
+        </span>
       </button>
     </div>
-  )
+  );
 }
 
-const socialButtonStyle: React.CSSProperties = {
+const buttonStyle: React.CSSProperties = {
+  width: '100%',
+  height: 54,
   borderRadius: 16,
+  padding: '0 16px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   gap: 10,
+  fontSize: 15,
   fontWeight: 800,
   cursor: 'pointer',
-  width: '100%',
-  transition: 'opacity 0.2s ease',
-}
+};
 
-const iconStyle: React.CSSProperties = {
-  width: 18,
+const iconWrapStyle: React.CSSProperties = {
+  width: 28,
+  height: 28,
+  borderRadius: 999,
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
+  background: '#f3ede3',
+  color: '#2f2417',
+  fontSize: 13,
   fontWeight: 900,
   flexShrink: 0,
-}
+};

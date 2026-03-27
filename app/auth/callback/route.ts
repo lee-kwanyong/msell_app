@@ -1,280 +1,139 @@
-import { NextResponse } from 'next/server'
-import { supabaseServer } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server';
+import { supabaseServer } from '@/lib/supabase/server';
 
-export const dynamic = 'force-dynamic'
-
-type NaverProfileResponse = {
-  resultcode?: string
-  message?: string
-  response?: {
-    id?: string
-    nickname?: string
-    name?: string
-    email?: string
-    gender?: string
-    age?: string
-    birthday?: string
-    birthyear?: string
-    mobile?: string
-    profile_image?: string
-  }
-}
-
-function safeNextPath(input: string | null | undefined) {
-  if (!input) return '/'
-  if (!input.startsWith('/')) return '/'
-  if (input.startsWith('//')) return '/'
-  return input
-}
-
-function firstString(...values: unknown[]) {
+function pickUsername(...values: Array<string | null | undefined>) {
   for (const value of values) {
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim()
+    const v = String(value ?? '').trim();
+    if (v) {
+      return v
+        .toLowerCase()
+        .replace(/\s+/g, '')
+        .replace(/[^a-z0-9_]/g, '')
+        .slice(0, 24);
     }
   }
-  return ''
+  return '';
 }
 
-function normalizeUsername(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/[^a-z0-9_]/g, '')
-    .trim()
+function pickFullName(user: any) {
+  const metadata = user?.user_metadata ?? {};
+  return (
+    metadata.full_name ||
+    metadata.name ||
+    metadata.user_name ||
+    metadata.nickname ||
+    metadata.nick ||
+    ''
+  );
 }
 
-function baseUsernameFromProfile(email: string, fullName: string, nickname: string, fallback: string) {
-  const localPart = email.split('@')[0] || ''
-  const base = firstString(localPart, nickname, fullName, fallback)
-  const normalized = normalizeUsername(base)
-  return normalized || fallback
+function pickAvatarUrl(user: any) {
+  const metadata = user?.user_metadata ?? {};
+  return (
+    metadata.avatar_url ||
+    metadata.picture ||
+    metadata.profile_image ||
+    metadata.profile_image_url ||
+    ''
+  );
 }
 
-async function makeUniqueUsername(
-  supabase: Awaited<ReturnType<typeof supabaseServer>>,
-  requested: string,
-  userId: string
-) {
-  const base = normalizeUsername(requested) || `user_${userId.slice(0, 8)}`
-  const reservedSelfSuffix = userId.replace(/-/g, '').slice(0, 8)
-
-  const candidates = [
-    base,
-    `${base}_${reservedSelfSuffix}`,
-    `user_${reservedSelfSuffix}`,
-  ]
-
-  for (const candidate of candidates) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', candidate)
-      .maybeSingle()
-
-    if (!data || data.id === userId) {
-      return candidate
-    }
-  }
-
-  for (let i = 1; i <= 20; i += 1) {
-    const candidate = `${base}_${reservedSelfSuffix}_${i}`
-
-    const { data } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', candidate)
-      .maybeSingle()
-
-    if (!data || data.id === userId) {
-      return candidate
-    }
-  }
-
-  return `user_${reservedSelfSuffix}_${Date.now().toString().slice(-6)}`
+function pickPhoneNumber(user: any) {
+  const metadata = user?.user_metadata ?? {};
+  return metadata.phone_number || metadata.mobile || metadata.phone || '';
 }
 
-async function fetchNaverProfile(accessToken: string) {
-  const response = await fetch('https://openapi.naver.com/v1/nid/me', {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-    cache: 'no-store',
-  })
-
-  if (!response.ok) {
-    return null
-  }
-
-  const json = (await response.json()) as NaverProfileResponse
-
-  if (json.resultcode !== '00' || !json.response) {
-    return null
-  }
-
-  return json.response
+function buildSafeNext(nextValue: string | null) {
+  if (!nextValue) return '/';
+  if (!nextValue.startsWith('/')) return '/';
+  if (nextValue.startsWith('//')) return '/';
+  return nextValue;
 }
 
 export async function GET(request: Request) {
-  const url = new URL(request.url)
-  const origin = url.origin
-
-  const code = url.searchParams.get('code')
-  const next = safeNextPath(url.searchParams.get('next'))
-  const error = url.searchParams.get('error')
-  const errorDescription = url.searchParams.get('error_description')
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get('code');
+  const next = buildSafeNext(requestUrl.searchParams.get('next'));
+  const error = requestUrl.searchParams.get('error');
+  const errorDescription = requestUrl.searchParams.get('error_description');
 
   if (error) {
-    const loginUrl = new URL('/auth/login', origin)
-    loginUrl.searchParams.set('error', encodeURIComponent(errorDescription || error))
-    loginUrl.searchParams.set('next', next)
-    return NextResponse.redirect(loginUrl, { status: 303 })
+    const loginUrl = new URL('/auth/login', requestUrl.origin);
+    loginUrl.searchParams.set(
+      'error',
+      errorDescription || error || '소셜 로그인 처리 중 오류가 발생했습니다.',
+    );
+    loginUrl.searchParams.set('next', next);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (!code) {
-    const loginUrl = new URL('/auth/login', origin)
-    loginUrl.searchParams.set('error', encodeURIComponent('로그인 승인 코드가 없습니다.'))
-    loginUrl.searchParams.set('next', next)
-    return NextResponse.redirect(loginUrl, { status: 303 })
+    const loginUrl = new URL('/auth/login', requestUrl.origin);
+    loginUrl.searchParams.set('error', '인증 코드가 없습니다.');
+    loginUrl.searchParams.set('next', next);
+    return NextResponse.redirect(loginUrl);
   }
 
-  const supabase = await supabaseServer()
-
-  const { data: exchangeData, error: exchangeError } =
-    await supabase.auth.exchangeCodeForSession(code)
+  const supabase = await supabaseServer();
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
   if (exchangeError) {
-    const loginUrl = new URL('/auth/login', origin)
-    loginUrl.searchParams.set(
-      'error',
-      encodeURIComponent(exchangeError.message || '소셜 로그인 세션 처리에 실패했습니다.')
-    )
-    loginUrl.searchParams.set('next', next)
-    return NextResponse.redirect(loginUrl, { status: 303 })
+    const loginUrl = new URL('/auth/login', requestUrl.origin);
+    loginUrl.searchParams.set('error', exchangeError.message);
+    loginUrl.searchParams.set('next', next);
+    return NextResponse.redirect(loginUrl);
   }
 
   const {
     data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-  if (userError || !user) {
-    const loginUrl = new URL('/auth/login', origin)
-    loginUrl.searchParams.set(
-      'error',
-      encodeURIComponent(userError?.message || '로그인 사용자 정보를 불러오지 못했습니다.')
-    )
-    loginUrl.searchParams.set('next', next)
-    return NextResponse.redirect(loginUrl, { status: 303 })
+  if (!user) {
+    const loginUrl = new URL('/auth/login', requestUrl.origin);
+    loginUrl.searchParams.set('error', '로그인 정보를 불러오지 못했습니다.');
+    loginUrl.searchParams.set('next', next);
+    return NextResponse.redirect(loginUrl);
   }
 
-  const metadata = (user.user_metadata || {}) as Record<string, unknown>
-  const identities = Array.isArray(user.identities) ? user.identities : []
-  const identityData = identities.find(Boolean)?.identity_data as Record<string, unknown> | undefined
+  const metadata = user.user_metadata ?? {};
+  const full_name = String(pickFullName(user) || '').trim();
+  const avatar_url = String(pickAvatarUrl(user) || '').trim();
+  const phone_number = String(pickPhoneNumber(user) || '').trim();
 
-  const provider = firstString(
-    user.app_metadata?.provider,
-    metadata.provider,
-    identityData?.provider
-  )
+  let username = pickUsername(
+    metadata.username,
+    metadata.user_name,
+    metadata.nickname,
+    metadata.nick,
+    full_name,
+    user.email?.split('@')[0],
+    user.id.slice(0, 8),
+  );
 
-  let naverProfile: NaverProfileResponse['response'] | null = null
-
-  if (provider === 'custom:naver' || provider === 'naver') {
-    const providerToken =
-      typeof exchangeData?.session?.provider_token === 'string'
-        ? exchangeData.session.provider_token
-        : ''
-
-    if (providerToken) {
-      try {
-        naverProfile = await fetchNaverProfile(providerToken)
-      } catch {
-        naverProfile = null
-      }
-    }
+  if (!username) {
+    username = `user_${user.id.slice(0, 8)}`;
   }
 
-  const email = firstString(
-    naverProfile?.email,
-    user.email,
-    metadata.email,
-    identityData?.email
-  )
-
-  const fullName = firstString(
-    naverProfile?.name,
-    metadata.full_name,
-    metadata.name,
-    metadata.nickname,
-    identityData?.full_name,
-    identityData?.name,
-    identityData?.nickname
-  )
-
-  const nickname = firstString(
-    naverProfile?.nickname,
-    metadata.nickname,
-    identityData?.nickname
-  )
-
-  const avatarUrl = firstString(
-    naverProfile?.profile_image,
-    metadata.avatar_url,
-    metadata.picture,
-    identityData?.avatar_url,
-    identityData?.picture
-  )
-
-  const phoneNumber = firstString(
-    naverProfile?.mobile,
-    user.phone,
-    metadata.phone,
-    metadata.phone_number,
-    identityData?.phone,
-    identityData?.phone_number
-  )
-
-  const fallbackUsername = `user_${user.id.replace(/-/g, '').slice(0, 8)}`
-  const requestedUsername = baseUsernameFromProfile(
-    email,
-    fullName,
-    nickname,
-    fallbackUsername
-  )
-
-  const finalUsername = await makeUniqueUsername(
-    supabase,
-    requestedUsername,
-    user.id
-  )
-
-  const profilePayload: Record<string, unknown> = {
+  const profilePayload = {
     id: user.id,
-    email: email || null,
-    full_name: fullName || null,
-    username: finalUsername || null,
-    phone_number: phoneNumber || null,
-  }
+    email: user.email ?? '',
+    full_name: full_name || null,
+    username,
+    phone_number: phone_number || null,
+    avatar_url: avatar_url || null,
+    updated_at: new Date().toISOString(),
+  };
 
-  if (avatarUrl) {
-    profilePayload.avatar_url = avatarUrl
-  }
+  await supabase.from('profiles').upsert(profilePayload, { onConflict: 'id' });
 
-  const { error: upsertError } = await supabase
-    .from('profiles')
-    .upsert(profilePayload, { onConflict: 'id' })
+  await supabase.auth.updateUser({
+    data: {
+      full_name: full_name || null,
+      username,
+      phone_number: phone_number || null,
+      avatar_url: avatar_url || null,
+    },
+  });
 
-  if (upsertError) {
-    const loginUrl = new URL('/auth/login', origin)
-    loginUrl.searchParams.set(
-      'error',
-      encodeURIComponent(upsertError.message || '프로필 동기화에 실패했습니다.')
-    )
-    loginUrl.searchParams.set('next', next)
-    return NextResponse.redirect(loginUrl, { status: 303 })
-  }
-
-  return NextResponse.redirect(new URL('/account', origin), { status: 303 })
+  return NextResponse.redirect(new URL(next, requestUrl.origin));
 }
