@@ -21,6 +21,13 @@ function providerLabel(provider?: string | null) {
   return provider;
 }
 
+function genderLabel(gender?: string | null) {
+  if (gender === "male") return "남성";
+  if (gender === "female") return "여성";
+  if (gender === "other") return "기타";
+  return "선택 안함";
+}
+
 export default async function AccountPage() {
   const supabase = await supabaseServer();
   const {
@@ -111,7 +118,7 @@ export default async function AccountPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "92px minmax(0, 1fr) auto",
+              gridTemplateColumns: "92px minmax(0, 1fr)",
               gap: 22,
               alignItems: "center",
             }}
@@ -217,53 +224,246 @@ export default async function AccountPage() {
                 </span>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section
+          style={{
+            marginTop: 24,
+            background: "#fbf7f1",
+            border: "1px solid #eadfce",
+            borderRadius: 32,
+            padding: 24,
+            boxShadow: "0 18px 44px rgba(61, 41, 22, 0.06)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap",
+              marginBottom: 18,
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 900,
+                  color: "#2f2417",
+                }}
+              >
+                계정 정보
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "#7b6751",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  lineHeight: 1.6,
+                }}
+              >
+                이름, 아이디, 연락처, 성별, 이메일, 로그인 방식, 권한과 바로가기를 한
+                화면에서 관리합니다.
+              </div>
+            </div>
 
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, minmax(120px, 1fr))",
-                gap: 12,
-                minWidth: 250,
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "8px 12px",
+                borderRadius: 999,
+                background: "#f2e8db",
+                color: "#5a4227",
+                fontSize: 12,
+                fontWeight: 800,
               }}
             >
-              <div
+              profiles 반영
+            </div>
+          </div>
+
+          <form action={saveAccountAction}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: 16,
+              }}
+            >
+              <label
                 style={{
-                  borderRadius: 20,
-                  padding: "16px 14px",
-                  background: "rgba(255,255,255,0.10)",
-                  border: "1px solid rgba(255,255,255,0.14)",
+                  display: "block",
+                  borderRadius: 22,
+                  background: "#fffdf9",
+                  border: "1px solid #eadfcf",
+                  padding: "16px 16px 14px",
                 }}
               >
-                <div style={{ fontSize: 12, opacity: 0.76, fontWeight: 700 }}>
-                  아이디
-                </div>
                 <div
                   style={{
-                    marginTop: 8,
-                    fontSize: 15,
+                    fontSize: 12,
                     fontWeight: 800,
-                    wordBreak: "break-word",
+                    color: "#8a7156",
+                    marginBottom: 8,
                   }}
                 >
-                  {displayValue(username)}
+                  이름
                 </div>
-              </div>
+                <input
+                  type="text"
+                  name="full_name"
+                  defaultValue={fullName}
+                  placeholder="이름 입력"
+                  style={{
+                    width: "100%",
+                    border: 0,
+                    outline: "none",
+                    background: "transparent",
+                    color: "#24190f",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                />
+              </label>
+
+              <label
+                style={{
+                  display: "block",
+                  borderRadius: 22,
+                  background: "#fffdf9",
+                  border: "1px solid #eadfcf",
+                  padding: "16px 16px 14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#8a7156",
+                    marginBottom: 8,
+                  }}
+                >
+                  아이디
+                </div>
+                <input
+                  type="text"
+                  name="username"
+                  defaultValue={username}
+                  placeholder="아이디 입력"
+                  style={{
+                    width: "100%",
+                    border: 0,
+                    outline: "none",
+                    background: "transparent",
+                    color: "#24190f",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                />
+              </label>
+
+              <label
+                style={{
+                  display: "block",
+                  borderRadius: 22,
+                  background: "#fffdf9",
+                  border: "1px solid #eadfcf",
+                  padding: "16px 16px 14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#8a7156",
+                    marginBottom: 8,
+                  }}
+                >
+                  연락처
+                </div>
+                <input
+                  type="text"
+                  name="phone_number"
+                  defaultValue={phoneNumber}
+                  placeholder="연락처 입력"
+                  style={{
+                    width: "100%",
+                    border: 0,
+                    outline: "none",
+                    background: "transparent",
+                    color: "#24190f",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                />
+              </label>
+
+              <label
+                style={{
+                  display: "block",
+                  borderRadius: 22,
+                  background: "#fffdf9",
+                  border: "1px solid #eadfcf",
+                  padding: "16px 16px 14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#8a7156",
+                    marginBottom: 8,
+                  }}
+                >
+                  성별
+                </div>
+                <select
+                  name="gender"
+                  defaultValue={gender}
+                  style={{
+                    width: "100%",
+                    border: 0,
+                    outline: "none",
+                    background: "transparent",
+                    color: "#24190f",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                >
+                  <option value="">선택 안함</option>
+                  <option value="male">남성</option>
+                  <option value="female">여성</option>
+                  <option value="other">기타</option>
+                </select>
+              </label>
 
               <div
                 style={{
-                  borderRadius: 20,
-                  padding: "16px 14px",
-                  background: "rgba(255,255,255,0.10)",
-                  border: "1px solid rgba(255,255,255,0.14)",
+                  borderRadius: 22,
+                  background: "#f5ede2",
+                  border: "1px solid #eadfcf",
+                  padding: "16px 16px 14px",
                 }}
               >
-                <div style={{ fontSize: 12, opacity: 0.76, fontWeight: 700 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#8a7156",
+                    marginBottom: 8,
+                  }}
+                >
                   이메일
                 </div>
                 <div
                   style={{
-                    marginTop: 8,
-                    fontSize: 15,
+                    color: "#5e4b38",
+                    fontSize: 18,
                     fontWeight: 800,
                     wordBreak: "break-word",
                   }}
@@ -271,500 +471,208 @@ export default async function AccountPage() {
                   {displayValue(email)}
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.6fr) minmax(280px, 0.74fr)",
-            gap: 24,
-            alignItems: "start",
-            marginTop: 24,
-          }}
-        >
-          <section
-            style={{
-              background: "#fbf7f1",
-              border: "1px solid #eadfce",
-              borderRadius: 30,
-              padding: 22,
-              boxShadow: "0 16px 40px rgba(61, 41, 22, 0.06)",
-            }}
-          >
+              <div
+                style={{
+                  borderRadius: 22,
+                  background: "#f5ede2",
+                  border: "1px solid #eadfcf",
+                  padding: "16px 16px 14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#8a7156",
+                    marginBottom: 8,
+                  }}
+                >
+                  로그인 방식
+                </div>
+                <div
+                  style={{
+                    color: "#5e4b38",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                >
+                  {providerLabel(provider)}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  borderRadius: 22,
+                  background: "#f5ede2",
+                  border: "1px solid #eadfcf",
+                  padding: "16px 16px 14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#8a7156",
+                    marginBottom: 8,
+                  }}
+                >
+                  계정 권한
+                </div>
+                <div
+                  style={{
+                    color: "#5e4b38",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                >
+                  {role}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  borderRadius: 22,
+                  background: "#f5ede2",
+                  border: "1px solid #eadfcf",
+                  padding: "16px 16px 14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#8a7156",
+                    marginBottom: 8,
+                  }}
+                >
+                  현재 성별 표시
+                </div>
+                <div
+                  style={{
+                    color: "#5e4b38",
+                    fontSize: 18,
+                    fontWeight: 800,
+                  }}
+                >
+                  {genderLabel(gender)}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  borderRadius: 24,
+                  background: "#fffdf9",
+                  border: "1px solid #eadfcf",
+                  padding: 18,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 900,
+                    color: "#2f2417",
+                    marginBottom: 14,
+                  }}
+                >
+                  바로가기
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  <Link
+                    href="/my/listings"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 56,
+                      borderRadius: 18,
+                      background: "#fffaf4",
+                      border: "1px solid #eadfcf",
+                      color: "#2f2417",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      textDecoration: "none",
+                    }}
+                  >
+                    내 매물
+                  </Link>
+
+                  <Link
+                    href="/my/deals"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 56,
+                      borderRadius: 18,
+                      background: "#fffaf4",
+                      border: "1px solid #eadfcf",
+                      color: "#2f2417",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      textDecoration: "none",
+                    }}
+                  >
+                    내 거래
+                  </Link>
+
+                  <Link
+                    href="/listings/create"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 56,
+                      borderRadius: 18,
+                      background: "#fffaf4",
+                      border: "1px solid #eadfcf",
+                      color: "#2f2417",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      textDecoration: "none",
+                    }}
+                  >
+                    자산 등록
+                  </Link>
+                </div>
+              </div>
+            </div>
+
             <div
               style={{
                 display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                gap: 12,
-                marginBottom: 18,
-                flexWrap: "wrap",
+                justifyContent: "flex-end",
+                marginTop: 20,
               }}
             >
-              <div>
-                <div
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 900,
-                    color: "#2f2417",
-                  }}
-                >
-                  개인정보 수정
-                </div>
-                <div
-                  style={{
-                    marginTop: 6,
-                    color: "#7b6751",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  필요한 정보만 정리해서 저장합니다.
-                </div>
-              </div>
-
-              <div
+              <button
+                type="submit"
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  padding: "8px 12px",
-                  borderRadius: 999,
-                  background: "#f2e8db",
-                  color: "#5a4227",
-                  fontSize: 12,
-                  fontWeight: 800,
+                  minWidth: 200,
+                  height: 58,
+                  border: 0,
+                  borderRadius: 18,
+                  background: "#2f2417",
+                  color: "#fffaf2",
+                  fontSize: 16,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  boxShadow: "0 10px 24px rgba(47, 36, 23, 0.22)",
                 }}
               >
-                profiles 반영
-              </div>
+                저장하기
+              </button>
             </div>
-
-            <form action={saveAccountAction}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 14,
-                }}
-              >
-                <label
-                  style={{
-                    display: "block",
-                    borderRadius: 22,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    padding: "16px 16px 14px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: "#8a7156",
-                      marginBottom: 8,
-                    }}
-                  >
-                    이름
-                  </div>
-                  <input
-                    type="text"
-                    name="full_name"
-                    defaultValue={fullName}
-                    placeholder="이름 입력"
-                    style={{
-                      width: "100%",
-                      border: 0,
-                      outline: "none",
-                      background: "transparent",
-                      color: "#24190f",
-                      fontSize: 18,
-                      fontWeight: 800,
-                    }}
-                  />
-                </label>
-
-                <label
-                  style={{
-                    display: "block",
-                    borderRadius: 22,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    padding: "16px 16px 14px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: "#8a7156",
-                      marginBottom: 8,
-                    }}
-                  >
-                    아이디
-                  </div>
-                  <input
-                    type="text"
-                    name="username"
-                    defaultValue={username}
-                    placeholder="아이디 입력"
-                    style={{
-                      width: "100%",
-                      border: 0,
-                      outline: "none",
-                      background: "transparent",
-                      color: "#24190f",
-                      fontSize: 18,
-                      fontWeight: 800,
-                    }}
-                  />
-                </label>
-
-                <label
-                  style={{
-                    display: "block",
-                    borderRadius: 22,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    padding: "16px 16px 14px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: "#8a7156",
-                      marginBottom: 8,
-                    }}
-                  >
-                    연락처
-                  </div>
-                  <input
-                    type="text"
-                    name="phone_number"
-                    defaultValue={phoneNumber}
-                    placeholder="연락처 입력"
-                    style={{
-                      width: "100%",
-                      border: 0,
-                      outline: "none",
-                      background: "transparent",
-                      color: "#24190f",
-                      fontSize: 18,
-                      fontWeight: 800,
-                    }}
-                  />
-                </label>
-
-                <label
-                  style={{
-                    display: "block",
-                    borderRadius: 22,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    padding: "16px 16px 14px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: "#8a7156",
-                      marginBottom: 8,
-                    }}
-                  >
-                    성별
-                  </div>
-                  <select
-                    name="gender"
-                    defaultValue={gender}
-                    style={{
-                      width: "100%",
-                      border: 0,
-                      outline: "none",
-                      background: "transparent",
-                      color: "#24190f",
-                      fontSize: 18,
-                      fontWeight: 800,
-                    }}
-                  >
-                    <option value="">선택 안함</option>
-                    <option value="male">남성</option>
-                    <option value="female">여성</option>
-                    <option value="other">기타</option>
-                  </select>
-                </label>
-
-                <div
-                  style={{
-                    gridColumn: "1 / -1",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 14,
-                  }}
-                >
-                  <div
-                    style={{
-                      borderRadius: 22,
-                      background: "#f5ede2",
-                      border: "1px solid #eadfcf",
-                      padding: "16px 16px 14px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: "#8a7156",
-                        marginBottom: 8,
-                      }}
-                    >
-                      이메일
-                    </div>
-                    <div
-                      style={{
-                        color: "#5e4b38",
-                        fontSize: 16,
-                        fontWeight: 800,
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {displayValue(email)}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      borderRadius: 22,
-                      background: "#f5ede2",
-                      border: "1px solid #eadfcf",
-                      padding: "16px 16px 14px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: "#8a7156",
-                        marginBottom: 8,
-                      }}
-                    >
-                      로그인 방식
-                    </div>
-                    <div
-                      style={{
-                        color: "#5e4b38",
-                        fontSize: 16,
-                        fontWeight: 800,
-                      }}
-                    >
-                      {providerLabel(provider)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  marginTop: 18,
-                }}
-              >
-                <button
-                  type="submit"
-                  style={{
-                    minWidth: 180,
-                    height: 56,
-                    border: 0,
-                    borderRadius: 18,
-                    background: "#2f2417",
-                    color: "#fffaf2",
-                    fontSize: 16,
-                    fontWeight: 900,
-                    cursor: "pointer",
-                    boxShadow: "0 10px 24px rgba(47, 36, 23, 0.22)",
-                  }}
-                >
-                  저장하기
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <aside
-            style={{
-              display: "grid",
-              gap: 18,
-            }}
-          >
-            <section
-              style={{
-                background: "#fbf7f1",
-                border: "1px solid #eadfce",
-                borderRadius: 28,
-                padding: 18,
-                boxShadow: "0 14px 36px rgba(61, 41, 22, 0.06)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 900,
-                  color: "#2f2417",
-                  marginBottom: 14,
-                }}
-              >
-                바로가기
-              </div>
-
-              <div style={{ display: "grid", gap: 12 }}>
-                <Link
-                  href="/my/listings"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 58,
-                    borderRadius: 18,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    color: "#2f2417",
-                    fontSize: 16,
-                    fontWeight: 800,
-                    textDecoration: "none",
-                    boxShadow: "0 6px 18px rgba(61, 41, 22, 0.04)",
-                  }}
-                >
-                  내 매물
-                </Link>
-
-                <Link
-                  href="/my/deals"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 58,
-                    borderRadius: 18,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    color: "#2f2417",
-                    fontSize: 16,
-                    fontWeight: 800,
-                    textDecoration: "none",
-                    boxShadow: "0 6px 18px rgba(61, 41, 22, 0.04)",
-                  }}
-                >
-                  내 거래
-                </Link>
-
-                <Link
-                  href="/listings/create"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 58,
-                    borderRadius: 18,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    color: "#2f2417",
-                    fontSize: 16,
-                    fontWeight: 800,
-                    textDecoration: "none",
-                    boxShadow: "0 6px 18px rgba(61, 41, 22, 0.04)",
-                  }}
-                >
-                  자산 등록
-                </Link>
-              </div>
-            </section>
-
-            <section
-              style={{
-                background: "#fbf7f1",
-                border: "1px solid #eadfce",
-                borderRadius: 28,
-                padding: 18,
-                boxShadow: "0 14px 36px rgba(61, 41, 22, 0.06)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 900,
-                  color: "#2f2417",
-                  marginBottom: 14,
-                }}
-              >
-                요약
-              </div>
-
-              <div style={{ display: "grid", gap: 12 }}>
-                <div
-                  style={{
-                    borderRadius: 18,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    padding: "14px 14px 12px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: "#8a7156",
-                      marginBottom: 8,
-                    }}
-                  >
-                    로그인 방식
-                  </div>
-                  <div
-                    style={{
-                      color: "#24190f",
-                      fontSize: 16,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {providerLabel(provider)}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    borderRadius: 18,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    padding: "14px 14px 12px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: "#8a7156",
-                      marginBottom: 8,
-                    }}
-                  >
-                    계정 권한
-                  </div>
-                  <div
-                    style={{
-                      color: "#24190f",
-                      fontSize: 16,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {role}
-                  </div>
-                </div>
-              </div>
-            </section>
-          </aside>
-        </div>
+          </form>
+        </section>
       </div>
     </main>
   );
