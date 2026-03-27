@@ -5,10 +5,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 export type CategoryOption = {
   value: string
   label: string
-  icon: string
+  icon?: string
 }
 
-export const CATEGORY_OPTIONS: CategoryOption[] = [
+const DEFAULT_CATEGORY_OPTIONS: CategoryOption[] = [
   { value: 'instagram_account', label: '인스타그램 계정', icon: '📸' },
   { value: 'youtube_channel', label: '유튜브 채널', icon: '▶️' },
   { value: 'tiktok_account', label: '틱톡 계정', icon: '🎵' },
@@ -88,16 +88,58 @@ type Props = {
   name: string
   defaultValue?: string
   required?: boolean
+  categories?: CategoryOption[]
+}
+
+function normalizeLabelToValue(label: string) {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+function mergeCategories(input?: CategoryOption[]) {
+  if (!input || input.length === 0) {
+    return DEFAULT_CATEGORY_OPTIONS
+  }
+
+  const iconMap = new Map<string, string>()
+  for (const item of DEFAULT_CATEGORY_OPTIONS) {
+    iconMap.set(item.value, item.icon || '📦')
+    iconMap.set(item.label, item.icon || '📦')
+    iconMap.set(normalizeLabelToValue(item.label), item.icon || '📦')
+  }
+
+  const merged = input.map((item) => {
+    const fallbackIcon =
+      item.icon ||
+      iconMap.get(item.value) ||
+      iconMap.get(item.label) ||
+      iconMap.get(normalizeLabelToValue(item.label)) ||
+      '📦'
+
+    return {
+      value: item.value,
+      label: item.label,
+      icon: fallbackIcon,
+    }
+  })
+
+  return merged
 }
 
 export default function CategoryDropdown({
   name,
   defaultValue = '',
   required = false,
+  categories,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState(defaultValue)
   const rootRef = useRef<HTMLDivElement | null>(null)
+
+  const options = useMemo(() => mergeCategories(categories), [categories])
 
   useEffect(() => {
     setSelected(defaultValue || '')
@@ -124,8 +166,8 @@ export default function CategoryDropdown({
   }, [])
 
   const selectedOption = useMemo(
-    () => CATEGORY_OPTIONS.find((item) => item.value === selected),
-    [selected],
+    () => options.find((item) => item.value === selected),
+    [options, selected],
   )
 
   return (
@@ -213,7 +255,7 @@ export default function CategoryDropdown({
             }}
             className="category-option-grid"
           >
-            {CATEGORY_OPTIONS.map((item) => {
+            {options.map((item) => {
               const active = item.value === selected
 
               return (
@@ -236,7 +278,9 @@ export default function CategoryDropdown({
                     gap: 10,
                   }}
                 >
-                  <span style={{ fontSize: 18, width: 22, textAlign: 'center' }}>{item.icon}</span>
+                  <span style={{ fontSize: 18, width: 22, textAlign: 'center' }}>
+                    {item.icon ?? '📦'}
+                  </span>
                   <span
                     style={{
                       fontSize: 13,
