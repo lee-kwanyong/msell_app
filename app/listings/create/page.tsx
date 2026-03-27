@@ -5,6 +5,12 @@ import CategoryDropdown from "@/components/listings/CategoryDropdown";
 
 type SearchParams = Promise<{
   error?: string;
+  title?: string;
+  category?: string;
+  price?: string;
+  transfer_method?: string;
+  description?: string;
+  status?: string;
 }>;
 
 const CATEGORY_OPTIONS = [
@@ -32,13 +38,24 @@ const STATUS_OPTIONS = [
   { value: "sold", label: "거래종료" },
 ];
 
+function valueOf(value?: string) {
+  return value ? decodeURIComponent(value) : "";
+}
+
 export default async function CreateListingPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const error = params?.error ? decodeURIComponent(params.error) : "";
+
+  const error = valueOf(params?.error);
+  const title = valueOf(params?.title);
+  const category = valueOf(params?.category);
+  const price = valueOf(params?.price);
+  const transferMethod = valueOf(params?.transfer_method);
+  const description = valueOf(params?.description);
+  const status = valueOf(params?.status) || "active";
 
   const supabase = await supabaseServer();
   const {
@@ -235,7 +252,8 @@ export default async function CreateListingPage({
                   <input
                     type="text"
                     name="title"
-                    placeholder="예: 팔로워10만"
+                    defaultValue={title}
+                    placeholder="예: 수익화 완료 유튜브 채널"
                     required
                     style={{
                       width: "100%",
@@ -265,7 +283,7 @@ export default async function CreateListingPage({
                   </div>
                   <CategoryDropdown
                     name="category"
-                    defaultValue=""
+                    defaultValue={category}
                     categories={CATEGORY_OPTIONS}
                   />
                 </label>
@@ -286,6 +304,7 @@ export default async function CreateListingPage({
                     name="price"
                     min="0"
                     step="1"
+                    defaultValue={price}
                     placeholder="예: 1500000"
                     required
                     style={{
@@ -322,6 +341,7 @@ export default async function CreateListingPage({
                   <input
                     type="text"
                     name="transfer_method"
+                    defaultValue={transferMethod}
                     placeholder="예: 계정 이메일 양도 / 관리자 권한 이전 / 도메인 이전"
                     style={{
                       width: "100%",
@@ -356,6 +376,7 @@ export default async function CreateListingPage({
                   </div>
                   <textarea
                     name="description"
+                    defaultValue={description}
                     placeholder="운영 기간, 수익 구조, 팔로워/구독자 상태, 인수인계 범위를 구체적으로 적어 주세요."
                     rows={11}
                     style={{
@@ -387,7 +408,7 @@ export default async function CreateListingPage({
                   </div>
                   <select
                     name="status"
-                    defaultValue="active"
+                    defaultValue={status}
                     style={{
                       width: "100%",
                       height: 60,

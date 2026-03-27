@@ -1,91 +1,129 @@
-import { NextResponse } from 'next/server'
-import { supabaseServer } from '@/lib/supabase/server'
+import { NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabase/server";
 
-const ALLOWED_STATUS = new Set([
-  'draft',
-  'pending_review',
-  'active',
-  'reserved',
-  'sold',
-  'hidden',
-  'rejected',
-  'archived',
-])
+function clean(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return "";
+  return value.trim();
+}
 
-function redirectWithError(baseUrl: string, message: string, params: URLSearchParams) {
-  const nextParams = new URLSearchParams(params)
-  nextParams.set('error', message)
-  return NextResponse.redirect(`${baseUrl}?${nextParams.toString()}`, { status: 303 })
+function buildDescription(transferMethod: string, description: string) {
+  if (transferMethod && description) {
+    return `[이전 방식] ${transferMethod}\n\n${description}`;
+  }
+
+  if (transferMethod) {
+    return `[이전 방식] ${transferMethod}`;
+  }
+
+  return description;
+}
+
+function toCreateRedirectURL(
+  request: Request,
+  params: Record<string, string>
+) {
+  const url = new URL("/listings/create", request.url);
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) url.searchParams.set(key, value);
+  });
+
+  return url;
 }
 
 export async function POST(request: Request) {
-  const supabase = await supabaseServer()
+  const supabase = await supabaseServer();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.redirect(new URL('/auth/login?next=/listings/create', request.url), {
-      status: 303,
-    })
+  if (userError || !user) {
+    return NextResponse.redirect(
+      new URL("/auth/login?next=/listings/create", request.url),
+      { status: 303 }
+    );
   }
 
-  const formData = await request.formData()
+  const formData = await request.formData();
 
-  const title = String(formData.get('title') ?? '').trim()
-  const category = String(formData.get('category') ?? '').trim()
-  const priceRaw = String(formData.get('price') ?? '').trim()
-  const transferMethod = String(formData.get('transfer_method') ?? '').trim()
-  const descriptionRaw = String(formData.get('description') ?? '').trim()
-  const statusRaw = String(formData.get('status') ?? 'active').trim()
+  const title = clean(formData.get("title"));
+  const category = clean(formData.get("category"));
+  const priceRaw = clean(formData.get("price"));
+  const transferMethod = clean(formData.get("transfer_method"));
+  const descriptionRaw = clean(formData.get("description"));
+  const status = clean(formData.get("status")) || "active";
 
-  const params = new URLSearchParams({
+  const returnParams = {
     title,
     category,
     price: priceRaw,
     transfer_method: transferMethod,
     description: descriptionRaw,
-    status: statusRaw || 'active',
-  })
+    status,
+  };
 
-  const createPageUrl = new URL('/listings/create', request.url)
+  if (!title || !category || !priceRaw) {
+    const url = toCreateRedirectURL(request, {
+      ...returnParams,
+      error: "제목, 카테고리, 희망 가격은 필수입니다.",
+    });
 
-  if (!title || !category || !priceRaw || !transferMethod || !descriptionRaw) {
-    return redirectWithError(createPageUrl.toString().split('?')[0], '필수 항목을 모두 입력해 주세요.', params)
+    return NextResponse.redirect(url, { status: 303 });
   }
 
-  const price = Number(priceRaw)
+  const price = Number(priceRaw);
 
   if (!Number.isFinite(price) || price < 0) {
-    return redirectWithError(createPageUrl.toString().split('?')[0], '희망 가격 형식이 올바르지 않습니다.', params)
+    const url = toCreateRedirectURL(request, {
+      ...returnParams,
+      error: "희망 가격은 0 이상의 숫자로 입력해 주세요.",
+    });
+
+    return NextResponse.redirect(url, { status: 303 });
   }
 
-  const status = ALLOWED_STATUS.has(statusRaw) ? statusRaw : 'active'
-  const description = `[이전 방식] ${transferMethod}\n\n${descriptionRaw}`
+  const description = buildDescription(transferMethod, descriptionRaw);
+  const sellerId = user.id;
 
-  const insertPayload = {
-    user_id: user.id,
+  if (!sellerId) {
+    const url = toCreateRedirectURL(request, {
+      ...returnParams,
+      error: "로그인 사용자 정보를 확인할 수 없습니다.",
+    });
+
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
+  const payload = {
+    seller_id: sellerId,
     title,
     category,
     price,
-    description,
+    description: description || null,
     status,
-  }
+  };
 
   const { data, error } = await supabase
-    .from('listings')
-    .insert(insertPayload)
-    .select('id')
-    .single()
+    .from("listings")
+    .insert(payload)
+    .select("id")
+    .single();
 
-  if (error || !data?.id) {
-    return redirectWithError(
-      createPageUrl.toString().split('?')[0],
-      error?.message || '자산 등록에 실패했습니다.',
-      params,
-    )
+  if (error) {
+    const url = toCreateRedirectURL(request, {
+      ...returnParams,
+      error:
+        error.message?.includes("seller_id")
+          ? "판매자 정보 연결에 실패했습니다. 현재 로그인 상태를 다시 확인해 주세요."
+          : error.message,
+    });
+
+    return NextResponse.redirect(url, { status: 303 });
   }
 
-  return NextResponse.redirect(new URL(`/listings/${data.id}`, request.url), { status: 303 })
+  return NextResponse.redirect(new URL(`/listings/${data.id}`, request.url), {
+    status: 303,
+  });
 }
