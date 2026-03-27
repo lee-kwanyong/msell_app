@@ -126,7 +126,7 @@ export default async function HomePage() {
     <main
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #f7f6f3 0%, #f3f2ee 100%)',
+        background: 'linear-gradient(180deg, #f6f4ef 0%, #f1eee8 100%)',
         color: '#171411',
       }}
     >
@@ -134,7 +134,7 @@ export default async function HomePage() {
         style={{
           maxWidth: 1280,
           margin: '0 auto',
-          padding: '40px 24px 22px',
+          padding: '40px 24px 24px',
         }}
       >
         <div
@@ -151,7 +151,7 @@ export default async function HomePage() {
               overflow: 'hidden',
               borderRadius: 34,
               background:
-                'radial-gradient(circle at top right, rgba(110,84,49,0.08), transparent 28%), linear-gradient(180deg, #fffdfa 0%, #f8f5ef 100%)',
+                'radial-gradient(circle at top right, rgba(110,84,49,0.08), transparent 28%), linear-gradient(180deg, #fffdfa 0%, #f7f3ec 100%)',
               border: '1px solid rgba(60,42,23,0.08)',
               boxShadow: '0 20px 50px rgba(34,24,16,0.06)',
               padding: 34,
@@ -171,7 +171,7 @@ export default async function HomePage() {
             <h1
               style={{
                 margin: '18px 0 0',
-                fontSize: 68,
+                fontSize: 66,
                 lineHeight: 0.95,
                 letterSpacing: '-0.055em',
                 fontWeight: 700,
@@ -250,12 +250,7 @@ export default async function HomePage() {
                   backdropFilter: 'blur(8px)',
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: 'rgba(52,38,24,0.48)',
-                  }}
-                >
+                <div style={{ fontSize: 12, color: 'rgba(52,38,24,0.48)' }}>
                   현재 공개 자산
                 </div>
                 <div
@@ -281,12 +276,7 @@ export default async function HomePage() {
                   backdropFilter: 'blur(8px)',
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: 'rgba(52,38,24,0.48)',
-                  }}
-                >
+                <div style={{ fontSize: 12, color: 'rgba(52,38,24,0.48)' }}>
                   공개 금액 합계
                 </div>
                 <div
@@ -315,12 +305,7 @@ export default async function HomePage() {
                   backdropFilter: 'blur(8px)',
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: 'rgba(52,38,24,0.48)',
-                  }}
-                >
+                <div style={{ fontSize: 12, color: 'rgba(52,38,24,0.48)' }}>
                   최근 7일 등록
                 </div>
                 <div
@@ -494,6 +479,181 @@ export default async function HomePage() {
           padding: '8px 24px 90px',
         }}
       >
+        <div
+          style={{
+            marginBottom: 18,
+            borderRadius: 30,
+            background: 'linear-gradient(180deg, #fffdfa 0%, #f8f5ef 100%)',
+            border: '1px solid rgba(60,42,23,0.08)',
+            boxShadow: '0 16px 36px rgba(34,24,16,0.05)',
+            padding: 26,
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 0.88fr) minmax(0, 1.12fr)',
+              gap: 22,
+              alignItems: 'stretch',
+            }}
+          >
+            <div
+              style={{
+                borderRadius: 24,
+                background: 'rgba(255,255,255,0.68)',
+                border: '1px solid rgba(60,42,23,0.05)',
+                padding: 22,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: '0.18em',
+                  color: 'rgba(58,40,22,0.48)',
+                  fontWeight: 700,
+                }}
+              >
+                POLICY
+              </div>
+              <h3
+                style={{
+                  margin: '12px 0 0',
+                  fontSize: 28,
+                  lineHeight: 1.04,
+                  letterSpacing: '-0.045em',
+                  fontWeight: 700,
+                  color: '#171411',
+                }}
+              >
+                운영 방침
+              </h3>
+
+              <div
+                style={{
+                  marginTop: 16,
+                  display: 'grid',
+                  gap: 12,
+                }}
+              >
+                {[
+                  '등록 정보는 간결하고 확인 가능한 항목 중심으로 노출',
+                  '거래 시작 전 조건과 이전 범위를 반드시 확인',
+                  '허위 매물, 중복 등록, 불분명한 정보는 운영 기준에 따라 조정',
+                  '문의 이후 진행은 당사자 간 합의를 기준으로 이어짐',
+                ].map((text) => (
+                  <div
+                    key={text}
+                    style={{
+                      display: 'flex',
+                      gap: 10,
+                      alignItems: 'flex-start',
+                      color: 'rgba(32,24,16,0.78)',
+                      fontSize: 14,
+                      lineHeight: 1.65,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 999,
+                        background: '#5f452b',
+                        marginTop: 9,
+                        flex: '0 0 auto',
+                      }}
+                    />
+                    <span>{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                borderRadius: 24,
+                background: 'rgba(255,255,255,0.68)',
+                border: '1px solid rgba(60,42,23,0.05)',
+                padding: 22,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: '0.18em',
+                  color: 'rgba(58,40,22,0.48)',
+                  fontWeight: 700,
+                }}
+              >
+                TRADE FLOW
+              </div>
+              <h3
+                style={{
+                  margin: '12px 0 0',
+                  fontSize: 28,
+                  lineHeight: 1.04,
+                  letterSpacing: '-0.045em',
+                  fontWeight: 700,
+                  color: '#171411',
+                }}
+              >
+                거래 진행 4단계
+              </h3>
+
+              <div
+                style={{
+                  marginTop: 18,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                  gap: 12,
+                }}
+              >
+                {[
+                  ['01', '매물 확인'],
+                  ['02', '거래 문의'],
+                  ['03', '조건 협의'],
+                  ['04', '이전 완료'],
+                ].map(([step, title]) => (
+                  <div
+                    key={step}
+                    style={{
+                      borderRadius: 20,
+                      background: 'linear-gradient(180deg, #f6f0e7 0%, #fffdfa 100%)',
+                      border: '1px solid rgba(60,42,23,0.06)',
+                      padding: 18,
+                      minHeight: 122,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
+                        color: 'rgba(58,40,22,0.48)',
+                      }}
+                    >
+                      {step}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 22,
+                        lineHeight: 1.08,
+                        letterSpacing: '-0.04em',
+                        fontWeight: 700,
+                        color: '#171411',
+                      }}
+                    >
+                      {title}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div
           style={{
             display: 'flex',
