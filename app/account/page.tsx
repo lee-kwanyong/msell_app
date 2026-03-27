@@ -14,18 +14,11 @@ function displayValue(value?: string | null, fallback = "-") {
 }
 
 function providerLabel(provider?: string | null) {
-  if (!provider) return "email";
+  if (!provider) return "Email";
   if (provider === "google") return "Google";
   if (provider === "kakao") return "Kakao";
   if (provider === "custom:naver") return "Naver";
   return provider;
-}
-
-function genderLabel(gender?: string | null) {
-  if (gender === "male") return "남성";
-  if (gender === "female") return "여성";
-  if (gender === "other") return "기타";
-  return "선택 안함";
 }
 
 export default async function AccountPage() {
@@ -76,7 +69,7 @@ export default async function AccountPage() {
       ? user.app_metadata.provider
       : "email";
 
-  const displayName = fullName || username || email || "사용자";
+  const displayName = fullName || username || "사용자";
 
   return (
     <main
@@ -119,7 +112,7 @@ export default async function AccountPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "92px minmax(0, 1fr) auto",
-              gap: 20,
+              gap: 22,
               alignItems: "center",
             }}
           >
@@ -136,6 +129,7 @@ export default async function AccountPage() {
                 fontSize: 34,
                 fontWeight: 900,
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+                flexShrink: 0,
               }}
             >
               {firstLetter(displayName)}
@@ -229,7 +223,7 @@ export default async function AccountPage() {
                 display: "grid",
                 gridTemplateColumns: "repeat(2, minmax(120px, 1fr))",
                 gap: 12,
-                minWidth: 260,
+                minWidth: 250,
               }}
             >
               <div
@@ -284,7 +278,7 @@ export default async function AccountPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.5fr) minmax(300px, 0.72fr)",
+            gridTemplateColumns: "minmax(0, 1.6fr) minmax(280px, 0.74fr)",
             gap: 24,
             alignItems: "start",
             marginTop: 24,
@@ -328,7 +322,7 @@ export default async function AccountPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  실제로 수정이 필요한 항목만 한 번에 정리해서 저장합니다.
+                  필요한 정보만 정리해서 저장합니다.
                 </div>
               </div>
 
@@ -706,7 +700,7 @@ export default async function AccountPage() {
                   marginBottom: 14,
                 }}
               >
-                계정 상태
+                요약
               </div>
 
               <div style={{ display: "grid", gap: 12 }}>
@@ -755,7 +749,7 @@ export default async function AccountPage() {
                       marginBottom: 8,
                     }}
                   >
-                    권한
+                    계정 권한
                   </div>
                   <div
                     style={{
@@ -765,35 +759,6 @@ export default async function AccountPage() {
                     }}
                   >
                     {role}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    borderRadius: 18,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    padding: "14px 14px 12px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: "#8a7156",
-                      marginBottom: 8,
-                    }}
-                  >
-                    성별
-                  </div>
-                  <div
-                    style={{
-                      color: "#24190f",
-                      fontSize: 16,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {genderLabel(gender)}
                   </div>
                 </div>
               </div>
