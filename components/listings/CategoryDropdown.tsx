@@ -3,20 +3,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import CategoryVisual, { getCategoryMeta } from '@/components/listings/CategoryVisual'
 
-type CategoryDropdownProps = {
-  name?: string
-  value?: string
-  onChange?: (value: string) => void
-  required?: boolean
-  disabled?: boolean
-}
-
-type Option = {
+type CategoryOption = {
   value: string
   label: string
 }
 
-const OPTIONS: Option[] = [
+type CategoryDropdownProps = {
+  name?: string
+  value?: string
+  defaultValue?: string
+  onChange?: (value: string) => void
+  required?: boolean
+  disabled?: boolean
+  categories?: CategoryOption[]
+}
+
+const DEFAULT_OPTIONS: CategoryOption[] = [
   { value: 'instagram', label: '인스타그램' },
   { value: 'youtube', label: '유튜브' },
   { value: 'tiktok', label: '틱톡' },
@@ -44,17 +46,32 @@ const OPTIONS: Option[] = [
 export default function CategoryDropdown({
   name = 'category',
   value,
+  defaultValue,
   onChange,
   required,
   disabled,
+  categories,
 }: CategoryDropdownProps) {
+  const options = categories && categories.length > 0 ? categories : DEFAULT_OPTIONS
+
+  const isControlled = typeof value !== 'undefined'
+  const initialValue = typeof value !== 'undefined' ? value : defaultValue || ''
+
   const [open, setOpen] = useState(false)
-  const [internalValue, setInternalValue] = useState(value || '')
+  const [internalValue, setInternalValue] = useState(initialValue)
   const wrapRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    setInternalValue(value || '')
-  }, [value])
+    if (isControlled) {
+      setInternalValue(value || '')
+    }
+  }, [isControlled, value])
+
+  useEffect(() => {
+    if (!isControlled) {
+      setInternalValue(defaultValue || '')
+    }
+  }, [defaultValue, isControlled])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -79,22 +96,26 @@ export default function CategoryDropdown({
     }
   }, [])
 
+  const selectedValue = isControlled ? value || '' : internalValue
+
   const selected = useMemo(() => {
-    return OPTIONS.find((item) => item.value === internalValue) || null
-  }, [internalValue])
+    return options.find((item) => item.value === selectedValue) || null
+  }, [options, selectedValue])
 
   const selectedLabel = selected?.label || '카테고리를 선택하세요'
-  const selectedMeta = getCategoryMeta(internalValue || 'etc')
+  const selectedMeta = getCategoryMeta(selectedValue || 'etc')
 
   function selectValue(nextValue: string) {
-    setInternalValue(nextValue)
+    if (!isControlled) {
+      setInternalValue(nextValue)
+    }
     onChange?.(nextValue)
     setOpen(false)
   }
 
   return (
     <div ref={wrapRef} style={{ position: 'relative' }}>
-      <input type="hidden" name={name} value={internalValue} required={required} />
+      <input type="hidden" name={name} value={selectedValue} required={required} />
 
       <button
         type="button"
@@ -128,8 +149,8 @@ export default function CategoryDropdown({
             flex: 1,
           }}
         >
-          {internalValue ? (
-            <CategoryVisual category={internalValue} size="md" showLabel={true} />
+          {selectedValue ? (
+            <CategoryVisual category={selectedValue} size="md" showLabel />
           ) : (
             <>
               <div
@@ -202,8 +223,8 @@ export default function CategoryDropdown({
               gap: 6,
             }}
           >
-            {OPTIONS.map((option) => {
-              const active = option.value === internalValue
+            {options.map((option) => {
+              const active = option.value === selectedValue
 
               return (
                 <button
@@ -226,7 +247,7 @@ export default function CategoryDropdown({
                     transition: 'background 0.15s ease',
                   }}
                 >
-                  <CategoryVisual category={option.value} size="md" showLabel={true} />
+                  <CategoryVisual category={option.value} size="md" showLabel />
 
                   <span
                     style={{
