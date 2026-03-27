@@ -177,23 +177,6 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                 />
               </Field>
 
-              <Field label="성별" htmlFor="gender">
-                <select
-                  id="gender"
-                  name="gender"
-                  defaultValue=""
-                  style={inputStyle}
-                  required
-                >
-                  <option value="" disabled>
-                    성별을 선택하세요
-                  </option>
-                  <option value="male">남성</option>
-                  <option value="female">여성</option>
-                  <option value="other">기타</option>
-                </select>
-              </Field>
-
               <Field label="연락처" htmlFor="phone_number">
                 <input
                   id="phone_number"

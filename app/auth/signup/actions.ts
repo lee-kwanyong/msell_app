@@ -34,7 +34,6 @@ function buildUsername(email: string, fullName: string) {
 
 export async function signupAction(formData: FormData) {
   const full_name = String(formData.get('full_name') ?? '').trim();
-  const gender = String(formData.get('gender') ?? '').trim();
   const phone_number = normalizePhone(String(formData.get('phone_number') ?? ''));
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const password = String(formData.get('password') ?? '');
@@ -44,12 +43,6 @@ export async function signupAction(formData: FormData) {
   if (!full_name) {
     redirect(
       `/auth/signup?error=${encodeURIComponent('이름을 입력해 주세요.')}&next=${encodeURIComponent(next)}`
-    );
-  }
-
-  if (!gender) {
-    redirect(
-      `/auth/signup?error=${encodeURIComponent('성별을 선택해 주세요.')}&next=${encodeURIComponent(next)}`
     );
   }
 
@@ -101,7 +94,6 @@ export async function signupAction(formData: FormData) {
       data: {
         full_name,
         username,
-        gender,
         phone_number,
       },
     },
@@ -122,7 +114,6 @@ export async function signupAction(formData: FormData) {
         email,
         full_name,
         username,
-        gender,
         phone_number,
         updated_at: new Date().toISOString(),
       },
