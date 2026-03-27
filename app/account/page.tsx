@@ -11,14 +11,6 @@ function roleLabel(role?: string | null) {
   return role
 }
 
-function genderLabel(gender?: string | null) {
-  if (!gender) return '-'
-  if (gender === 'male') return '남성'
-  if (gender === 'female') return '여성'
-  if (gender === 'other') return '기타'
-  return gender
-}
-
 function maskEmail(email?: string | null) {
   if (!email) return '-'
   const [id, domain] = email.split('@')
@@ -31,7 +23,9 @@ function formatJoinDate(value?: string | null) {
   if (!value) return '-'
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '-'
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(
+    d.getDate(),
+  ).padStart(2, '0')}`
 }
 
 function getString(value: string | string[] | undefined) {
@@ -92,10 +86,6 @@ export default async function AccountPage({
     (typeof user.user_metadata?.phone_number === 'string'
       ? user.user_metadata.phone_number
       : '') ??
-    ''
-  const gender =
-    profile?.gender ??
-    (typeof user.user_metadata?.gender === 'string' ? user.user_metadata.gender : '') ??
     ''
   const role = profile?.role ?? 'user'
 
@@ -175,8 +165,8 @@ export default async function AccountPage({
                     lineHeight: 1.7,
                   }}
                 >
-                  프로필과 기본 계정 정보를 정리하는 공간입니다. 복잡한 요소는 줄이고,
-                  필요한 정보만 안정적으로 보이도록 구성했습니다.
+                  프로필과 기본 계정 정보를 정리하는 공간입니다. 필요한 정보만 선명하게
+                  보이도록 구성하고, 저장 흐름과 개인정보 보호 원칙도 함께 안내합니다.
                 </p>
               </div>
 
@@ -271,7 +261,7 @@ export default async function AccountPage({
               className="account-layout"
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1.45fr) minmax(320px, 0.9fr)',
+                gridTemplateColumns: 'minmax(0, 1.52fr) minmax(320px, 0.88fr)',
                 gap: 20,
                 alignItems: 'start',
               }}
@@ -446,7 +436,7 @@ export default async function AccountPage({
                       />
                     </div>
 
-                    <div>
+                    <div style={{ gridColumn: '1 / -1' }}>
                       <label
                         htmlFor="phone_number"
                         style={{
@@ -477,42 +467,6 @@ export default async function AccountPage({
                         }}
                       />
                     </div>
-
-                    <div>
-                      <label
-                        htmlFor="gender"
-                        style={{
-                          display: 'block',
-                          marginBottom: 8,
-                          fontSize: 13,
-                          color: '#3f3121',
-                          fontWeight: 800,
-                        }}
-                      >
-                        성별
-                      </label>
-                      <select
-                        id="gender"
-                        name="gender"
-                        defaultValue={gender || ''}
-                        style={{
-                          width: '100%',
-                          height: 52,
-                          borderRadius: 15,
-                          border: '1px solid #dfd1bf',
-                          background: '#fffdfa',
-                          padding: '0 15px',
-                          color: '#221a12',
-                          fontSize: 14,
-                          outline: 'none',
-                        }}
-                      >
-                        <option value="">선택 안 함</option>
-                        <option value="male">남성</option>
-                        <option value="female">여성</option>
-                        <option value="other">기타</option>
-                      </select>
-                    </div>
                   </div>
 
                   <div
@@ -521,7 +475,7 @@ export default async function AccountPage({
                       border: '1px solid #eee2d3',
                       background: '#faf5ee',
                       borderRadius: 18,
-                      padding: '16px 17px',
+                      padding: '17px 18px',
                     }}
                   >
                     <div
@@ -529,20 +483,44 @@ export default async function AccountPage({
                         fontSize: 13,
                         fontWeight: 900,
                         color: '#2f2417',
-                        marginBottom: 6,
+                        marginBottom: 10,
                       }}
                     >
-                      계정 안내
+                      계정 안내 및 개인정보 보호
                     </div>
+
                     <div
                       style={{
+                        display: 'grid',
+                        gap: 8,
                         fontSize: 13,
-                        lineHeight: 1.7,
-                        color: '#756858',
+                        lineHeight: 1.75,
+                        color: '#6f6254',
                       }}
                     >
-                      저장 시 profiles와 auth user metadata를 함께 갱신합니다. 이메일은
-                      현재 인증 계정 기준으로 유지됩니다.
+                      <div>
+                        • 저장 시 <span style={{ fontWeight: 800, color: '#2f2417' }}>profiles</span>와{' '}
+                        <span style={{ fontWeight: 800, color: '#2f2417' }}>
+                          auth user metadata
+                        </span>
+                        가 함께 갱신되어 서비스 내 계정 정보가 일관되게 유지됩니다.
+                      </div>
+                      <div>
+                        • 이메일은 로그인과 인증의 기준값이므로 이 화면에서 직접 수정되지
+                        않으며, 인증 계정 기준으로 안정적으로 유지됩니다.
+                      </div>
+                      <div>
+                        • 연락처와 이름, 사용자명은 거래 진행, 알림 전달, 계정 식별에 필요한
+                        범위 안에서만 사용되며 불필요한 정보는 요구하지 않습니다.
+                      </div>
+                      <div>
+                        • 입력한 개인정보는 계정 운영과 거래 경험 개선 목적 범위 내에서만
+                        반영되며, 화면에는 필요한 정보만 최소한으로 노출되도록 구성했습니다.
+                      </div>
+                      <div>
+                        • 민감도가 높은 정보는 현재 화면에서 수집하지 않으며, 저장 이후에도
+                        언제든지 직접 수정하여 최신 상태로 관리할 수 있습니다.
+                      </div>
                     </div>
                   </div>
 
@@ -580,6 +558,7 @@ export default async function AccountPage({
                       type="submit"
                       style={{
                         height: 48,
+                        minWidth: 108,
                         padding: '0 20px',
                         borderRadius: 14,
                         border: 'none',
@@ -635,7 +614,6 @@ export default async function AccountPage({
                     ['이름', fullName || '-'],
                     ['사용자명', username || '-'],
                     ['연락처', phoneNumber || '-'],
-                    ['성별', genderLabel(gender)],
                     ['권한', roleLabel(role)],
                     ['가입일', formatJoinDate(user.created_at)],
                   ].map(([label, value]) => (
