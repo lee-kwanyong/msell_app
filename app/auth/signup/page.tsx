@@ -1,298 +1,321 @@
-import Link from 'next/link'
-import { signupAction } from './actions'
+import Link from "next/link";
+import { signupAction } from "./actions";
 
-type PageProps = {
-  searchParams?: Promise<{
-    next?: string
-    error?: string
-  }>
+type SearchParams = Promise<{
+  error?: string;
+  success?: string;
+  next?: string;
+  full_name?: string;
+  phone_number?: string;
+  email?: string;
+}>;
+
+function decodeValue(value?: string) {
+  return value ? decodeURIComponent(value) : "";
 }
 
-function normalizeNext(next?: string) {
-  if (!next) return '/'
-  if (!next.startsWith('/')) return '/'
-  if (next.startsWith('//')) return '/'
-  return next
-}
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
 
-export default async function SignupPage({ searchParams }: PageProps) {
-  const params = (await searchParams) || {}
-  const next = normalizeNext(params.next)
-  const error = params.error || ''
+  const error = decodeValue(params?.error);
+  const success = decodeValue(params?.success);
+  const next = decodeValue(params?.next) || "/";
+  const full_name = decodeValue(params?.full_name);
+  const phone_number = decodeValue(params?.phone_number);
+  const email = decodeValue(params?.email);
 
   return (
     <main
       style={{
-        minHeight: 'calc(100vh - 120px)',
-        background: 'linear-gradient(180deg, #f6f4ef 0%, #f1eee8 100%)',
-        padding: '36px 24px 80px',
+        minHeight: "100vh",
+        background: "#f6f1e7",
+        padding: "40px 20px 96px",
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
       }}
     >
       <div
         style={{
-          maxWidth: 1280,
-          margin: '0 auto',
+          width: "100%",
+          maxWidth: 430,
+          background: "#fbf7f1",
+          border: "1px solid #eadfce",
+          borderRadius: 32,
+          padding: 24,
+          boxShadow: "0 20px 44px rgba(61, 41, 22, 0.08)",
         }}
       >
         <div
           style={{
-            maxWidth: 560,
-            margin: '0 auto',
-            borderRadius: 34,
-            background:
-              'radial-gradient(circle at top right, rgba(110,84,49,0.08), transparent 28%), linear-gradient(180deg, #fffdfa 0%, #f7f3ec 100%)',
-            border: '1px solid rgba(60,42,23,0.08)',
-            boxShadow: '0 20px 50px rgba(34,24,16,0.06)',
-            padding: 34,
+            fontSize: 12,
+            fontWeight: 900,
+            letterSpacing: "0.16em",
+            color: "#a58a6d",
+            marginBottom: 10,
           }}
         >
+          MSELL
+        </div>
+
+        <h1
+          style={{
+            margin: 0,
+            fontSize: 52,
+            lineHeight: 0.98,
+            letterSpacing: "-0.05em",
+            color: "#16110d",
+            fontWeight: 900,
+          }}
+        >
+          회원가입
+        </h1>
+
+        {error ? (
           <div
             style={{
-              fontSize: 11,
-              letterSpacing: '0.18em',
-              color: 'rgba(58,40,22,0.48)',
+              marginTop: 18,
+              borderRadius: 18,
+              border: "1px solid #efc0c0",
+              background: "#fff4f4",
+              color: "#b42318",
+              padding: "14px 16px",
+              fontSize: 14,
               fontWeight: 700,
+              lineHeight: 1.6,
             }}
           >
-            MSELL
+            {error}
           </div>
+        ) : null}
 
-          <h1
+        {success ? (
+          <div
             style={{
-              margin: '16px 0 0',
-              fontSize: 44,
-              lineHeight: 0.98,
-              letterSpacing: '-0.05em',
+              marginTop: 18,
+              borderRadius: 18,
+              border: "1px solid #cfe3c7",
+              background: "#f5fbf2",
+              color: "#2f6b2f",
+              padding: "14px 16px",
+              fontSize: 14,
               fontWeight: 700,
-              color: '#18130f',
+              lineHeight: 1.6,
             }}
           >
-            회원가입
-          </h1>
+            {success}
+          </div>
+        ) : null}
 
-          {error ? (
-            <div
-              style={{
-                marginTop: 18,
-                borderRadius: 18,
-                border: '1px solid rgba(166, 64, 64, 0.18)',
-                background: 'rgba(255, 243, 243, 0.9)',
-                color: '#8f2f2f',
-                fontSize: 14,
-                lineHeight: 1.6,
-                padding: '14px 16px',
-              }}
-            >
-              {error}
-            </div>
-          ) : null}
+        <form action={signupAction} style={{ marginTop: 18 }}>
+          <input type="hidden" name="next" value={next} />
 
-          <form action={signupAction} style={{ marginTop: 22 }}>
-            <input type="hidden" name="next" value={next} />
-
-            <div style={{ display: 'grid', gap: 14 }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(52,38,24,0.70)',
-                  }}
-                >
-                  이름
-                </label>
-                <input
-                  name="full_name"
-                  type="text"
-                  autoComplete="name"
-                  placeholder="이름 입력"
-                  required
-                  style={{
-                    width: '100%',
-                    height: 52,
-                    borderRadius: 18,
-                    border: '1px solid rgba(60,42,23,0.10)',
-                    background: 'rgba(255,255,255,0.82)',
-                    padding: '0 16px',
-                    fontSize: 15,
-                    color: '#18130f',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(52,38,24,0.70)',
-                  }}
-                >
-                  연락처
-                </label>
-                <input
-                  name="phone_number"
-                  type="tel"
-                  autoComplete="tel"
-                  placeholder="연락처 입력"
-                  required
-                  style={{
-                    width: '100%',
-                    height: 52,
-                    borderRadius: 18,
-                    border: '1px solid rgba(60,42,23,0.10)',
-                    background: 'rgba(255,255,255,0.82)',
-                    padding: '0 16px',
-                    fontSize: 15,
-                    color: '#18130f',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(52,38,24,0.70)',
-                  }}
-                >
-                  이메일
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  required
-                  style={{
-                    width: '100%',
-                    height: 52,
-                    borderRadius: 18,
-                    border: '1px solid rgba(60,42,23,0.10)',
-                    background: 'rgba(255,255,255,0.82)',
-                    padding: '0 16px',
-                    fontSize: 15,
-                    color: '#18130f',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(52,38,24,0.70)',
-                  }}
-                >
-                  비밀번호
-                </label>
-                <input
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="비밀번호 입력"
-                  required
-                  style={{
-                    width: '100%',
-                    height: 52,
-                    borderRadius: 18,
-                    border: '1px solid rgba(60,42,23,0.10)',
-                    background: 'rgba(255,255,255,0.82)',
-                    padding: '0 16px',
-                    fontSize: 15,
-                    color: '#18130f',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(52,38,24,0.70)',
-                  }}
-                >
-                  비밀번호 확인
-                </label>
-                <input
-                  name="password_confirm"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="비밀번호 다시 입력"
-                  required
-                  style={{
-                    width: '100%',
-                    height: 52,
-                    borderRadius: 18,
-                    border: '1px solid rgba(60,42,23,0.10)',
-                    background: 'rgba(255,255,255,0.82)',
-                    padding: '0 16px',
-                    fontSize: 15,
-                    color: '#18130f',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
+          <div style={{ display: "grid", gap: 14 }}>
+            <label style={{ display: "block" }}>
+              <div
                 style={{
-                  height: 52,
-                  border: 'none',
-                  borderRadius: 999,
-                  background: '#24180f',
-                  color: '#ffffff',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 10px 24px rgba(36,24,15,0.16)',
-                  marginTop: 4,
+                  marginBottom: 8,
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#7f684f",
                 }}
               >
-                이메일로 회원가입
-              </button>
-            </div>
-          </form>
+                이름
+              </div>
+              <input
+                type="text"
+                name="full_name"
+                defaultValue={full_name}
+                placeholder="이름 입력"
+                required
+                style={{
+                  width: "100%",
+                  height: 56,
+                  borderRadius: 18,
+                  border: "1px solid #eadfcf",
+                  background: "#fffdf9",
+                  padding: "0 16px",
+                  color: "#24190f",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  outline: "none",
+                }}
+              />
+            </label>
 
-          <div
+            <label style={{ display: "block" }}>
+              <div
+                style={{
+                  marginBottom: 8,
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#7f684f",
+                }}
+              >
+                연락처
+              </div>
+              <input
+                type="text"
+                name="phone_number"
+                defaultValue={phone_number}
+                placeholder="연락처 입력"
+                required
+                style={{
+                  width: "100%",
+                  height: 56,
+                  borderRadius: 18,
+                  border: "1px solid #eadfcf",
+                  background: "#fffdf9",
+                  padding: "0 16px",
+                  color: "#24190f",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  outline: "none",
+                }}
+              />
+            </label>
+
+            <label style={{ display: "block" }}>
+              <div
+                style={{
+                  marginBottom: 8,
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#7f684f",
+                }}
+              >
+                이메일
+              </div>
+              <input
+                type="email"
+                name="email"
+                defaultValue={email}
+                placeholder="you@example.com"
+                required
+                style={{
+                  width: "100%",
+                  height: 56,
+                  borderRadius: 18,
+                  border: "1px solid #eadfcf",
+                  background: "#fffdf9",
+                  padding: "0 16px",
+                  color: "#24190f",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  outline: "none",
+                }}
+              />
+            </label>
+
+            <label style={{ display: "block" }}>
+              <div
+                style={{
+                  marginBottom: 8,
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#7f684f",
+                }}
+              >
+                비밀번호
+              </div>
+              <input
+                type="password"
+                name="password"
+                placeholder="비밀번호 입력"
+                required
+                style={{
+                  width: "100%",
+                  height: 56,
+                  borderRadius: 18,
+                  border: "1px solid #eadfcf",
+                  background: "#fffdf9",
+                  padding: "0 16px",
+                  color: "#24190f",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  outline: "none",
+                }}
+              />
+            </label>
+
+            <label style={{ display: "block" }}>
+              <div
+                style={{
+                  marginBottom: 8,
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#7f684f",
+                }}
+              >
+                비밀번호 확인
+              </div>
+              <input
+                type="password"
+                name="password_confirm"
+                placeholder="비밀번호 다시 입력"
+                required
+                style={{
+                  width: "100%",
+                  height: 56,
+                  borderRadius: 18,
+                  border: "1px solid #eadfcf",
+                  background: "#fffdf9",
+                  padding: "0 16px",
+                  color: "#24190f",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  outline: "none",
+                }}
+              />
+            </label>
+          </div>
+
+          <button
+            type="submit"
             style={{
-              marginTop: 20,
-              textAlign: 'center',
-              fontSize: 14,
-              color: 'rgba(52,38,24,0.62)',
+              width: "100%",
+              height: 56,
+              borderRadius: 18,
+              border: 0,
+              marginTop: 14,
+              background: "#2f2417",
+              color: "#fffaf2",
+              fontSize: 15,
+              fontWeight: 900,
+              cursor: "pointer",
+              boxShadow: "0 12px 26px rgba(47, 36, 23, 0.2)",
             }}
           >
-            이미 계정이 있으면{' '}
-            <Link
-              href={`/auth/login?next=${encodeURIComponent(next)}`}
-              style={{
-                color: '#24180f',
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
-              로그인
-            </Link>
-          </div>
+            이메일로 회원가입
+          </button>
+        </form>
+
+        <div
+          style={{
+            marginTop: 16,
+            textAlign: "center",
+            color: "#8a7156",
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          이미 계정이 있으면{" "}
+          <Link
+            href={`/auth/login?next=${encodeURIComponent(next)}`}
+            style={{
+              color: "#2f2417",
+              fontWeight: 900,
+              textDecoration: "none",
+            }}
+          >
+            로그인
+          </Link>
         </div>
       </div>
     </main>
-  )
+  );
 }
