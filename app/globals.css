@@ -1,23 +1,18 @@
 :root {
-  --msell-bg: #f6f1e7;
-  --msell-surface: #ffffff;
-  --msell-surface-soft: #fbf8f2;
-  --msell-surface-muted: #f3ece1;
-  --msell-line: rgba(47, 36, 23, 0.08);
-  --msell-line-strong: rgba(47, 36, 23, 0.14);
-  --msell-text: #2f2417;
-  --msell-text-soft: #6f5d49;
-  --msell-text-muted: #8d7760;
-  --msell-primary: #2f2417;
-  --msell-primary-hover: #241b11;
-  --msell-secondary: #eadfcf;
-  --msell-secondary-hover: #dfd0bb;
-  --msell-shadow: 0 10px 28px rgba(47, 36, 23, 0.05);
-  --msell-shadow-strong: 0 16px 42px rgba(47, 36, 23, 0.08);
-  --msell-radius-xl: 28px;
-  --msell-radius-lg: 22px;
-  --msell-radius-md: 16px;
-  --msell-radius-sm: 12px;
+  --bg: #f6f1e7;
+  --surface: #ffffff;
+  --surface-soft: #fbf8f2;
+  --line: rgba(47, 36, 23, 0.08);
+  --line-strong: rgba(47, 36, 23, 0.14);
+  --text: #2f2417;
+  --text-soft: #6f5d49;
+  --text-muted: #8d7760;
+  --primary: #2f2417;
+  --primary-hover: #241b11;
+  --secondary: #eadfcf;
+  --secondary-hover: #dfd0bb;
+  --shadow: 0 10px 28px rgba(47, 36, 23, 0.05);
+  --shadow-strong: 0 16px 42px rgba(47, 36, 23, 0.08);
 }
 
 * {
@@ -27,14 +22,14 @@
 html {
   margin: 0;
   padding: 0;
-  background: var(--msell-bg);
+  background: var(--bg);
 }
 
 body {
   margin: 0;
   padding: 0;
-  background: var(--msell-bg);
-  color: var(--msell-text);
+  background: var(--bg);
+  color: var(--text);
   font-family:
     -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Segoe UI',
     sans-serif;
@@ -53,12 +48,6 @@ textarea {
   font: inherit;
 }
 
-input,
-select,
-textarea {
-  outline: none;
-}
-
 button {
   cursor: pointer;
 }
@@ -68,135 +57,117 @@ img {
   display: block;
 }
 
-.msell-app-bg {
+.site-shell {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0) 26%),
-    linear-gradient(180deg, #f8f4eb 0%, #f6f1e7 100%);
+  background: linear-gradient(180deg, #f8f4eb 0%, #f6f1e7 100%);
 }
 
-.msell-page-shell {
-  min-height: calc(100vh - 92px);
+.site-content {
+  min-height: calc(100vh - 84px);
 }
 
-.msell-header-shell {
+.site-header {
   position: sticky;
   top: 0;
   z-index: 100;
-  padding: 14px 20px 0;
-  background: linear-gradient(
-    180deg,
-    rgba(246, 241, 231, 0.94) 0%,
-    rgba(246, 241, 231, 0.72) 74%,
-    rgba(246, 241, 231, 0) 100%
-  );
-  backdrop-filter: blur(10px);
+  background: rgba(246, 241, 231, 0.94);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(47, 36, 23, 0.05);
 }
 
-.msell-header {
+.site-header-inner {
   max-width: 1380px;
   margin: 0 auto;
-  min-height: 74px;
-  padding: 12px 14px;
-  border-radius: 24px;
-  border: 1px solid var(--msell-line);
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: var(--msell-shadow);
+  min-height: 84px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
 }
 
-.msell-brand {
+.site-brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: var(--msell-text);
-  min-width: 0;
+  color: var(--text);
+  flex-shrink: 0;
 }
 
-.msell-brand-mark {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  border-radius: 14px;
+.site-brand-mark {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3c2d1d 0%, #2f2417 100%);
+  background: var(--primary);
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
-  box-shadow: 0 12px 24px rgba(47, 36, 23, 0.16);
 }
 
-.msell-brand-text {
-  font-size: 22px;
+.site-brand-text {
+  font-size: 18px;
   font-weight: 900;
-  letter-spacing: -0.04em;
   line-height: 1;
+  letter-spacing: -0.04em;
 }
 
-.msell-nav {
+.site-nav {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 2px;
   flex-wrap: wrap;
 }
 
-.msell-nav-link {
-  position: relative;
+.site-nav-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 14px;
-  border-radius: 999px;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
   text-decoration: none;
-  color: var(--msell-text-soft);
+  color: var(--text-soft);
   font-size: 14px;
   font-weight: 800;
   letter-spacing: -0.02em;
   transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
+    background 0.16s ease,
+    color 0.16s ease;
 }
 
-.msell-nav-link:hover {
-  background: #f3ece1;
-  color: var(--msell-text);
-  transform: translateY(-1px);
+.site-nav-link:hover {
+  background: #efe7da;
+  color: var(--text);
 }
 
-.msell-nav-link-badge {
-  padding-right: 12px;
+.site-nav-link-with-badge {
+  position: relative;
 }
 
-.msell-badge {
+.site-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 6px;
   border-radius: 999px;
   background: #be123c;
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   line-height: 1;
-  box-shadow: 0 8px 20px rgba(190, 18, 60, 0.18);
 }
 
-.msell-header-actions {
+.site-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -204,152 +175,118 @@ img {
   flex-shrink: 0;
 }
 
-.msell-btn {
+.site-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  padding: 0 16px;
-  border-radius: 14px;
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: 12px;
   border: 1px solid transparent;
   text-decoration: none;
   font-size: 14px;
   font-weight: 800;
   letter-spacing: -0.02em;
   transition:
-    transform 0.18s ease,
-    background 0.18s ease,
-    color 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
+    background 0.16s ease,
+    color 0.16s ease,
+    border-color 0.16s ease;
 }
 
-.msell-btn:hover {
-  transform: translateY(-1px);
-}
-
-.msell-btn-primary {
-  background: var(--msell-primary);
+.site-btn-primary {
+  background: var(--primary);
   color: #fff;
-  box-shadow: 0 10px 24px rgba(47, 36, 23, 0.16);
 }
 
-.msell-btn-primary:hover {
-  background: var(--msell-primary-hover);
+.site-btn-primary:hover {
+  background: var(--primary-hover);
 }
 
-.msell-btn-secondary {
-  background: var(--msell-secondary);
-  color: var(--msell-text);
+.site-btn-secondary {
+  background: var(--secondary);
+  color: var(--text);
   border-color: rgba(47, 36, 23, 0.06);
 }
 
-.msell-btn-secondary:hover {
-  background: var(--msell-secondary-hover);
+.site-btn-secondary:hover {
+  background: var(--secondary-hover);
 }
 
 ::selection {
   background: rgba(47, 36, 23, 0.14);
-  color: var(--msell-text);
+  color: var(--text);
 }
 
 @media (max-width: 1180px) {
-  .msell-header {
-    align-items: flex-start;
+  .site-header-inner {
+    min-height: auto;
+    padding: 14px 20px;
     flex-wrap: wrap;
-    padding: 14px;
+    align-items: flex-start;
   }
 
-  .msell-brand {
-    order: 1;
-  }
-
-  .msell-header-actions {
-    order: 2;
-    margin-left: auto;
-  }
-
-  .msell-nav {
+  .site-nav {
     order: 3;
     width: 100%;
     justify-content: flex-start;
-    padding-top: 4px;
+  }
+
+  .site-actions {
+    margin-left: auto;
   }
 }
 
 @media (max-width: 760px) {
-  .msell-header-shell {
-    padding: 10px 12px 0;
-  }
-
-  .msell-header {
-    min-height: auto;
-    padding: 12px;
-    border-radius: 20px;
+  .site-header-inner {
+    padding: 12px 14px;
     gap: 12px;
   }
 
-  .msell-brand-mark {
+  .site-brand-mark {
     width: 34px;
     height: 34px;
     min-width: 34px;
-    border-radius: 12px;
     font-size: 14px;
   }
 
-  .msell-brand-text {
-    font-size: 20px;
+  .site-brand-text {
+    font-size: 17px;
   }
 
-  .msell-nav {
-    gap: 6px;
+  .site-nav-link {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 13px;
   }
 
-  .msell-nav-link {
-    min-height: 38px;
+  .site-btn {
+    min-height: 36px;
     padding: 0 12px;
     font-size: 13px;
   }
 
-  .msell-btn {
-    min-height: 38px;
-    padding: 0 13px;
-    font-size: 13px;
-    border-radius: 12px;
-  }
-
-  .msell-page-shell {
-    min-height: calc(100vh - 84px);
+  .site-content {
+    min-height: calc(100vh - 76px);
   }
 }
 
-@media (max-width: 520px) {
-  .msell-header {
-    gap: 10px;
-  }
-
-  .msell-header-actions {
+@media (max-width: 560px) {
+  .site-actions {
     width: 100%;
     justify-content: stretch;
   }
 
-  .msell-header-actions .msell-btn {
+  .site-actions .site-btn {
     flex: 1;
   }
 
-  .msell-nav {
-    justify-content: flex-start;
+  .site-nav {
+    gap: 4px;
   }
 
-  .msell-nav-link {
-    min-height: 36px;
-    padding: 0 11px;
+  .site-nav-link {
     font-size: 12px;
-  }
-
-  .msell-badge {
-    min-width: 20px;
-    height: 20px;
-    font-size: 10px;
+    min-height: 34px;
+    padding: 0 9px;
   }
 }
