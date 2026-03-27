@@ -84,88 +84,59 @@ export default function AuthGateway({
     }
   }
 
-  const cardRadius = mobile ? 24 : 30
-  const sectionPadding = mobile ? 20 : 24
-  const titleSize = mobile ? 20 : 22
+  const radius = mobile ? 24 : 30
+  const contentPadding = mobile ? 20 : 28
+  const headingSize = mobile ? 28 : 34
+  const subTextSize = mobile ? 13 : 14
 
   return (
     <div
       style={{
         border: '1px solid #e5d9ca',
-        background: '#fff',
-        borderRadius: cardRadius,
+        background: 'linear-gradient(180deg, #fffdfa 0%, #fcf8f2 100%)',
+        borderRadius: radius,
         overflow: 'hidden',
         boxShadow: '0 18px 50px rgba(47,36,23,0.05)',
       }}
     >
       <div
         style={{
-          padding: mobile ? '20px 20px' : '22px 24px',
+          padding: mobile ? '24px 20px 18px' : '28px 28px 20px',
           borderBottom: '1px solid #ece0d2',
           background: 'linear-gradient(180deg, #fcfaf6 0%, #f7f1e8 100%)',
         }}
       >
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '7px 12px',
-            borderRadius: 999,
-            background: '#efe3d2',
-            color: '#7b6140',
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: '0.08em',
-          }}
-        >
-          AUTH
-        </div>
-
         <h2
           style={{
-            margin: '14px 0 0',
-            fontSize: mobile ? 17 : 18,
-            lineHeight: 1.2,
+            margin: 0,
+            fontSize: headingSize,
+            lineHeight: 1.05,
             color: '#1f1710',
             fontWeight: 900,
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.04em',
           }}
         >
-          계정으로 계속하기
+          {mode === 'signup' ? '회원가입' : '로그인'}
         </h2>
+
+        <p
+          style={{
+            margin: '12px 0 0',
+            color: '#756858',
+            fontSize: subTextSize,
+            lineHeight: 1.7,
+            maxWidth: 520,
+          }}
+        >
+          구글, 카카오, 네이버 또는 이메일로 Msell에 접속할 수 있습니다.
+        </p>
       </div>
 
-      <div style={{ padding: sectionPadding }}>
-        <div style={{ marginBottom: 18 }}>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: titleSize,
-              lineHeight: 1.1,
-              color: '#1f1710',
-              fontWeight: 900,
-              letterSpacing: '-0.03em',
-            }}
-          >
-            {mode === 'signup' ? '회원가입' : '로그인'}
-          </h3>
-
-          <p
-            style={{
-              margin: '10px 0 0',
-              color: '#7a6d5f',
-              fontSize: 14,
-              lineHeight: 1.65,
-            }}
-          >
-            구글, 네이버, 카카오 또는 이메일로 간편하게 진행할 수 있습니다.
-          </p>
-        </div>
-
+      <div style={{ padding: contentPadding }}>
         {(error || message || localError) && (
           <div
             style={{
-              marginBottom: 16,
+              marginBottom: 18,
               borderRadius: 16,
               border: '1px solid #efcdc8',
               background: '#fff4f2',
@@ -187,8 +158,8 @@ export default function AuthGateway({
             disabled={loadingProvider !== null}
             style={{
               width: '100%',
-              height: 52,
-              borderRadius: 15,
+              height: 54,
+              borderRadius: 16,
               border: '1px solid #dfd1bf',
               background: '#fffdfa',
               color: '#221a12',
@@ -207,8 +178,8 @@ export default function AuthGateway({
             disabled={loadingProvider !== null}
             style={{
               width: '100%',
-              height: 52,
-              borderRadius: 15,
+              height: 54,
+              borderRadius: 16,
               border: '1px solid #e7d96a',
               background: '#FEE500',
               color: '#191600',
@@ -227,8 +198,8 @@ export default function AuthGateway({
             disabled={loadingProvider !== null}
             style={{
               width: '100%',
-              height: 52,
-              borderRadius: 15,
+              height: 54,
+              borderRadius: 16,
               border: '1px solid #12b650',
               background: '#03C75A',
               color: '#ffffff',
@@ -244,10 +215,10 @@ export default function AuthGateway({
 
         <div
           style={{
-            margin: '18px 0 16px',
+            margin: '22px 0 18px',
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
+            gap: 12,
             color: '#8a7a67',
             fontSize: 12,
             fontWeight: 700,
@@ -281,11 +252,11 @@ export default function AuthGateway({
               placeholder="you@example.com"
               style={{
                 width: '100%',
-                height: 52,
-                borderRadius: 15,
+                height: 54,
+                borderRadius: 16,
                 border: '1px solid #dfd1bf',
                 background: '#fffdfa',
-                padding: '0 15px',
+                padding: '0 16px',
                 color: '#221a12',
                 fontSize: 14,
                 outline: 'none',
@@ -315,11 +286,11 @@ export default function AuthGateway({
               placeholder="비밀번호를 입력하세요"
               style={{
                 width: '100%',
-                height: 52,
-                borderRadius: 15,
+                height: 54,
+                borderRadius: 16,
                 border: '1px solid #dfd1bf',
                 background: '#fffdfa',
-                padding: '0 15px',
+                padding: '0 16px',
                 color: '#221a12',
                 fontSize: 14,
                 outline: 'none',
@@ -332,8 +303,8 @@ export default function AuthGateway({
             disabled={emailLoading}
             style={{
               width: '100%',
-              height: 52,
-              borderRadius: 15,
+              height: 54,
+              borderRadius: 16,
               border: 'none',
               background: 'linear-gradient(180deg, #3a2c1c 0%, #241b11 100%)',
               color: '#fffaf3',
@@ -349,7 +320,7 @@ export default function AuthGateway({
 
         <div
           style={{
-            marginTop: 18,
+            marginTop: 22,
             paddingTop: 18,
             borderTop: '1px solid #ece0d2',
             display: 'flex',
