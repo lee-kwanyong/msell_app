@@ -1,8 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 const MOBILE_PATH_PREFIXES = ['/m']
-const PROTECTED_PREFIXES = ['/account', '/my', '/deal', '/admin']
 
 function isMobileUserAgent(userAgent: string) {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
@@ -40,43 +38,6 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
   const userAgent = request.headers.get('user-agent') ?? ''
 
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-            maxAge: 0,
-          })
-        },
-      },
-    }
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   if (shouldUseMobile(pathname, userAgent)) {
     const url = request.nextUrl.clone()
     url.pathname = `/m${pathname}`
@@ -91,19 +52,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  const requiresAuth =
-    pathname.startsWith('/listings/create') ||
-    /^\/listings\/[^/]+\/edit$/.test(pathname) ||
-    PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
-
-  if (requiresAuth && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    url.searchParams.set('next', pathname + search)
-    return NextResponse.redirect(url)
-  }
-
-  return response
+  return NextResponse.next()
 }
 
 export const config = {
