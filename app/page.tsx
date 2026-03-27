@@ -22,9 +22,7 @@ function timeAgo(value?: string | null) {
 
 function categoryLabel(value?: string | null) {
   if (!value) return '기타'
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
+  return value.replace(/_/g, ' ')
 }
 
 export default async function HomePage() {
@@ -87,14 +85,16 @@ export default async function HomePage() {
             </div>
 
             <h1
+              className="hero-title"
               style={{
-                margin: '18px 0 14px',
-                fontSize: 68,
-                lineHeight: 0.92,
-                letterSpacing: '-0.06em',
+                margin: '18px 0 18px',
+                fontSize: 80,
+                lineHeight: 0.94,
+                letterSpacing: '-0.07em',
                 fontWeight: 900,
                 color: '#1f1710',
-                maxWidth: 720,
+                maxWidth: 760,
+                wordBreak: 'keep-all',
               }}
             >
               디지털 자산 거래를
@@ -110,12 +110,12 @@ export default async function HomePage() {
                 maxWidth: 760,
                 color: '#6f655b',
                 fontSize: 18,
-                lineHeight: 1.8,
+                lineHeight: 1.85,
               }}
             >
-              Msell은 과장된 수치나 불필요한 장식을 줄이고, 실제 등록 자산과 실제 거래 흐름에
-              집중하는 디지털 자산 거래 화면을 지향합니다. 홈 화면에서 현재 공개 자산,
-              신규 등록 흐름, 최신 거래 진입점을 바로 확인할 수 있도록 구성했습니다.
+              Msell은 실제 등록 자산과 실제 거래 흐름을 중심으로 화면을 구성합니다. 홈에서는
+              현재 공개된 자산 현황, 신규 등록 시작, 최신 등록 자산 확인까지 바로 이어질 수
+              있도록 핵심 동선만 정리했습니다.
             </p>
 
             <div
@@ -189,9 +189,9 @@ export default async function HomePage() {
                   desc: '핵심 액션과 등록 정보에 집중',
                 },
                 {
-                  label: '브랜드 톤',
-                  value: '브라운 프리미엄',
-                  desc: '차분하고 신뢰감 있는 거래 인상',
+                  label: '확인 방식',
+                  value: '직접 진입',
+                  desc: '목록 확인 후 상세로 바로 이동',
                 },
               ].map((item) => (
                 <div
@@ -294,8 +294,8 @@ export default async function HomePage() {
               >
                 {[
                   '활성 상태 자산만 홈에 반영',
-                  '최신 등록 흐름을 중심으로 정렬',
-                  '상세 페이지로 즉시 진입 가능',
+                  '최신 등록 흐름 기준으로 정렬',
+                  '상세 페이지로 즉시 이동 가능',
                 ].map((item) => (
                   <div
                     key={item}
@@ -345,31 +345,46 @@ export default async function HomePage() {
 
               <div
                 style={{
-                  fontSize: 26,
-                  lineHeight: 1.15,
+                  fontSize: 24,
+                  lineHeight: 1.18,
                   letterSpacing: '-0.04em',
                   color: '#1f1710',
                   fontWeight: 900,
                   marginBottom: 14,
+                  wordBreak: 'keep-all',
                 }}
               >
-                더 적게 보여주고
+                적게 보여주고
                 <br />
-                더 정확하게 연결합니다
+                정확하게 이동하게 합니다
               </div>
 
-              <p
+              <div
                 style={{
-                  margin: 0,
+                  display: 'grid',
+                  gap: 10,
                   fontSize: 14,
                   lineHeight: 1.8,
                   color: '#746858',
                 }}
               >
-                Msell 홈은 데이터 과잉보다 등록 품질과 거래 진입 효율에 초점을 맞춥니다.
-                사용자는 홈에서 즉시 매물 탐색, 등록 시작, 최신 자산 확인까지 자연스럽게
-                이어질 수 있습니다.
-              </p>
+                <div>
+                  홈 화면에서는 가장 먼저 현재 공개 자산 수를 보여주고, 사용자가 시장 상태를
+                  바로 파악할 수 있게 합니다.
+                </div>
+                <div>
+                  그 다음 단계로는 매물 둘러보기와 자산 등록하기를 바로 배치해, 탐색과 등록
+                  시작이 한 번에 이어지도록 구성합니다.
+                </div>
+                <div>
+                  최신 등록 자산 영역에서는 실제 활성 상태 자산만 최신순으로 노출해, 사용자가
+                  불필요한 항목 없이 바로 상세 페이지로 이동할 수 있게 합니다.
+                </div>
+                <div>
+                  화면 전체는 정보 수를 늘리기보다 현재 필요한 정보만 먼저 보여주고, 다음 행동이
+                  자연스럽게 이어지도록 정리하는 방향으로 운영합니다.
+                </div>
+              </div>
             </section>
           </div>
         </section>
@@ -773,8 +788,9 @@ export default async function HomePage() {
         }
 
         @media (max-width: 760px) {
-          .home-hero-grid h1 {
-            font-size: 48px !important;
+          .hero-title {
+            font-size: 54px !important;
+            line-height: 0.98 !important;
           }
         }
       `}</style>
