@@ -5,8 +5,10 @@ import { updateAccountAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 
+type ResolvedSearchParams = Record<string, string | string[] | undefined>;
+
 type AccountPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<ResolvedSearchParams>;
 };
 
 function pickFirst(value: string | string[] | undefined) {
@@ -27,7 +29,7 @@ export default async function AccountPage({
     resolvedSearchParams,
   ] = await Promise.all([
     supabase.auth.getUser(),
-    searchParams ?? Promise.resolve({}),
+    (searchParams ?? Promise.resolve({} as ResolvedSearchParams)) as Promise<ResolvedSearchParams>,
   ]);
 
   if (userError || !user) {
