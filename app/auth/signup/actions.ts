@@ -1,121 +1,146 @@
-'use server'
+'use server';
 
-import { redirect } from 'next/navigation'
-import { supabaseServer } from '@/lib/supabase/server'
-
-function text(formData: FormData, key: string) {
-  const value = formData.get(key)
-  return typeof value === 'string' ? value.trim() : ''
-}
-
-function normalizeEmail(value: string) {
-  return value.trim().toLowerCase()
-}
+import { redirect } from 'next/navigation';
+import { supabaseServer } from '@/lib/supabase/server';
 
 function normalizePhone(value: string) {
-  return value.replace(/[^0-9+]/g, '').trim()
+  return value.replace(/[^\d+]/g, '').trim();
 }
 
-function normalizeUsername(value: string) {
-  return value
+function buildSafeNext(nextValue: string | null) {
+  if (!nextValue) return '/';
+  if (!nextValue.startsWith('/')) return '/';
+  if (nextValue.startsWith('//')) return '/';
+  return nextValue;
+}
+
+function buildUsername(email: string, fullName: string) {
+  const fromName = fullName
     .toLowerCase()
     .replace(/\s+/g, '')
-    .replace(/[^a-z0-9_]/g, '')
-    .trim()
-}
+    .replace(/[^a-z0-9_]/g, '');
 
-function buildErrorRedirect(message: string) {
-  return `/auth/signup?error=${encodeURIComponent(message)}`
+  if (fromName) return fromName.slice(0, 24);
+
+  const fromEmail = email
+    .split('@')[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '');
+
+  if (fromEmail) return fromEmail.slice(0, 24);
+
+  return `user_${Date.now().toString().slice(-8)}`;
 }
 
 export async function signupAction(formData: FormData) {
-  const supabase = await supabaseServer()
+  const full_name = String(formData.get('full_name') ?? '').trim();
+  const gender = String(formData.get('gender') ?? '').trim();
+  const phone_number = normalizePhone(String(formData.get('phone_number') ?? ''));
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
+  const password_confirm = String(formData.get('password_confirm') ?? '');
+  const next = buildSafeNext(String(formData.get('next') ?? '/'));
 
-  const fullName = text(formData, 'full_name')
-  const gender = text(formData, 'gender')
-  const phoneNumberRaw = text(formData, 'phone_number')
-  const emailRaw = text(formData, 'email')
-  const password = text(formData, 'password')
-  const passwordConfirm = text(formData, 'password_confirm')
-  const usernameRaw = text(formData, 'username')
+  if (!full_name) {
+    redirect(
+      `/auth/signup?error=${encodeURIComponent('이름을 입력해 주세요.')}&next=${encodeURIComponent(next)}`
+    );
+  }
 
-  const email = normalizeEmail(emailRaw)
-  const phoneNumber = normalizePhone(phoneNumberRaw)
-  const username = normalizeUsername(usernameRaw || email.split('@')[0] || '')
+  if (!gender) {
+    redirect(
+      `/auth/signup?error=${encodeURIComponent('성별을 선택해 주세요.')}&next=${encodeURIComponent(next)}`
+    );
+  }
 
-  if (!fullName) {
-    redirect(buildErrorRedirect('이름을 입력해주세요.'))
+  if (!phone_number) {
+    redirect(
+      `/auth/signup?error=${encodeURIComponent('연락처를 입력해 주세요.')}&next=${encodeURIComponent(next)}`
+    );
   }
 
   if (!email) {
-    redirect(buildErrorRedirect('이메일을 입력해주세요.'))
+    redirect(
+      `/auth/signup?error=${encodeURIComponent('이메일을 입력해 주세요.')}&next=${encodeURIComponent(next)}`
+    );
   }
 
   if (!password) {
-    redirect(buildErrorRedirect('비밀번호를 입력해주세요.'))
+    redirect(
+      `/auth/signup?error=${encodeURIComponent('비밀번호를 입력해 주세요.')}&next=${encodeURIComponent(next)}`
+    );
   }
 
   if (password.length < 6) {
-    redirect(buildErrorRedirect('비밀번호는 6자 이상이어야 합니다.'))
+    redirect(
+      `/auth/signup?error=${encodeURIComponent('비밀번호는 6자 이상이어야 합니다.')}&next=${encodeURIComponent(next)}`
+    );
   }
 
-  if (password !== passwordConfirm) {
-    redirect(buildErrorRedirect('비밀번호 확인이 일치하지 않습니다.'))
+  if (password !== password_confirm) {
+    redirect(
+      `/auth/signup?error=${encodeURIComponent('비밀번호 확인이 일치하지 않습니다.')}&next=${encodeURIComponent(next)}`
+    );
   }
 
-  if (!username || username.length < 2) {
-    redirect(buildErrorRedirect('사용자명은 2자 이상이어야 합니다.'))
-  }
+  const username = buildUsername(email, full_name);
+  const supabase = await supabaseServer();
 
-  const emailRedirectTo =
-    process.env.NEXT_PUBLIC_SITE_URL
-      ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
-      : undefined
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'http://localhost:3000';
+
+  const emailRedirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      ...(emailRedirectTo ? { emailRedirectTo } : {}),
+      emailRedirectTo,
       data: {
-        full_name: fullName,
-        gender: gender || null,
-        phone_number: phoneNumber || null,
+        full_name,
         username,
+        gender,
+        phone_number,
       },
     },
-  })
+  });
 
   if (error) {
-    const message =
-      error.message?.includes('User already registered')
-        ? '이미 가입된 이메일입니다. 로그인해 주세요.'
-        : error.message || '회원가입에 실패했습니다.'
-
-    redirect(buildErrorRedirect(message))
+    redirect(
+      `/auth/signup?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`
+    );
   }
 
-  const user = data.user
+  const user = data.user;
 
   if (user) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert(
-        {
-          id: user.id,
-          email,
-          full_name: fullName,
-          username,
-          gender: gender || null,
-          phone_number: phoneNumber || null,
-        },
-        { onConflict: 'id' }
-      )
+    const { error: profileError } = await supabase.from('profiles').upsert(
+      {
+        id: user.id,
+        email,
+        full_name,
+        username,
+        gender,
+        phone_number,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    );
 
     if (profileError) {
-      redirect(buildErrorRedirect(profileError.message || '프로필 저장에 실패했습니다.'))
+      redirect(
+        `/auth/signup?error=${encodeURIComponent(profileError.message)}&next=${encodeURIComponent(next)}`
+      );
     }
   }
 
-  redirect('/auth/login?message=' + encodeURIComponent('회원가입이 완료되었습니다. 로그인해 주세요.'))
+  if (data.session) {
+    redirect(next);
+  }
+
+  redirect(
+    `/auth/login?success=${encodeURIComponent('회원가입이 완료되었습니다. 이메일 인증 후 로그인해 주세요.')}&next=${encodeURIComponent(next)}`
+  );
 }

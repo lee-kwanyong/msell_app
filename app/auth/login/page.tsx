@@ -1,284 +1,302 @@
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { supabaseServer } from '@/lib/supabase/server'
-import { loginAction } from './actions'
-import AuthGateway from '@/components/auth/AuthGateway'
+import Link from 'next/link';
+import AuthGateway from '@/components/auth/AuthGateway';
+import { loginAction } from './actions';
 
-type PageProps = {
+type LoginPageProps = {
   searchParams?: Promise<{
-    next?: string
-    error?: string
-  }>
-}
+    error?: string;
+    success?: string;
+    next?: string;
+  }>;
+};
 
-function getSafeNext(next?: string) {
-  if (!next) return '/'
-  if (!next.startsWith('/')) return '/'
-  if (next.startsWith('//')) return '/'
-  return next
-}
-
-function getErrorMessage(error?: string) {
-  switch (error) {
-    case 'missing_fields':
-      return '이메일과 비밀번호를 모두 입력해주세요.'
-    case 'invalid_credentials':
-      return '이메일 또는 비밀번호가 올바르지 않습니다.'
-    case 'oauth_failed':
-      return '소셜 로그인 처리 중 문제가 발생했습니다.'
-    default:
-      return ''
-  }
-}
-
-export default async function LoginPage({ searchParams }: PageProps) {
-  const resolved = (await searchParams) || {}
-  const next = getSafeNext(resolved.next)
-  const errorMessage = getErrorMessage(resolved.error)
-
-  const supabase = await supabaseServer()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (user) {
-    redirect(next || '/')
-  }
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const error = resolvedSearchParams.error ?? '';
+  const success = resolvedSearchParams.success ?? '';
+  const next = resolvedSearchParams.next ?? '/';
 
   return (
     <main
       style={{
         minHeight: '100vh',
         background: '#f6f1e7',
+        padding: '40px 20px 80px',
       }}
     >
       <div
         style={{
-          maxWidth: 560,
+          maxWidth: 520,
           margin: '0 auto',
-          padding: '56px 20px 80px',
         }}
       >
-        <section
+        <div
           style={{
+            marginBottom: 20,
+          }}
+        >
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 32,
+              lineHeight: 1.2,
+              fontWeight: 800,
+              color: '#241b11',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            로그인
+          </h1>
+          <p
+            style={{
+              margin: '10px 0 0',
+              fontSize: 15,
+              lineHeight: 1.6,
+              color: '#6b5b4d',
+            }}
+          >
+            이메일 로그인 또는 소셜 로그인으로 Msell에 접속할 수 있다.
+          </p>
+        </div>
+
+        {success ? (
+          <div
+            style={{
+              marginBottom: 16,
+              padding: '14px 16px',
+              borderRadius: 16,
+              background: '#f4efe6',
+              border: '1px solid #dbcdb8',
+              color: '#2f2417',
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            {success}
+          </div>
+        ) : null}
+
+        {error ? (
+          <div
+            style={{
+              marginBottom: 16,
+              padding: '14px 16px',
+              borderRadius: 16,
+              background: '#fff4f2',
+              border: '1px solid #efc2ba',
+              color: '#9a3d2f',
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            {error}
+          </div>
+        ) : null}
+
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e7dccb',
             borderRadius: 28,
-            background: '#fff',
-            border: '1px solid rgba(47,36,23,0.08)',
-            boxShadow: '0 16px 42px rgba(47,36,23,0.06)',
-            padding: 20,
+            boxShadow: '0 20px 50px rgba(47, 36, 23, 0.06)',
+            overflow: 'hidden',
           }}
         >
           <div
             style={{
-              color: '#9a6b2f',
-              fontSize: 12,
-              fontWeight: 900,
-              letterSpacing: '0.08em',
-              marginBottom: 8,
+              padding: 28,
+              borderBottom: '1px solid #efe5d6',
+              background:
+                'linear-gradient(180deg, rgba(246,241,231,0.9) 0%, rgba(255,255,255,1) 100%)',
             }}
           >
-            EMAIL LOGIN
-          </div>
-
-          <h1
-            style={{
-              margin: 0,
-              color: '#2f2417',
-              fontSize: 28,
-              lineHeight: 1.2,
-              fontWeight: 900,
-              letterSpacing: '-0.04em',
-            }}
-          >
-            이메일 로그인
-          </h1>
-
-          <p
-            style={{
-              margin: '10px 0 0',
-              color: '#7a6753',
-              fontSize: 14,
-              lineHeight: 1.6,
-            }}
-          >
-            이미 가입한 회원은 이메일과 비밀번호를 입력해 바로 로그인하세요.
-          </p>
-
-          {errorMessage ? (
             <div
               style={{
-                marginTop: 14,
-                borderRadius: 14,
-                background: '#fff1f2',
-                border: '1px solid rgba(190,24,93,0.12)',
-                color: '#9f1239',
-                padding: '12px 14px',
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#7b6a58',
+                marginBottom: 6,
+              }}
+            >
+              AUTH
+            </div>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: '#241b11',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              계정으로 계속하기
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: 28,
+              display: 'grid',
+              gap: 18,
+            }}
+          >
+            <AuthGateway mode="login" next={next} />
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                color: '#8b7966',
                 fontSize: 13,
                 fontWeight: 700,
               }}
             >
-              {errorMessage}
-            </div>
-          ) : null}
-
-          <form action={loginAction} style={{ marginTop: 18 }}>
-            <input type="hidden" name="next" value={next} />
-
-            <div style={{ marginBottom: 12 }}>
-              <label
-                htmlFor="email"
-                style={{
-                  display: 'block',
-                  marginBottom: 6,
-                  color: '#6f5d49',
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                이메일
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                autoComplete="email"
-                required
-                style={{
-                  width: '100%',
-                  height: 48,
-                  borderRadius: 14,
-                  border: '1px solid rgba(47,36,23,0.12)',
-                  background: '#fffdf9',
-                  padding: '0 14px',
-                  fontSize: 14,
-                  color: '#2f2417',
-                }}
-              />
+              <div style={{ flex: 1, height: 1, background: '#eee3d4' }} />
+              <span>또는 이메일 로그인</span>
+              <div style={{ flex: 1, height: 1, background: '#eee3d4' }} />
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <label
-                htmlFor="password"
-                style={{
-                  display: 'block',
-                  marginBottom: 6,
-                  color: '#6f5d49',
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                비밀번호
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="비밀번호를 입력하세요"
-                autoComplete="current-password"
-                required
-                style={{
-                  width: '100%',
-                  height: 48,
-                  borderRadius: 14,
-                  border: '1px solid rgba(47,36,23,0.12)',
-                  background: '#fffdf9',
-                  padding: '0 14px',
-                  fontSize: 14,
-                  color: '#2f2417',
-                }}
-              />
-            </div>
-
-            <button
-              type="submit"
+            <form
+              action={loginAction}
               style={{
-                width: '100%',
-                height: 48,
-                border: 'none',
-                borderRadius: 999,
-                background: '#2f2417',
-                color: '#fff',
-                fontSize: 14,
-                fontWeight: 900,
-                cursor: 'pointer',
-                marginTop: 2,
+                display: 'grid',
+                gap: 14,
               }}
             >
-              이메일 로그인
-            </button>
-          </form>
+              <input type="hidden" name="next" value={next} />
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              margin: '18px 0',
-            }}
-          >
-            <div style={{ flex: 1, height: 1, background: 'rgba(47,36,23,0.10)' }} />
-            <div
-              style={{
-                color: '#8d7760',
-                fontSize: 12,
-                fontWeight: 900,
-              }}
-            >
-              OR
-            </div>
-            <div style={{ flex: 1, height: 1, background: 'rgba(47,36,23,0.10)' }} />
+              <Field label="이메일" htmlFor="email">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  required
+                  style={inputStyle}
+                />
+              </Field>
+
+              <Field label="비밀번호" htmlFor="password">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="비밀번호를 입력하세요"
+                  autoComplete="current-password"
+                  required
+                  style={inputStyle}
+                />
+              </Field>
+
+              <button type="submit" style={primaryButtonStyle}>
+                이메일로 로그인
+              </button>
+            </form>
           </div>
 
           <div
             style={{
-              color: '#9a6b2f',
-              fontSize: 12,
-              fontWeight: 900,
-              letterSpacing: '0.08em',
-              marginBottom: 8,
-            }}
-          >
-            SOCIAL LOGIN
-          </div>
-
-          <p
-            style={{
-              margin: '0 0 12px',
-              color: '#7a6753',
-              fontSize: 13,
-              lineHeight: 1.6,
-            }}
-          >
-            구글, 네이버, 카카오 계정으로 바로 로그인할 수 있습니다.
-          </p>
-
-          <AuthGateway next={next} mode="login" />
-
-          <div
-            style={{
-              marginTop: 16,
+              padding: 28,
+              borderTop: '1px solid #efe5d6',
               display: 'flex',
-              alignItems: 'center',
               justifyContent: 'space-between',
+              alignItems: 'center',
               gap: 12,
-              fontSize: 13,
+              flexWrap: 'wrap',
+              background: '#fffdf9',
             }}
           >
-            <span style={{ color: '#8d7760' }}>아직 계정이 없으신가요?</span>
+            <span
+              style={{
+                fontSize: 14,
+                color: '#6f5f4f',
+              }}
+            >
+              아직 계정이 없다면
+            </span>
+
             <Link
               href={`/auth/signup?next=${encodeURIComponent(next)}`}
-              style={{
-                color: '#2f2417',
-                textDecoration: 'none',
-                fontWeight: 900,
-              }}
+              style={secondaryButtonStyle}
             >
               회원가입
             </Link>
           </div>
-        </section>
+        </div>
       </div>
     </main>
-  )
+  );
 }
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      style={{
+        display: 'grid',
+        gap: 8,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: '#3a2d1d',
+        }}
+      >
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  height: 54,
+  borderRadius: 16,
+  border: '1px solid #ddcfbb',
+  background: '#fff',
+  padding: '0 16px',
+  fontSize: 15,
+  color: '#241b11',
+  outline: 'none',
+  boxSizing: 'border-box',
+};
+
+const primaryButtonStyle: React.CSSProperties = {
+  height: 52,
+  borderRadius: 14,
+  border: 'none',
+  background: '#2f2417',
+  color: '#fff',
+  padding: '0 18px',
+  fontSize: 14,
+  fontWeight: 800,
+  cursor: 'pointer',
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  height: 44,
+  borderRadius: 14,
+  border: '1px solid #ddcfbb',
+  background: '#eadfcf',
+  color: '#2f2417',
+  padding: '0 16px',
+  fontSize: 14,
+  fontWeight: 800,
+  cursor: 'pointer',
+  textDecoration: 'none',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};

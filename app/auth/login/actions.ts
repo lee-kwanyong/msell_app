@@ -1,39 +1,44 @@
-'use server'
+'use server';
 
-import { redirect } from 'next/navigation'
-import { supabaseServer } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation';
+import { supabaseServer } from '@/lib/supabase/server';
 
-function normalizeNext(input: FormDataEntryValue | null) {
-  if (typeof input !== 'string') return '/'
-
-  const value = input.trim()
-
-  if (!value) return '/'
-  if (!value.startsWith('/')) return '/'
-  if (value.startsWith('//')) return '/'
-
-  return value
+function buildSafeNext(nextValue: string | null) {
+  if (!nextValue) return '/';
+  if (!nextValue.startsWith('/')) return '/';
+  if (nextValue.startsWith('//')) return '/';
+  return nextValue;
 }
 
 export async function loginAction(formData: FormData) {
-  const supabase = await supabaseServer()
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
+  const next = buildSafeNext(String(formData.get('next') ?? '/'));
 
-  const email = String(formData.get('email') || '').trim()
-  const password = String(formData.get('password') || '')
-  const next = normalizeNext(formData.get('next'))
-
-  if (!email || !password) {
-    redirect(`/auth/login?next=${encodeURIComponent(next)}&error=missing_fields`)
+  if (!email) {
+    redirect(
+      `/auth/login?error=${encodeURIComponent('이메일을 입력해 주세요.')}&next=${encodeURIComponent(next)}`
+    );
   }
+
+  if (!password) {
+    redirect(
+      `/auth/login?error=${encodeURIComponent('비밀번호를 입력해 주세요.')}&next=${encodeURIComponent(next)}`
+    );
+  }
+
+  const supabase = await supabaseServer();
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
-  })
+  });
 
   if (error) {
-    redirect(`/auth/login?next=${encodeURIComponent(next)}&error=invalid_credentials`)
+    redirect(
+      `/auth/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`
+    );
   }
 
-  redirect(next || '/')
+  redirect(next);
 }

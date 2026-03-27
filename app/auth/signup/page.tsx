@@ -1,343 +1,355 @@
-import Link from 'next/link'
-import type { CSSProperties } from 'react'
-import { signupAction } from './actions'
+import Link from 'next/link';
+import AuthGateway from '@/components/auth/AuthGateway';
+import { signupAction } from './actions';
 
-export const dynamic = 'force-dynamic'
+type SignupPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    success?: string;
+    next?: string;
+  }>;
+};
 
-function pickFirst(value: string | string[] | undefined) {
-  if (typeof value === 'string') return value
-  if (Array.isArray(value)) return value[0] || ''
-  return ''
-}
-
-function MessageBox({
-  tone,
-  children,
-}: {
-  tone: 'error' | 'success'
-  children: React.ReactNode
-}) {
-  const isError = tone === 'error'
-
-  return (
-    <div
-      style={{
-        background: isError ? '#fff4f1' : '#f4efe6',
-        border: `1px solid ${isError ? '#efc6bc' : '#ddcfba'}`,
-        color: isError ? '#8b3a2a' : '#2f2417',
-        borderRadius: 18,
-        padding: '14px 16px',
-        fontSize: 14,
-        fontWeight: 800,
-        lineHeight: 1.6,
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-
-function Field({
-  label,
-  name,
-  type = 'text',
-  placeholder,
-  required,
-  inputMode,
-  autoComplete,
-}: {
-  label: string
-  name: string
-  type?: string
-  placeholder?: string
-  required?: boolean
-  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
-  autoComplete?: string
-}) {
-  return (
-    <label style={{ display: 'grid', gap: 8 }}>
-      <span
-        style={{
-          fontSize: 13,
-          color: '#7a654d',
-          fontWeight: 800,
-        }}
-      >
-        {label}
-      </span>
-      <input
-        name={name}
-        type={type}
-        placeholder={placeholder}
-        required={required}
-        inputMode={inputMode}
-        autoComplete={autoComplete}
-        style={inputStyle}
-      />
-    </label>
-  )
-}
-
-function SelectField({
-  label,
-  name,
-  options,
-}: {
-  label: string
-  name: string
-  options: { value: string; label: string }[]
-}) {
-  return (
-    <label style={{ display: 'grid', gap: 8 }}>
-      <span
-        style={{
-          fontSize: 13,
-          color: '#7a654d',
-          fontWeight: 800,
-        }}
-      >
-        {label}
-      </span>
-      <select name={name} style={inputStyle}>
-        {options.map((option) => (
-          <option key={`${name}-${option.value}`} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
-export default async function SignupPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}) {
-  const resolved = (await searchParams) ?? {}
-  const error = pickFirst(resolved.error)
-  const message = pickFirst(resolved.message)
+export default async function SignupPage({ searchParams }: SignupPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const error = resolvedSearchParams.error ?? '';
+  const success = resolvedSearchParams.success ?? '';
+  const next = resolvedSearchParams.next ?? '/';
 
   return (
     <main
       style={{
         minHeight: '100vh',
         background: '#f6f1e7',
-        padding: '56px 16px 96px',
-        display: 'grid',
-        placeItems: 'start center',
+        padding: '40px 20px 80px',
       }}
     >
-      <section
+      <div
         style={{
-          width: '100%',
-          maxWidth: 560,
-          background: '#ffffff',
-          border: '1px solid #eadfcf',
-          borderRadius: 34,
-          padding: 28,
-          boxShadow: '0 16px 40px rgba(47,36,23,0.06)',
-          display: 'grid',
-          gap: 18,
+          maxWidth: 580,
+          margin: '0 auto',
         }}
       >
-        {error ? <MessageBox tone="error">{decodeURIComponent(error)}</MessageBox> : null}
-        {message ? <MessageBox tone="success">{decodeURIComponent(message)}</MessageBox> : null}
-
-        <div style={{ display: 'grid', gap: 8 }}>
-          <div
+        <div
+          style={{
+            marginBottom: 20,
+          }}
+        >
+          <h1
             style={{
-              width: 'fit-content',
-              minHeight: 34,
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '0 14px',
-              borderRadius: 999,
-              background: '#f1e6d7',
-              color: '#7a664d',
-              fontSize: 12,
+              margin: 0,
+              fontSize: 32,
+              lineHeight: 1.2,
               fontWeight: 800,
-              letterSpacing: '0.08em',
-            }}
-          >
-            SIGN UP
-          </div>
-
-          <div
-            style={{
-              fontSize: 34,
               color: '#241b11',
-              fontWeight: 900,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.1,
+              letterSpacing: '-0.02em',
             }}
           >
             회원가입
-          </div>
-
+          </h1>
           <p
             style={{
-              margin: 0,
-              color: '#7c6955',
-              fontSize: 14,
-              lineHeight: 1.75,
-              wordBreak: 'keep-all',
+              margin: '10px 0 0',
+              fontSize: 15,
+              lineHeight: 1.6,
+              color: '#6b5b4d',
             }}
           >
-            회원가입은 이메일 기준으로 진행합니다. 소셜 계정은 로그인 페이지에서 바로 로그인용으로만 사용합니다.
+            기본 정보를 입력하고 Msell 계정을 만들 수 있다.
           </p>
         </div>
 
-        <form action={signupAction} style={{ display: 'grid', gap: 14 }}>
+        {success ? (
           <div
-            className="signup-grid"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-              gap: 14,
+              marginBottom: 16,
+              padding: '14px 16px',
+              borderRadius: 16,
+              background: '#f4efe6',
+              border: '1px solid #dbcdb8',
+              color: '#2f2417',
+              fontSize: 14,
+              fontWeight: 600,
             }}
           >
-            <Field
-              label="이름"
-              name="full_name"
-              placeholder="이름을 입력하세요"
-              required
-              autoComplete="name"
-            />
+            {success}
+          </div>
+        ) : null}
 
-            <Field
-              label="사용자명"
-              name="username"
-              placeholder="영문/숫자/언더스코어"
-              autoComplete="username"
-            />
+        {error ? (
+          <div
+            style={{
+              marginBottom: 16,
+              padding: '14px 16px',
+              borderRadius: 16,
+              background: '#fff4f2',
+              border: '1px solid #efc2ba',
+              color: '#9a3d2f',
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            {error}
+          </div>
+        ) : null}
 
-            <SelectField
-              label="성별"
-              name="gender"
-              options={[
-                { value: '', label: '선택 안 함' },
-                { value: 'male', label: '남성' },
-                { value: 'female', label: '여성' },
-                { value: 'other', label: '기타' },
-              ]}
-            />
-
-            <Field
-              label="연락처"
-              name="phone_number"
-              placeholder="01012345678"
-              inputMode="tel"
-              autoComplete="tel"
-            />
-
-            <Field
-              label="이메일"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
-            />
-
-            <Field
-              label="비밀번호"
-              name="password"
-              type="password"
-              placeholder="6자 이상 입력"
-              required
-              autoComplete="new-password"
-            />
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <Field
-                label="비밀번호 확인"
-                name="password_confirm"
-                type="password"
-                placeholder="비밀번호를 다시 입력"
-                required
-                autoComplete="new-password"
-              />
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e7dccb',
+            borderRadius: 28,
+            boxShadow: '0 20px 50px rgba(47, 36, 23, 0.06)',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              padding: 28,
+              borderBottom: '1px solid #efe5d6',
+              background:
+                'linear-gradient(180deg, rgba(246,241,231,0.9) 0%, rgba(255,255,255,1) 100%)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#7b6a58',
+                marginBottom: 6,
+              }}
+            >
+              JOIN
+            </div>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: '#241b11',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              새 계정 만들기
             </div>
           </div>
 
           <div
             style={{
-              background: '#fbf7ef',
-              border: '1px solid #eadfcf',
-              borderRadius: 20,
-              padding: 16,
-              color: '#7a654d',
-              fontSize: 13,
-              lineHeight: 1.75,
+              padding: 28,
+              display: 'grid',
+              gap: 18,
             }}
           >
-            가입 후에는 이메일/비밀번호 로그인으로 사용할 수 있습니다. 구글, 네이버, 카카오는 로그인 페이지에서만 사용합니다.
+            <AuthGateway mode="signup" next={next} />
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                color: '#8b7966',
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              <div style={{ flex: 1, height: 1, background: '#eee3d4' }} />
+              <span>또는 직접 회원가입</span>
+              <div style={{ flex: 1, height: 1, background: '#eee3d4' }} />
+            </div>
+
+            <form
+              action={signupAction}
+              style={{
+                display: 'grid',
+                gap: 14,
+              }}
+            >
+              <input type="hidden" name="next" value={next} />
+
+              <Field label="이름" htmlFor="full_name">
+                <input
+                  id="full_name"
+                  name="full_name"
+                  type="text"
+                  placeholder="이름을 입력하세요"
+                  autoComplete="name"
+                  required
+                  style={inputStyle}
+                />
+              </Field>
+
+              <Field label="성별" htmlFor="gender">
+                <select
+                  id="gender"
+                  name="gender"
+                  defaultValue=""
+                  style={inputStyle}
+                  required
+                >
+                  <option value="" disabled>
+                    성별을 선택하세요
+                  </option>
+                  <option value="male">남성</option>
+                  <option value="female">여성</option>
+                  <option value="other">기타</option>
+                </select>
+              </Field>
+
+              <Field label="연락처" htmlFor="phone_number">
+                <input
+                  id="phone_number"
+                  name="phone_number"
+                  type="tel"
+                  placeholder="연락처를 입력하세요"
+                  autoComplete="tel"
+                  required
+                  style={inputStyle}
+                />
+              </Field>
+
+              <Field label="이메일" htmlFor="email">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  required
+                  style={inputStyle}
+                />
+              </Field>
+
+              <Field label="비밀번호" htmlFor="password">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="비밀번호를 입력하세요"
+                  autoComplete="new-password"
+                  required
+                  style={inputStyle}
+                />
+              </Field>
+
+              <Field label="비밀번호 확인" htmlFor="password_confirm">
+                <input
+                  id="password_confirm"
+                  name="password_confirm"
+                  type="password"
+                  placeholder="비밀번호를 다시 입력하세요"
+                  autoComplete="new-password"
+                  required
+                  style={inputStyle}
+                />
+              </Field>
+
+              <button type="submit" style={primaryButtonStyle}>
+                이메일로 회원가입
+              </button>
+            </form>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button type="submit" style={primaryButtonStyle}>
-              회원가입
-            </button>
-            <Link href="/auth/login" style={secondaryButtonStyle}>
-              로그인으로
+          <div
+            style={{
+              padding: 28,
+              borderTop: '1px solid #efe5d6',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+              background: '#fffdf9',
+            }}
+          >
+            <span
+              style={{
+                fontSize: 14,
+                color: '#6f5f4f',
+              }}
+            >
+              이미 계정이 있다면
+            </span>
+
+            <Link
+              href={`/auth/login?next=${encodeURIComponent(next)}`}
+              style={secondaryButtonStyle}
+            >
+              로그인
             </Link>
           </div>
-        </form>
-      </section>
-
-      <style>{`
-        @media (max-width: 720px) {
-          .signup-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+        </div>
+      </div>
     </main>
-  )
+  );
 }
 
-const inputStyle: CSSProperties = {
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      style={{
+        display: 'grid',
+        gap: 8,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: '#3a2d1d',
+        }}
+      >
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
   width: '100%',
-  height: 52,
-  borderRadius: 15,
-  border: '1px solid #ddcfba',
-  background: '#fffdf9',
-  padding: '0 14px',
+  height: 54,
+  borderRadius: 16,
+  border: '1px solid #ddcfbb',
+  background: '#fff',
+  padding: '0 16px',
   fontSize: 15,
   color: '#241b11',
   outline: 'none',
   boxSizing: 'border-box',
-}
+};
 
-const primaryButtonStyle: CSSProperties = {
-  height: 50,
-  padding: '0 18px',
-  borderRadius: 999,
-  border: '1px solid #2f2417',
+const primaryButtonStyle: React.CSSProperties = {
+  height: 52,
+  borderRadius: 14,
+  border: 'none',
   background: '#2f2417',
-  color: '#ffffff',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+  color: '#fff',
+  padding: '0 18px',
   fontSize: 14,
   fontWeight: 800,
   cursor: 'pointer',
-  whiteSpace: 'nowrap',
-}
+};
 
-const secondaryButtonStyle: CSSProperties = {
-  height: 48,
-  padding: '0 18px',
-  borderRadius: 999,
-  border: '1px solid #ddcfba',
-  background: '#fffaf2',
+const secondaryButtonStyle: React.CSSProperties = {
+  height: 44,
+  borderRadius: 14,
+  border: '1px solid #ddcfbb',
+  background: '#eadfcf',
   color: '#2f2417',
+  padding: '0 16px',
+  fontSize: 14,
+  fontWeight: 800,
+  cursor: 'pointer',
   textDecoration: 'none',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: 14,
-  fontWeight: 800,
-  whiteSpace: 'nowrap',
-}
+};
