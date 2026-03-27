@@ -1,411 +1,190 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
+import { createListingAction } from './actions'
 import CategoryDropdown from '@/components/listings/CategoryDropdown'
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
-
-function getString(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string
+  }>
 }
 
-const STATUS_OPTIONS = [
-  { value: 'active', label: '거래가능' },
-  { value: 'hidden', label: '숨김' },
-  { value: 'draft', label: '임시저장' },
-  { value: 'sold', label: '거래종료' },
+const CATEGORIES = [
+  '인스타그램 계정',
+  '유튜브 채널',
+  '틱톡 계정',
+  '스레드 계정',
+  '엑스 계정',
+  '네이버 블로그',
+  '티스토리 블로그',
+  '워드프레스 사이트',
+  '쇼핑몰',
+  '스마트스토어',
+  '쿠팡 마켓',
+  '도메인',
+  '웹사이트',
+  '앱',
+  '커뮤니티',
+  '카카오톡 채널',
+  '텔레그램 채널',
+  '디스코드 서버',
+  '전자책',
+  '강의 상품',
+  '뉴스레터',
+  '브랜드',
+  '법인',
+  '상표권',
+  '소프트웨어',
+  'SaaS',
+  '자동화 툴',
+  '데이터셋',
+  'API 서비스',
+  '기타 디지털 자산',
 ]
 
-export default async function CreateListingPage({
-  searchParams,
-}: {
-  searchParams: SearchParams
-}) {
-  const supabase = await supabaseServer()
+export default async function ListingCreatePage({ searchParams }: PageProps) {
+  const params = (await searchParams) || {}
+  const error = params.error || ''
 
-  const [
-    {
-      data: { user },
-    },
-    resolvedSearchParams,
-  ] = await Promise.all([supabase.auth.getUser(), searchParams])
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
     redirect('/auth/login?next=/listings/create')
   }
 
-  const error = getString(resolvedSearchParams?.error)
-  const title = getString(resolvedSearchParams?.title) ?? ''
-  const category = getString(resolvedSearchParams?.category) ?? ''
-  const price = getString(resolvedSearchParams?.price) ?? ''
-  const transferMethod = getString(resolvedSearchParams?.transfer_method) ?? ''
-  const description = getString(resolvedSearchParams?.description) ?? ''
-  const status = getString(resolvedSearchParams?.status) ?? 'active'
-
   return (
-    <main
-      style={{
-        background: '#f6f1e7',
-        minHeight: 'calc(100vh - 72px)',
-        padding: '44px 20px 84px',
-      }}
-    >
-      <div style={{ maxWidth: 980, margin: '0 auto' }}>
-        <section
-          style={{
-            border: '1px solid #e5d9ca',
-            background: '#fcfaf6',
-            borderRadius: 30,
-            overflow: 'hidden',
-            boxShadow: '0 18px 50px rgba(47,36,23,0.05)',
-          }}
-        >
-          <div
-            style={{
-              padding: '30px 32px 24px',
-              borderBottom: '1px solid #ece0d2',
-              background: 'linear-gradient(180deg, #fcfaf6 0%, #f7f1e8 100%)',
-            }}
-          >
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '7px 12px',
-                borderRadius: 999,
-                background: '#efe3d2',
-                color: '#7b6140',
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: '0.08em',
-              }}
-            >
-              LISTING CREATE
-            </div>
-
-            <h1
-              style={{
-                margin: '16px 0 10px',
-                fontSize: 40,
-                lineHeight: 1.04,
-                letterSpacing: '-0.04em',
-                fontWeight: 900,
-                color: '#1f1710',
-              }}
-            >
+    <main className="min-h-screen bg-[#f6f1e7] px-4 py-8 text-[#20170f]">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#8a7357]">
+              MSELL
+            </p>
+            <h1 className="mt-2 text-[30px] font-semibold leading-tight text-[#1f160f]">
               자산 등록
             </h1>
-
-            <p
-              style={{
-                margin: 0,
-                maxWidth: 760,
-                color: '#6f655b',
-                fontSize: 14,
-                lineHeight: 1.7,
-              }}
-            >
-              제목, 카테고리, 가격, 이전 방식, 설명, 상태를 입력하면 등록됩니다.
+            <p className="mt-2 text-[14px] leading-6 text-[#6e5c4b]">
+              판매하려는 디지털 자산의 핵심 정보만 정확하게 입력하세요.
             </p>
           </div>
 
-          <div style={{ padding: 28 }}>
-            {error ? (
-              <div
-                style={{
-                  marginBottom: 18,
-                  borderRadius: 16,
-                  border: '1px solid #efcdc8',
-                  background: '#fff4f2',
-                  color: '#8a2f25',
-                  padding: '13px 15px',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  lineHeight: 1.5,
-                }}
-              >
-                {error}
-              </div>
-            ) : null}
+          <Link
+            href="/listings"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-[#d9ccb8] bg-white px-4 text-[14px] font-semibold text-[#2f2417] transition hover:bg-[#f8f3eb]"
+          >
+            목록으로
+          </Link>
+        </div>
 
-            <form action="/api/listings/create" method="post">
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: 16,
-                }}
-                className="listing-create-grid"
-              >
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label
-                    htmlFor="title"
-                    style={{
-                      display: 'block',
-                      marginBottom: 8,
-                      fontSize: 13,
-                      color: '#3f3121',
-                      fontWeight: 800,
-                    }}
-                  >
-                    제목
-                  </label>
-                  <input
-                    id="title"
-                    name="title"
-                    defaultValue={title}
-                    placeholder="예: 인스타그램 계정 매도"
-                    required
-                    style={{
-                      width: '100%',
-                      height: 54,
-                      borderRadius: 15,
-                      border: '1px solid #dfd1bf',
-                      background: '#fffdfa',
-                      padding: '0 15px',
-                      color: '#221a12',
-                      fontSize: 14,
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="category"
-                    style={{
-                      display: 'block',
-                      marginBottom: 8,
-                      fontSize: 13,
-                      color: '#3f3121',
-                      fontWeight: 800,
-                    }}
-                  >
-                    카테고리
-                  </label>
-                  <CategoryDropdown name="category" defaultValue={category} required />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="price"
-                    style={{
-                      display: 'block',
-                      marginBottom: 8,
-                      fontSize: 13,
-                      color: '#3f3121',
-                      fontWeight: 800,
-                    }}
-                  >
-                    희망 가격
-                  </label>
-                  <input
-                    id="price"
-                    name="price"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    step="1"
-                    defaultValue={price}
-                    placeholder="예: 300000"
-                    required
-                    style={{
-                      width: '100%',
-                      height: 54,
-                      borderRadius: 15,
-                      border: '1px solid #dfd1bf',
-                      background: '#fffdfa',
-                      padding: '0 15px',
-                      color: '#221a12',
-                      fontSize: 14,
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label
-                    htmlFor="transfer_method"
-                    style={{
-                      display: 'block',
-                      marginBottom: 8,
-                      fontSize: 13,
-                      color: '#3f3121',
-                      fontWeight: 800,
-                    }}
-                  >
-                    이전 방식
-                  </label>
-                  <input
-                    id="transfer_method"
-                    name="transfer_method"
-                    defaultValue={transferMethod}
-                    placeholder="예: 이메일 변경, 관리자 권한 이전, 계정 전체 양도"
-                    required
-                    style={{
-                      width: '100%',
-                      height: 54,
-                      borderRadius: 15,
-                      border: '1px solid #dfd1bf',
-                      background: '#fffdfa',
-                      padding: '0 15px',
-                      color: '#221a12',
-                      fontSize: 14,
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label
-                    htmlFor="description"
-                    style={{
-                      display: 'block',
-                      marginBottom: 8,
-                      fontSize: 13,
-                      color: '#3f3121',
-                      fontWeight: 800,
-                    }}
-                  >
-                    설명
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    defaultValue={description}
-                    placeholder="거래 대상의 상태, 인수인계 범위, 참고사항 등을 입력하세요."
-                    rows={8}
-                    required
-                    style={{
-                      width: '100%',
-                      borderRadius: 15,
-                      border: '1px solid #dfd1bf',
-                      background: '#fffdfa',
-                      padding: '14px 15px',
-                      color: '#221a12',
-                      fontSize: 14,
-                      outline: 'none',
-                      resize: 'vertical',
-                      lineHeight: 1.7,
-                    }}
-                  />
-                </div>
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label
-                    htmlFor="status"
-                    style={{
-                      display: 'block',
-                      marginBottom: 8,
-                      fontSize: 13,
-                      color: '#3f3121',
-                      fontWeight: 800,
-                    }}
-                  >
-                    상태
-                  </label>
-                  <select
-                    id="status"
-                    name="status"
-                    defaultValue={status}
-                    style={{
-                      width: '100%',
-                      height: 54,
-                      borderRadius: 15,
-                      border: '1px solid #dfd1bf',
-                      background: '#fffdfa',
-                      padding: '0 15px',
-                      color: '#221a12',
-                      fontSize: 14,
-                      outline: 'none',
-                    }}
-                  >
-                    {STATUS_OPTIONS.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  marginTop: 18,
-                  border: '1px solid #eee2d3',
-                  background: '#faf5ee',
-                  borderRadius: 18,
-                  padding: '17px 18px',
-                  fontSize: 13,
-                  lineHeight: 1.75,
-                  color: '#6f6254',
-                }}
-              >
-                카테고리는 로고와 함께 선택할 수 있도록 정리되어 있습니다. 입력값이 비어 있거나
-                형식이 맞지 않으면 등록되지 않습니다.
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 12,
-                  marginTop: 20,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <Link
-                  href="/listings"
-                  style={{
-                    height: 46,
-                    padding: '0 16px',
-                    borderRadius: 14,
-                    border: '1px solid #e0d4c4',
-                    background: '#f7efe4',
-                    color: '#2f2417',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 14,
-                    fontWeight: 800,
-                  }}
-                >
-                  목록으로
-                </Link>
-
-                <button
-                  type="submit"
-                  style={{
-                    height: 48,
-                    minWidth: 120,
-                    padding: '0 20px',
-                    borderRadius: 14,
-                    border: 'none',
-                    background: 'linear-gradient(180deg, #3a2c1c 0%, #241b11 100%)',
-                    color: '#fffaf3',
-                    fontSize: 14,
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    boxShadow: '0 10px 24px rgba(47,36,23,0.18)',
-                  }}
-                >
-                  자산 등록하기
-                </button>
-              </div>
-            </form>
+        {error ? (
+          <div className="mb-5 rounded-2xl border border-[#efc9c9] bg-[#fff5f5] px-4 py-3 text-[14px] text-[#9d2f2f]">
+            {error}
           </div>
-        </section>
-      </div>
+        ) : null}
 
-      <style>{`
-        @media (max-width: 760px) {
-          .listing-create-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+        <form
+          action={createListingAction}
+          className="rounded-[30px] border border-[#e6dbc8] bg-white p-5 shadow-[0_20px_60px_rgba(47,36,23,0.08)] md:p-7"
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                제목
+              </label>
+              <input
+                name="title"
+                type="text"
+                placeholder="예: 수익화 완료 유튜브 채널"
+                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                카테고리
+              </label>
+              <CategoryDropdown name="category" categories={CATEGORIES} />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                희망 가격
+              </label>
+              <input
+                name="price"
+                type="number"
+                inputMode="numeric"
+                placeholder="예: 1500000"
+                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                이전 방식
+              </label>
+              <input
+                name="transfer_method"
+                type="text"
+                placeholder="예: 계정 이메일 양도 / 관리자 권한 이전 / 도메인 이전"
+                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                설명
+              </label>
+              <textarea
+                name="description"
+                rows={8}
+                placeholder="운영 기간, 수익 구조, 팔로워/구독자 상태, 인수인계 범위를 구체적으로 적어 주세요."
+                className="w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 py-3 text-[15px] outline-none transition focus:border-[#8f7556]"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                상태
+              </label>
+              <select
+                name="status"
+                defaultValue="active"
+                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
+              >
+                <option value="active">거래가능</option>
+                <option value="draft">임시저장</option>
+                <option value="hidden">숨김</option>
+                <option value="sold">거래종료</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="submit"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#2f2417] px-5 text-[15px] font-semibold text-white transition hover:bg-[#241b11]"
+            >
+              등록하기
+            </button>
+
+            <Link
+              href="/my/listings"
+              className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#d9ccb8] bg-[#f8f3eb] px-5 text-[15px] font-semibold text-[#2f2417] transition hover:bg-[#efe6d8]"
+            >
+              내 자산으로 이동
+            </Link>
+          </div>
+        </form>
+      </div>
     </main>
   )
 }

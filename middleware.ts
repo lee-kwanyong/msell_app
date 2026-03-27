@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
-const MOBILE_PREFIX = '/m'
+const MOBILE_PATH_PREFIXES = ['/m']
+const PROTECTED_PREFIXES = ['/account', '/my', '/deal', '/admin']
+
+function isMobileUserAgent(userAgent: string) {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+}
 
 function isStaticPath(pathname: string) {
   return (
@@ -10,88 +16,94 @@ function isStaticPath(pathname: string) {
     pathname.startsWith('/icons') ||
     pathname.startsWith('/images') ||
     pathname.startsWith('/manifest') ||
-    pathname.startsWith('/sw.js') ||
-    pathname.startsWith('/robots.txt') ||
-    pathname.startsWith('/sitemap.xml') ||
-    /\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|txt|xml)$/i.test(pathname)
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.jpg') ||
+    pathname.endsWith('.jpeg') ||
+    pathname.endsWith('.svg') ||
+    pathname.endsWith('.webp') ||
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.css') ||
+    pathname.endsWith('.js') ||
+    pathname.endsWith('.txt') ||
+    pathname.endsWith('.xml')
   )
 }
 
-function isMobileUserAgent(userAgent: string) {
-  const ua = userAgent.toLowerCase()
+function shouldUseMobile(pathname: string, userAgent: string) {
+  if (MOBILE_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false
+  if (isStaticPath(pathname)) return false
+  if (pathname.startsWith('/auth')) return false
+  return isMobileUserAgent(userAgent)
+}
 
-  return (
-    ua.includes('iphone') ||
-    ua.includes('ipod') ||
-    ua.includes('android') ||
-    ua.includes('mobile') ||
-    ua.includes('windows phone') ||
-    ua.includes('opera mini') ||
-    ua.includes('iemobile') ||
-    ua.includes('blackberry') ||
-    ua.includes('silk')
+export async function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl
+  const userAgent = request.headers.get('user-agent') ?? ''
+
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+            maxAge: 0,
+          })
+        },
+      },
+    }
   )
-}
 
-function hasMobileEquivalent(pathname: string) {
-  return (
-    pathname === '/' ||
-    pathname === '/listings' ||
-    pathname === '/auth/login' ||
-    pathname === '/auth/signup'
-  )
-}
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-function toMobilePath(pathname: string) {
-  if (pathname === '/') return '/m'
-  return `${MOBILE_PREFIX}${pathname}`
-}
-
-function toDesktopPath(pathname: string) {
-  if (pathname === '/m') return '/'
-  return pathname.replace(/^\/m/, '') || '/'
-}
-
-export function middleware(request: NextRequest) {
-  const { pathname, searchParams } = request.nextUrl
-
-  if (isStaticPath(pathname)) {
-    return NextResponse.next()
-  }
-
-  const ua = request.headers.get('user-agent') || ''
-  const isMobile = isMobileUserAgent(ua)
-  const isMobileRoute = pathname === '/m' || pathname.startsWith('/m/')
-
-  const view = searchParams.get('view')
-
-  if (view === 'desktop' && isMobileRoute) {
+  if (shouldUseMobile(pathname, userAgent)) {
     const url = request.nextUrl.clone()
-    url.pathname = toDesktopPath(pathname)
-    url.searchParams.delete('view')
+    url.pathname = `/m${pathname}`
+    url.search = search
     return NextResponse.redirect(url)
   }
 
-  if (view === 'mobile' && !isMobileRoute && hasMobileEquivalent(pathname)) {
+  if (pathname.startsWith('/m') && !isMobileUserAgent(userAgent)) {
     const url = request.nextUrl.clone()
-    url.pathname = toMobilePath(pathname)
-    url.searchParams.delete('view')
+    url.pathname = pathname.replace(/^\/m/, '') || '/'
+    url.search = search
     return NextResponse.redirect(url)
   }
 
-  if (isMobile && !isMobileRoute && hasMobileEquivalent(pathname)) {
+  const requiresAuth =
+    pathname.startsWith('/listings/create') ||
+    /^\/listings\/[^/]+\/edit$/.test(pathname) ||
+    PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+
+  if (requiresAuth && !user) {
     const url = request.nextUrl.clone()
-    url.pathname = toMobilePath(pathname)
+    url.pathname = '/auth/login'
+    url.searchParams.set('next', pathname + search)
     return NextResponse.redirect(url)
   }
 
-  if (!isMobile && isMobileRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = toDesktopPath(pathname)
-    return NextResponse.redirect(url)
-  }
-
-  return NextResponse.next()
+  return response
 }
 
 export const config = {

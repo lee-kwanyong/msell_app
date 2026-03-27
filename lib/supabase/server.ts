@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 export async function supabaseServer() {
   const cookieStore = await cookies()
@@ -12,27 +12,27 @@ export async function supabaseServer() {
         get(name: string) {
           return cookieStore.get(name)?.value
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
+        set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({
               name,
               value,
-              ...(options || {}),
+              ...options,
             })
           } catch {
-            // 서버 컴포넌트에서 set이 막히는 경우가 있어서 무시
+            // 서버 컴포넌트에서는 set이 막히는 경우가 있음
           }
         },
-        remove(name: string, options: Record<string, unknown>) {
+        remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({
               name,
               value: '',
-              ...(options || {}),
+              ...options,
               maxAge: 0,
             })
           } catch {
-            // 서버 컴포넌트에서 remove가 막히는 경우가 있어서 무시
+            // 서버 컴포넌트에서는 remove가 막히는 경우가 있음
           }
         },
       },
