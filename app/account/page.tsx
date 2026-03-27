@@ -12,7 +12,6 @@ type ProfileRow = {
   full_name?: string | null
   username?: string | null
   phone_number?: string | null
-  gender?: string | null
   role?: string | null
   is_banned?: boolean | null
   avatar_url?: string | null
@@ -119,11 +118,13 @@ function Field({
   name,
   defaultValue,
   placeholder,
+  required,
 }: {
   label: string
   name: string
   defaultValue?: string
   placeholder?: string
+  required?: boolean
 }) {
   return (
     <label style={{ display: 'grid', gap: 8 }}>
@@ -140,6 +141,7 @@ function Field({
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
+        required={required}
         style={inputStyle}
       />
     </label>
@@ -164,8 +166,8 @@ export default async function AccountPage({
     typeof errorParam === 'string'
       ? errorParam
       : Array.isArray(errorParam)
-      ? errorParam[0]
-      : ''
+        ? errorParam[0]
+        : ''
 
   const supabase = await supabaseServer()
 
@@ -208,8 +210,6 @@ export default async function AccountPage({
     metadata.phone_number,
     metadata.phone
   )
-
-  const gender = firstString(profile?.gender, metadata.gender)
 
   const provider = firstString(
     user.app_metadata?.provider,
@@ -436,7 +436,6 @@ export default async function AccountPage({
           <InfoCard label="로그인 방식" value={providerLabel} />
           <InfoCard label="연결 이메일" value={email || '-'} />
           <InfoCard label="연락처" value={phoneNumber || '-'} />
-          <InfoCard label="성별" value={gender || '-'} />
           <InfoCard label="프로필 생성일" value={formatDate(profile?.created_at)} />
         </section>
 
@@ -471,7 +470,7 @@ export default async function AccountPage({
                 lineHeight: 1.7,
               }}
             >
-              아래 정보는 서비스 내 프로필 값입니다. 로그인 방식 자체는 여기서 바뀌지 않습니다.
+              아래 정보는 서비스 내 프로필 값입니다. 로그인 방식 자체는 여기서 바뀌지 않습니다. 연락처를 입력해야 저장할 수 있습니다.
             </p>
           </div>
 
@@ -503,6 +502,7 @@ export default async function AccountPage({
                 name="phone_number"
                 defaultValue={phoneNumber}
                 placeholder="연락처를 입력하세요"
+                required
               />
 
               <Field
