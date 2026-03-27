@@ -13,7 +13,10 @@ type CategoryRow = {
 };
 
 type PageProps = {
-  searchParams?: Promise<{ error?: string }>;
+  searchParams?: Promise<{
+    error?: string;
+    category?: string;
+  }>;
 };
 
 function getErrorMessage(error?: string) {
@@ -30,7 +33,7 @@ function getErrorMessage(error?: string) {
 }
 
 export default async function CreateListingPage({ searchParams }: PageProps) {
-  const params = (await searchParams) || {};
+  const query = (await searchParams) || {};
   const supabase = await supabaseServer();
 
   const {
@@ -48,22 +51,13 @@ export default async function CreateListingPage({ searchParams }: PageProps) {
 
   const categories = ((categoriesData || []) as CategoryRow[])
     .map((item) => ({
-      value:
-        item.slug ||
-        item.name ||
-        item.label ||
-        item.title ||
-        "",
-      label:
-        item.label ||
-        item.name ||
-        item.title ||
-        item.slug ||
-        "",
+      value: item.slug || item.name || item.label || item.title || "",
+      label: item.label || item.name || item.title || item.slug || "",
     }))
     .filter((item) => item.value && item.label);
 
-  const errorMessage = getErrorMessage(params.error);
+  const errorMessage = getErrorMessage(query.error);
+  const initialCategory = query.category || "";
 
   return (
     <main className="ms-page ms-page--narrow">
@@ -102,8 +96,9 @@ export default async function CreateListingPage({ searchParams }: PageProps) {
             </label>
             <CategoryDropdown
               name="category"
-              defaultValue=""
+              defaultValue={initialCategory}
               categories={categories}
+              required
             />
           </div>
 
@@ -135,6 +130,7 @@ export default async function CreateListingPage({ searchParams }: PageProps) {
                 <option value="active">거래가능</option>
                 <option value="draft">임시저장</option>
                 <option value="hidden">숨김</option>
+                <option value="reserved">예약중</option>
                 <option value="sold">거래종료</option>
               </select>
             </div>
