@@ -1,27 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 
-function getBaseUrl(req: NextRequest) {
-  return new URL(req.url).origin;
+function redirectTo(path: string) {
+  return NextResponse.redirect(path, { status: 303 });
 }
 
-function redirectWithError(req: NextRequest, listingId: string | null, error: string) {
-  const baseUrl = getBaseUrl(req);
-  const url = new URL(listingId ? `/listings/${listingId}` : "/listings", baseUrl);
-  url.searchParams.set("error", error);
-  return NextResponse.redirect(url, { status: 303 });
+function pickOwnerId(listing: Record<string, any>) {
+  return (
+    listing.seller_id ||
+    listing.user_id ||
+    listing.owner_id ||
+    listing.profile_id ||
+    null
+  );
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   const supabase = await supabaseServer();
-  const formData = await req.formData();
-
-  const listingId = String(formData.get("listing_id") || "").trim();
-  const returnToRaw = String(formData.get("return_to") || "").trim();
-
-  if (!listingId) {
-    return redirectWithError(req, null, "missing_required_fields");
-  }
 
   const {
     data: { user },
@@ -29,72 +24,87 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    const loginUrl = new URL("/auth/login", getBaseUrl(req));
-    loginUrl.searchParams.set("next", returnToRaw || `/listings/${listingId}`);
-    return NextResponse.redirect(loginUrl, { status: 303 });
+    return redirectTo("/auth/login?next=/listings");
+  }
+
+  const formData = await request.formData();
+  const listingId = String(formData.get("listing_id") || "").trim();
+  const returnTo = String(formData.get("return_to") || "").trim();
+
+  if (!listingId) {
+    return redirectTo(
+      `${returnTo || "/listings"}?error=${encodeURIComponent("missing_listing_id")}`
+    );
   }
 
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, user_id, title, status")
+    .select("*")
     .eq("id", listingId)
-    .maybeSingle();
+    .single();
 
   if (listingError || !listing) {
-    return redirectWithError(req, listingId, "listing_not_found");
+    return redirectTo(
+      `${returnTo || "/listings"}?error=${encodeURIComponent("listing_not_found")}`
+    );
   }
 
-  const blockedStatuses = ["draft", "hidden", "rejected", "archived", "sold"];
-  if (blockedStatuses.includes(listing.status)) {
-    return redirectWithError(req, listingId, "listing_not_available");
+  const sellerId = pickOwnerId(listing);
+
+  if (!sellerId) {
+    return redirectTo(
+      `${returnTo || `/listings/${listingId}`}?error=${encodeURIComponent("missing_seller_id")}`
+    );
   }
 
-  if (!listing.user_id) {
-    return redirectWithError(req, listingId, "seller_not_found");
+  if (sellerId === user.id) {
+    return redirectTo(
+      `${returnTo || `/listings/${listingId}`}?error=${encodeURIComponent("cannot_deal_with_own_listing")}`
+    );
   }
 
-  if (listing.user_id === user.id) {
-    return redirectWithError(req, listingId, "cannot_deal_with_own_listing");
-  }
+  const buyerId = user.id;
 
-  const { data: existingDeal, error: existingDealError } = await supabase
+  const { data: existingDeals, error: existingDealsError } = await supabase
     .from("deals")
-    .select("id")
+    .select("id, listing_id, seller_id, buyer_id")
     .eq("listing_id", listingId)
-    .eq("buyer_id", user.id)
-    .eq("seller_id", listing.user_id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .eq("seller_id", sellerId)
+    .eq("buyer_id", buyerId)
+    .limit(1);
 
-  if (existingDealError) {
-    return redirectWithError(req, listingId, "failed_to_check_existing_deal");
+  if (existingDealsError) {
+    return redirectTo(
+      `${returnTo || `/listings/${listingId}`}?error=${encodeURIComponent("failed_to_check_existing_deal")}`
+    );
   }
 
+  const existingDeal = existingDeals?.[0];
   if (existingDeal?.id) {
-    return NextResponse.redirect(new URL(`/deal/${existingDeal.id}`, getBaseUrl(req)), {
-      status: 303,
-    });
+    return redirectTo(`/deal/${existingDeal.id}`);
   }
 
-  const insertPayload = {
+  const insertPayload: Record<string, any> = {
     listing_id: listingId,
-    buyer_id: user.id,
-    seller_id: listing.user_id,
-    status: "open",
+    seller_id: sellerId,
+    buyer_id: buyerId,
   };
 
-  const { data: createdDeal, error: createError } = await supabase
+  if ("status" in listing) {
+    insertPayload.status = "open";
+  }
+
+  const { data: createdDeal, error: createDealError } = await supabase
     .from("deals")
     .insert(insertPayload)
     .select("id")
     .single();
 
-  if (createError || !createdDeal) {
-    return redirectWithError(req, listingId, "failed_to_create_deal");
+  if (createDealError || !createdDeal?.id) {
+    return redirectTo(
+      `${returnTo || `/listings/${listingId}`}?error=${encodeURIComponent("failed_to_create_deal")}`
+    );
   }
 
-  return NextResponse.redirect(new URL(`/deal/${createdDeal.id}`, getBaseUrl(req)), {
-    status: 303,
-  });
+  return redirectTo(`/deal/${createdDeal.id}`);
 }

@@ -1,283 +1,333 @@
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { supabaseServer } from '@/lib/supabase/server'
-import CategoryVisual from '@/components/listings/CategoryVisual'
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
   params: Promise<{
-    id: string
-  }>
+    id: string;
+  }>;
+  searchParams: Promise<{
+    error?: string;
+    success?: string;
+  }>;
+};
+
+function formatPrice(value: number | string | null | undefined) {
+  const price =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+      ? Number(value)
+      : NaN;
+
+  if (!Number.isFinite(price)) return "-";
+  return `${price.toLocaleString("ko-KR")}원`;
 }
 
-type ListingRow = {
-  id: string
-  user_id: string | null
-  title: string | null
-  category: string | null
-  price: number | null
-  description: string | null
-  status: string | null
-  created_at: string | null
-  updated_at?: string | null
-  transfer_method?: string | null
-  view_count?: number | null
-  inquiry_count?: number | null
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
 }
 
-function formatPrice(price: number | null | undefined) {
-  if (!price || Number.isNaN(price)) return '가격 협의'
-  return `${price.toLocaleString('ko-KR')}원`
+function decodeValue(value?: string) {
+  return value ? decodeURIComponent(value) : "";
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '-'
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(date)
+function extractTransferMethod(description?: string | null) {
+  if (!description) return "-";
+  const match = description.match(/^\[이전 방식\]\s*(.+)$/m);
+  return match?.[1]?.trim() || "-";
 }
 
-function getStatusLabel(status?: string | null) {
-  switch (status) {
-    case 'active':
-      return '거래가능'
-    case 'draft':
-      return '임시저장'
-    case 'hidden':
-      return '숨김'
-    case 'pending_review':
-      return '검수대기'
-    case 'reserved':
-      return '예약중'
-    case 'sold':
-      return '거래종료'
-    case 'rejected':
-      return '반려'
-    case 'archived':
-      return '보관됨'
-    default:
-      return '상태확인'
-  }
+function extractDescriptionBody(description?: string | null) {
+  if (!description) return "-";
+  const cleaned = description.replace(/^\[이전 방식\]\s*.+\n\n?/m, "").trim();
+  return cleaned || "-";
 }
 
-function getStatusStyle(status?: string | null) {
-  switch (status) {
-    case 'active':
-      return {
-        background: '#ecfdf5',
-        color: '#166534',
-        border: '1px solid rgba(22,101,52,0.12)',
-      }
-    case 'reserved':
-      return {
-        background: '#fff7ed',
-        color: '#9a3412',
-        border: '1px solid rgba(154,52,18,0.12)',
-      }
-    case 'sold':
-      return {
-        background: '#f3f4f6',
-        color: '#374151',
-        border: '1px solid rgba(55,65,81,0.10)',
-      }
-    default:
-      return {
-        background: '#f6f1e7',
-        color: '#5c4731',
-        border: '1px solid rgba(47,36,23,0.08)',
-      }
-  }
+function pickOwnerId(listing: Record<string, any>) {
+  return (
+    listing.seller_id ||
+    listing.user_id ||
+    listing.owner_id ||
+    listing.profile_id ||
+    null
+  );
 }
 
-function getTransferMethod(description?: string | null, transferMethod?: string | null) {
-  if (transferMethod?.trim()) {
-    return transferMethod.trim()
-  }
+export default async function ListingDetailPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const { id } = await params;
+  const query = await searchParams;
 
-  const text = description || ''
-  const match = text.match(/\[이전 방식\]\s*(.+)/)
-  if (match?.[1]) return match[1].trim()
+  const error = decodeValue(query?.error);
+  const success = decodeValue(query?.success);
 
-  return '협의'
-}
-
-function getCleanDescription(description?: string | null) {
-  if (!description) return ''
-  return description.replace(/\[이전 방식\]\s*.+/g, '').trim()
-}
-
-export default async function ListingDetailPage({ params }: PageProps) {
-  const { id } = await params
-  const supabase = await supabaseServer()
+  const supabase = await supabaseServer();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const { data: listing, error: listingError } = await supabase
+    .from("listings")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (error || !data) {
-    redirect('/listings')
+  if (listingError || !listing) {
+    redirect("/listings");
   }
 
-  const listing = data as ListingRow
-  const isOwner = !!user && !!listing.user_id && user.id === listing.user_id
-  const statusStyle = getStatusStyle(listing.status)
-  const canStartDeal = !!user && !isOwner && listing.status === 'active'
+  const category =
+    typeof listing.category === "string" && listing.category.trim()
+      ? listing.category
+      : "기타";
 
-  const cleanDescription = getCleanDescription(listing.description)
-  const transferMethod = getTransferMethod(listing.description, listing.transfer_method)
+  const title =
+    typeof listing.title === "string" && listing.title.trim()
+      ? listing.title
+      : "제목 없음";
+
+  const status =
+    typeof listing.status === "string" && listing.status.trim()
+      ? listing.status
+      : "-";
+
+  const transferMethod = extractTransferMethod(
+    typeof listing.description === "string" ? listing.description : ""
+  );
+
+  const description = extractDescriptionBody(
+    typeof listing.description === "string" ? listing.description : ""
+  );
+
+  const sellerId = pickOwnerId(listing);
+  const isOwner = !!user && !!sellerId && user.id === sellerId;
+
+  let inquiryCount = 0;
+  const { count } = await supabase
+    .from("deals")
+    .select("*", { count: "exact", head: true })
+    .eq("listing_id", id);
+
+  inquiryCount = count || 0;
+
+  const statusLabelMap: Record<string, string> = {
+    active: "거래가능",
+    draft: "임시저장",
+    hidden: "숨김",
+    sold: "거래종료",
+    reserved: "예약중",
+    pending_review: "검토중",
+    rejected: "반려",
+    archived: "보관됨",
+  };
 
   return (
     <main
       style={{
-        minHeight: '100vh',
-        background: '#f6f1e7',
+        minHeight: "100vh",
+        background: "#f6f1e7",
+        padding: "32px 20px 96px",
       }}
     >
       <div
         style={{
-          maxWidth: 1320,
-          margin: '0 auto',
-          padding: '28px 20px 60px',
+          maxWidth: 1180,
+          margin: "0 auto",
         }}
       >
         <div
           style={{
             marginBottom: 18,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            flexWrap: 'wrap',
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            color: "#8a7156",
+            fontSize: 13,
+            fontWeight: 700,
           }}
         >
           <Link
             href="/listings"
-            style={{
-              textDecoration: 'none',
-              color: '#6f5b46',
-              fontWeight: 700,
-              fontSize: 14,
-            }}
+            style={{ color: "#8a7156", textDecoration: "none" }}
           >
             ← 목록으로
           </Link>
-
-          <span
-            style={{
-              color: '#b7aa9a',
-              fontSize: 13,
-            }}
-          >
-            /
-          </span>
-
-          <span
-            style={{
-              color: '#8a7762',
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            상세 보기
-          </span>
+          <span>/</span>
+          <span>상세 보기</span>
         </div>
 
-        <section
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.5fr) minmax(340px, 0.85fr)',
-            gap: 18,
-            alignItems: 'start',
-          }}
-        >
+        {error ? (
           <div
             style={{
-              borderRadius: 28,
-              background: '#ffffff',
-              border: '1px solid rgba(47,36,23,0.08)',
-              boxShadow: '0 16px 42px rgba(47,36,23,0.06)',
-              padding: 24,
+              marginBottom: 16,
+              borderRadius: 18,
+              border: "1px solid #efc0c0",
+              background: "#fff4f4",
+              color: "#b42318",
+              padding: "14px 16px",
+              fontSize: 14,
+              fontWeight: 700,
+              lineHeight: 1.6,
+            }}
+          >
+            {error === "failed_to_create_deal"
+              ? "거래 문의방 생성에 실패했습니다. 다시 시도해 주세요."
+              : error === "cannot_deal_with_own_listing"
+              ? "본인 매물에는 거래 문의를 시작할 수 없습니다."
+              : error === "missing_seller_id"
+              ? "판매자 정보가 연결되지 않았습니다. 매물 데이터를 확인해 주세요."
+              : error}
+          </div>
+        ) : null}
+
+        {success ? (
+          <div
+            style={{
+              marginBottom: 16,
+              borderRadius: 18,
+              border: "1px solid #cfe3c7",
+              background: "#f5fbf2",
+              color: "#2f6b2f",
+              padding: "14px 16px",
+              fontSize: 14,
+              fontWeight: 700,
+              lineHeight: 1.6,
+            }}
+          >
+            {success}
+          </div>
+        ) : null}
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.55fr) minmax(320px, 0.9fr)",
+            gap: 24,
+            alignItems: "start",
+          }}
+        >
+          <section
+            style={{
+              background: "#fbf7f1",
+              border: "1px solid #eadfce",
+              borderRadius: 34,
+              padding: 18,
+              boxShadow: "0 18px 40px rgba(61, 41, 22, 0.06)",
             }}
           >
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 14,
-                alignItems: 'flex-start',
-                flexWrap: 'wrap',
-                marginBottom: 16,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                marginBottom: 14,
               }}
             >
-              <CategoryVisual category={listing.category} size="lg" showLabel />
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    background: "#f2e8db",
+                    color: "#8a7156",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 900,
+                  }}
+                >
+                  📦
+                </span>
+                <span
+                  style={{
+                    height: 32,
+                    padding: "0 12px",
+                    borderRadius: 999,
+                    background: "#f5efe5",
+                    color: "#6f5b46",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 800,
+                  }}
+                >
+                  {category}
+                </span>
+              </div>
 
               <span
                 style={{
-                  ...statusStyle,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: 34,
-                  padding: '0 14px',
+                  height: 32,
+                  padding: "0 12px",
                   borderRadius: 999,
-                  fontSize: 13,
-                  fontWeight: 800,
-                  whiteSpace: 'nowrap',
+                  background: "#e9f8ec",
+                  color: "#3f8a53",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 900,
                 }}
               >
-                {getStatusLabel(listing.status)}
+                {statusLabelMap[status] || status}
               </span>
             </div>
 
             <h1
               style={{
                 margin: 0,
-                color: '#2f2417',
-                fontSize: 34,
-                lineHeight: 1.18,
-                letterSpacing: '-0.04em',
+                color: "#16110d",
+                fontSize: 44,
                 fontWeight: 900,
+                letterSpacing: "-0.04em",
+                lineHeight: 1.05,
               }}
             >
-              {listing.title || '제목 없음'}
+              {title}
             </h1>
 
             <div
               style={{
-                marginTop: 18,
+                marginTop: 16,
                 borderRadius: 24,
-                background: 'linear-gradient(135deg, #2f2417 0%, #4b3825 100%)',
-                padding: 22,
-                color: '#fff',
-                boxShadow: '0 18px 40px rgba(47,36,23,0.18)',
+                background:
+                  "linear-gradient(135deg, #2b1d12 0%, #4a2f1b 52%, #77502d 100%)",
+                color: "#fffaf2",
+                padding: "18px 20px",
               }}
             >
               <div
                 style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  opacity: 0.78,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  opacity: 0.8,
                   marginBottom: 8,
                 }}
               >
                 희망 가격
               </div>
-
               <div
                 style={{
-                  fontSize: 34,
+                  fontSize: 32,
                   fontWeight: 900,
-                  lineHeight: 1.08,
-                  letterSpacing: '-0.05em',
+                  letterSpacing: "-0.04em",
                 }}
               >
                 {formatPrice(listing.price)}
@@ -286,36 +336,36 @@ export default async function ListingDetailPage({ params }: PageProps) {
 
             <div
               style={{
-                marginTop: 18,
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                marginTop: 14,
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                 gap: 12,
               }}
             >
               <div
                 style={{
                   borderRadius: 18,
-                  background: '#fbf8f2',
-                  border: '1px solid rgba(47,36,23,0.05)',
-                  padding: '16px 14px',
+                  background: "#fffdf9",
+                  border: "1px solid #eadfcf",
+                  padding: "14px 14px 12px",
                 }}
               >
                 <div
                   style={{
-                    color: '#8c7864',
+                    color: "#8a7156",
                     fontSize: 12,
-                    fontWeight: 700,
-                    marginBottom: 6,
+                    fontWeight: 800,
+                    marginBottom: 8,
                   }}
                 >
                   이전 방식
                 </div>
                 <div
                   style={{
-                    color: '#2f2417',
-                    fontSize: 15,
+                    color: "#24190f",
+                    fontSize: 16,
                     fontWeight: 800,
-                    lineHeight: 1.4,
+                    wordBreak: "break-word",
                   }}
                 >
                   {transferMethod}
@@ -325,27 +375,26 @@ export default async function ListingDetailPage({ params }: PageProps) {
               <div
                 style={{
                   borderRadius: 18,
-                  background: '#fbf8f2',
-                  border: '1px solid rgba(47,36,23,0.05)',
-                  padding: '16px 14px',
+                  background: "#fffdf9",
+                  border: "1px solid #eadfcf",
+                  padding: "14px 14px 12px",
                 }}
               >
                 <div
                   style={{
-                    color: '#8c7864',
+                    color: "#8a7156",
                     fontSize: 12,
-                    fontWeight: 700,
-                    marginBottom: 6,
+                    fontWeight: 800,
+                    marginBottom: 8,
                   }}
                 >
                   등록일
                 </div>
                 <div
                   style={{
-                    color: '#2f2417',
-                    fontSize: 15,
+                    color: "#24190f",
+                    fontSize: 16,
                     fontWeight: 800,
-                    lineHeight: 1.4,
                   }}
                 >
                   {formatDate(listing.created_at)}
@@ -355,354 +404,219 @@ export default async function ListingDetailPage({ params }: PageProps) {
               <div
                 style={{
                   borderRadius: 18,
-                  background: '#fbf8f2',
-                  border: '1px solid rgba(47,36,23,0.05)',
-                  padding: '16px 14px',
+                  background: "#fffdf9",
+                  border: "1px solid #eadfcf",
+                  padding: "14px 14px 12px",
                 }}
               >
                 <div
                   style={{
-                    color: '#8c7864',
+                    color: "#8a7156",
                     fontSize: 12,
-                    fontWeight: 700,
-                    marginBottom: 6,
+                    fontWeight: 800,
+                    marginBottom: 8,
                   }}
                 >
                   문의 수
                 </div>
                 <div
                   style={{
-                    color: '#2f2417',
-                    fontSize: 15,
+                    color: "#24190f",
+                    fontSize: 16,
                     fontWeight: 800,
-                    lineHeight: 1.4,
                   }}
                 >
-                  {(listing.inquiry_count || 0).toLocaleString('ko-KR')}
+                  {inquiryCount}
                 </div>
               </div>
             </div>
 
-            <section
+            <div
               style={{
-                marginTop: 20,
-                borderRadius: 24,
-                background: '#fffdf9',
-                border: '1px solid rgba(47,36,23,0.06)',
-                padding: 20,
+                marginTop: 14,
+                borderRadius: 22,
+                background: "#fffdf9",
+                border: "1px solid #eadfcf",
+                padding: 18,
               }}
             >
               <div
                 style={{
-                  color: '#2f2417',
-                  fontSize: 17,
+                  color: "#16110d",
+                  fontSize: 16,
                   fontWeight: 900,
-                  letterSpacing: '-0.03em',
-                  marginBottom: 12,
+                  marginBottom: 10,
                 }}
               >
                 자산 설명
               </div>
-
               <div
                 style={{
-                  color: '#5f4c39',
-                  fontSize: 15,
+                  color: "#6d5945",
+                  fontSize: 14,
                   lineHeight: 1.8,
-                  whiteSpace: 'pre-wrap',
+                  fontWeight: 600,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
                 }}
               >
-                {cleanDescription || '등록된 상세 설명이 없습니다.'}
+                {description}
               </div>
-            </section>
-          </div>
+            </div>
+          </section>
 
           <aside
             style={{
-              position: 'sticky',
-              top: 24,
-              display: 'grid',
-              gap: 16,
+              display: "grid",
+              gap: 14,
             }}
           >
             <section
               style={{
-                borderRadius: 26,
-                background: '#ffffff',
-                border: '1px solid rgba(47,36,23,0.08)',
-                boxShadow: '0 14px 36px rgba(47,36,23,0.06)',
-                padding: 20,
+                background: "#fbf7f1",
+                border: "1px solid #eadfce",
+                borderRadius: 28,
+                padding: 18,
+                boxShadow: "0 14px 36px rgba(61, 41, 22, 0.06)",
               }}
             >
               <div
                 style={{
-                  color: '#2f2417',
-                  fontSize: 18,
+                  color: "#16110d",
+                  fontSize: 16,
                   fontWeight: 900,
-                  letterSpacing: '-0.03em',
-                  marginBottom: 10,
+                  marginBottom: 8,
                 }}
               >
                 거래 액션
               </div>
 
-              <p
+              <div
                 style={{
-                  margin: '0 0 16px',
-                  color: '#6f5d49',
-                  fontSize: 14,
-                  lineHeight: 1.65,
+                  color: "#8a7156",
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  fontWeight: 600,
+                  marginBottom: 14,
                 }}
               >
-                관심이 있다면 바로 거래 문의를 시작하고, 등록자라면 자산 내용을 수정할 수 있다.
-              </p>
+                관심이 있다면 바로 거래 문의를 시작하고, 등록자라면 자산 내용을 수정할 수 있습니다.
+              </div>
 
               {isOwner ? (
                 <Link
-                  href={`/listings/${listing.id}/edit`}
+                  href={`/listings/${id}/edit`}
                   style={{
-                    display: 'inline-flex',
-                    width: '100%',
-                    height: 50,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 16,
-                    background: '#2f2417',
-                    color: '#fff',
-                    textDecoration: 'none',
-                    fontWeight: 800,
-                    fontSize: 14,
+                    width: "100%",
+                    minHeight: 54,
+                    borderRadius: 18,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textDecoration: "none",
+                    background: "#2f2417",
+                    color: "#fffaf2",
+                    fontSize: 15,
+                    fontWeight: 900,
+                    boxShadow: "0 12px 24px rgba(47, 36, 23, 0.18)",
                   }}
                 >
-                  내 자산 수정하기
+                  자산 수정
                 </Link>
-              ) : null}
-
-              {!isOwner && canStartDeal ? (
-                <form action="/api/deals/create" method="post" style={{ margin: 0 }}>
-                  <input type="hidden" name="listing_id" value={listing.id} />
+              ) : (
+                <form method="post" action="/api/deals/create">
+                  <input type="hidden" name="listing_id" value={id} />
+                  <input
+                    type="hidden"
+                    name="return_to"
+                    value={`/listings/${id}`}
+                  />
                   <button
                     type="submit"
                     style={{
-                      width: '100%',
-                      height: 52,
-                      border: 'none',
-                      borderRadius: 16,
-                      background: '#2f2417',
-                      color: '#fff',
-                      fontWeight: 900,
+                      width: "100%",
+                      minHeight: 54,
+                      borderRadius: 18,
+                      border: 0,
+                      background: "#2f2417",
+                      color: "#fffaf2",
                       fontSize: 15,
-                      cursor: 'pointer',
-                      boxShadow: '0 12px 28px rgba(47,36,23,0.16)',
+                      fontWeight: 900,
+                      cursor: "pointer",
+                      boxShadow: "0 12px 24px rgba(47, 36, 23, 0.18)",
                     }}
                   >
                     거래 문의 시작
                   </button>
                 </form>
-              ) : null}
-
-              {!user && !isOwner ? (
-                <Link
-                  href={`/auth/login?next=/listings/${listing.id}`}
-                  style={{
-                    display: 'inline-flex',
-                    width: '100%',
-                    height: 52,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 16,
-                    background: '#2f2417',
-                    color: '#fff',
-                    textDecoration: 'none',
-                    fontWeight: 900,
-                    fontSize: 15,
-                  }}
-                >
-                  로그인 후 문의하기
-                </Link>
-              ) : null}
-
-              {!isOwner && user && listing.status !== 'active' ? (
-                <div
-                  style={{
-                    marginTop: 12,
-                    borderRadius: 16,
-                    background: '#f8f3eb',
-                    color: '#6f5a46',
-                    border: '1px solid rgba(47,36,23,0.06)',
-                    padding: '14px 14px',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  현재 이 자산은 바로 거래를 시작할 수 없는 상태입니다.
-                </div>
-              ) : null}
+              )}
             </section>
 
             <section
               style={{
-                borderRadius: 26,
-                background: '#ffffff',
-                border: '1px solid rgba(47,36,23,0.08)',
-                boxShadow: '0 14px 36px rgba(47,36,23,0.06)',
-                padding: 20,
+                background: "#fbf7f1",
+                border: "1px solid #eadfce",
+                borderRadius: 28,
+                padding: 18,
+                boxShadow: "0 14px 36px rgba(61, 41, 22, 0.06)",
               }}
             >
               <div
                 style={{
-                  color: '#2f2417',
-                  fontSize: 18,
+                  color: "#16110d",
+                  fontSize: 16,
                   fontWeight: 900,
-                  letterSpacing: '-0.03em',
                   marginBottom: 12,
                 }}
               >
                 요약 정보
               </div>
 
-              <div
-                style={{
-                  display: 'grid',
-                  gap: 10,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    paddingBottom: 10,
-                    borderBottom: '1px solid rgba(47,36,23,0.06)',
-                  }}
-                >
-                  <span
+              <div style={{ display: "grid", gap: 10 }}>
+                {[
+                  ["카테고리", category],
+                  ["상태", statusLabelMap[status] || status],
+                  ["조회수", String(listing.view_count || 0)],
+                  ["수정일", formatDate(listing.updated_at || listing.created_at)],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
                     style={{
-                      color: '#8a7762',
-                      fontSize: 13,
-                      fontWeight: 700,
+                      display: "grid",
+                      gridTemplateColumns: "92px 1fr",
+                      gap: 8,
+                      alignItems: "center",
+                      paddingBottom: 10,
+                      borderBottom: "1px solid #f0e6d9",
                     }}
                   >
-                    카테고리
-                  </span>
-                  <span
-                    style={{
-                      color: '#2f2417',
-                      fontSize: 13,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {listing.category || '기타'}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    paddingBottom: 10,
-                    borderBottom: '1px solid rgba(47,36,23,0.06)',
-                  }}
-                >
-                  <span
-                    style={{
-                      color: '#8a7762',
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
-                  >
-                    상태
-                  </span>
-                  <span
-                    style={{
-                      color: '#2f2417',
-                      fontSize: 13,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {getStatusLabel(listing.status)}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    paddingBottom: 10,
-                    borderBottom: '1px solid rgba(47,36,23,0.06)',
-                  }}
-                >
-                  <span
-                    style={{
-                      color: '#8a7762',
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
-                  >
-                    조회수
-                  </span>
-                  <span
-                    style={{
-                      color: '#2f2417',
-                      fontSize: 13,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {(listing.view_count || 0).toLocaleString('ko-KR')}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                  }}
-                >
-                  <span
-                    style={{
-                      color: '#8a7762',
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
-                  >
-                    수정일
-                  </span>
-                  <span
-                    style={{
-                      color: '#2f2417',
-                      fontSize: 13,
-                      fontWeight: 800,
-                      textAlign: 'right',
-                    }}
-                  >
-                    {formatDate(listing.updated_at || listing.created_at)}
-                  </span>
-                </div>
+                    <div
+                      style={{
+                        color: "#8a7156",
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {label}
+                    </div>
+                    <div
+                      style={{
+                        color: "#24190f",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        textAlign: "right",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {value}
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
-
-            {error ? (
-              <section
-                style={{
-                  borderRadius: 18,
-                  background: '#fff1f2',
-                  border: '1px solid rgba(190,24,93,0.12)',
-                  color: '#9f1239',
-                  padding: '14px 16px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                }}
-              >
-                상세 데이터를 불러오는 중 문제가 발생했습니다.
-              </section>
-            ) : null}
           </aside>
-        </section>
+        </div>
       </div>
     </main>
-  )
+  );
 }
