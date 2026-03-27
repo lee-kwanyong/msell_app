@@ -1,294 +1,350 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --msell-bg: #f6f4ef;
-  --msell-bg-2: #f1eee8;
-  --msell-surface: rgba(255, 252, 247, 0.86);
-  --msell-surface-strong: #fffdf9;
-  --msell-line: rgba(63, 45, 26, 0.08);
-  --msell-line-strong: rgba(63, 45, 26, 0.12);
-  --msell-text: #1a1510;
-  --msell-text-soft: rgba(26, 21, 16, 0.64);
-  --msell-brown: #24180f;
-  --msell-brown-2: #3a2818;
-  --msell-beige: #ece3d3;
-  --msell-shadow: 0 20px 50px rgba(35, 24, 16, 0.06);
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html {
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
 html,
 body {
   margin: 0;
   padding: 0;
-  background: linear-gradient(180deg, var(--msell-bg) 0%, var(--msell-bg-2) 100%);
-  color: var(--msell-text);
-}
-
-body {
+  background: #f6f1e7;
+  color: #20150d;
   font-family:
     Inter,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Noto Sans KR',
+    "Segoe UI",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
     sans-serif;
-  min-height: 100vh;
+}
+
+body {
+  min-width: 0;
 }
 
 a {
   color: inherit;
-  text-decoration: none;
 }
 
 button,
 input,
-textarea,
-select {
+select,
+textarea {
   font: inherit;
 }
 
-.msell-header-wrap {
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+.ms-header {
+  width: 100%;
+  border-bottom: 1px solid #eadfce;
+  background: #f6f1e7;
   position: sticky;
   top: 0;
-  z-index: 50;
-  padding: 18px 20px 0;
-  background: linear-gradient(
-    180deg,
-    rgba(246, 244, 239, 0.92) 0%,
-    rgba(246, 244, 239, 0.72) 72%,
-    rgba(246, 244, 239, 0) 100%
-  );
-  backdrop-filter: blur(14px);
+  z-index: 40;
 }
 
-.msell-header-shell {
-  max-width: 1280px;
+.ms-header__inner {
+  max-width: 1180px;
   margin: 0 auto;
-}
-
-.msell-header-inner {
+  padding: 14px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  min-height: 74px;
-  padding: 0 18px;
-  border: 1px solid var(--msell-line);
-  border-radius: 26px;
-  background:
-    radial-gradient(circle at top right, rgba(120, 92, 54, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(255, 253, 249, 0.92) 0%, rgba(250, 246, 239, 0.86) 100%);
-  box-shadow: var(--msell-shadow);
 }
 
-.msell-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 132px;
-  transition: transform 0.18s ease, opacity 0.18s ease;
-}
-
-.msell-brand:hover {
-  transform: translateY(-1px);
-}
-
-.msell-brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #4f3823 0%, #24180f 100%);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 10px 20px rgba(36, 24, 15, 0.18);
-}
-
-.msell-brand-text {
-  font-size: 28px;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  font-weight: 700;
-  color: var(--msell-text);
-}
-
-.msell-nav {
+.ms-header__left {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex: 1;
+  gap: 18px;
   min-width: 0;
+  flex: 1;
+}
+
+.ms-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #20150d;
+  min-width: fit-content;
+}
+
+.ms-brand__logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2b1d12 0%, #6f4725 100%);
+  color: #fffaf2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(47, 36, 23, 0.18);
+}
+
+.ms-brand__text {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.ms-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-.msell-nav-link {
-  position: relative;
+.ms-nav-pill {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 42px;
-  padding: 0 16px;
-  border-radius: 999px;
-  color: var(--msell-text-soft);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  text-decoration: none;
+  border: 1px solid #d8cab8;
+  background: #f9f5ee;
+  color: #2f2417;
+  font-size: 13px;
+  font-weight: 800;
   transition:
+    background-color 0.18s ease,
     color 0.18s ease,
-    background 0.18s ease,
+    border-color 0.18s ease,
     transform 0.18s ease,
     box-shadow 0.18s ease;
 }
 
-.msell-nav-link:hover {
-  color: var(--msell-text);
-  background: rgba(255, 255, 255, 0.72);
+.ms-nav-pill:hover {
+  background: #2f2417;
+  color: #fffaf2;
+  border-color: #2f2417;
+  box-shadow: 0 8px 18px rgba(47, 36, 23, 0.16);
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(35, 24, 16, 0.06);
 }
 
-.msell-nav-link::after {
-  content: '';
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 8px;
-  height: 2px;
+.ms-header__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ms-account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #2f2417;
+  border: 1px solid #d8cab8;
+  background: #fbf7f1;
   border-radius: 999px;
-  background: linear-gradient(90deg, #7a5a35 0%, #24180f 100%);
-  opacity: 0;
-  transform: scaleX(0.4);
+  padding: 7px 12px 7px 8px;
+  min-height: 44px;
   transition:
-    opacity 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
     transform 0.18s ease;
 }
 
-.msell-nav-link:hover::after {
-  opacity: 1;
-  transform: scaleX(1);
-}
-
-.msell-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  min-width: 180px;
-}
-
-.msell-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 42px;
-  padding: 0 18px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    background 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease;
-  cursor: pointer;
-}
-
-.msell-btn:hover {
+.ms-account-chip:hover {
+  background: #f1e7d8;
+  border-color: #cbb89f;
   transform: translateY(-1px);
 }
 
-.msell-btn-primary {
-  border: 1px solid rgba(36, 24, 15, 0.04);
-  background: linear-gradient(180deg, #4f3823 0%, #24180f 100%);
-  color: #fff;
-  box-shadow: 0 12px 24px rgba(36, 24, 15, 0.16);
+.ms-account-chip__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2f2417;
+  color: #fffaf2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+  flex-shrink: 0;
 }
 
-.msell-btn-primary:hover {
-  box-shadow: 0 16px 28px rgba(36, 24, 15, 0.22);
+.ms-account-chip__meta {
+  display: grid;
+  line-height: 1.1;
 }
 
-.msell-btn-secondary {
-  border: 1px solid var(--msell-line-strong);
-  background: rgba(255, 255, 255, 0.76);
-  color: var(--msell-brown);
-  backdrop-filter: blur(8px);
+.ms-account-chip__name {
+  font-size: 13px;
+  font-weight: 900;
+  color: #2f2417;
 }
 
-.msell-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 10px 20px rgba(35, 24, 16, 0.06);
+.ms-account-chip__provider {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a7156;
 }
 
-@media (max-width: 1100px) {
-  .msell-header-inner {
-    padding: 16px;
-    min-height: auto;
-    align-items: flex-start;
-    flex-wrap: wrap;
+.ms-logout-button,
+.ms-logout-link {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 0;
+  background: #2f2417;
+  color: #fffaf2;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(47, 36, 23, 0.18);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.ms-logout-button:hover,
+.ms-logout-link:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(47, 36, 23, 0.22);
+}
+
+.ms-bottom-tabbar {
+  display: none;
+}
+
+.ms-bottom-tabbar__inner {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  width: min(100%, 620px);
+  margin: 0 auto;
+  background: #fbf7f1;
+  border: 1px solid #eadfce;
+  border-radius: 22px;
+  padding: 10px 8px;
+  box-shadow: 0 14px 36px rgba(61, 41, 22, 0.1);
+}
+
+.ms-bottom-tabbar__item {
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-decoration: none;
+  border-radius: 14px;
+  color: #6f5b46;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.ms-bottom-tabbar__item.is-active {
+  background: #f3e7d8;
+  color: #2f2417;
+}
+
+.ms-bottom-tabbar__icon {
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.ms-bottom-tabbar__label {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+@media (max-width: 1024px) {
+  .ms-header__inner {
+    padding: 12px 16px;
   }
 
-  .msell-brand {
-    min-width: auto;
+  .ms-header__left {
+    gap: 12px;
   }
 
-  .msell-nav {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
-    padding-top: 6px;
+  .ms-header__nav {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ms-header__inner {
+    gap: 12px;
   }
 
-  .msell-actions {
-    min-width: auto;
-    margin-left: auto;
+  .ms-header__nav {
+    display: none;
+  }
+
+  .ms-account-chip__provider {
+    display: none;
+  }
+
+  .ms-bottom-tabbar {
+    display: block;
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    z-index: 45;
+  }
+}
+
+@media (max-width: 1200px) {
+  main > div[style] {
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 980px) {
+  section[style*="grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr)"],
+  div[style*="grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr)"],
+  div[style*="grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.74fr)"],
+  div[style*="grid-template-columns: repeat(3, minmax(0, 1fr))"],
+  div[style*="grid-template-columns: repeat(4, minmax(0, 1fr))"] {
+    grid-template-columns: 1fr !important;
   }
 }
 
 @media (max-width: 720px) {
-  .msell-header-wrap {
-    padding: 12px 12px 0;
+  h1[style*="font-size: 66px"] {
+    font-size: 42px !important;
+    line-height: 1.02 !important;
   }
 
-  .msell-header-inner {
-    border-radius: 22px;
-    gap: 12px;
+  h1[style*="font-size: 46px"] {
+    font-size: 36px !important;
   }
 
-  .msell-brand-text {
-    font-size: 24px;
+  div[style*="font-size: 28px"] {
+    word-break: break-word;
   }
 
-  .msell-nav {
-    gap: 6px;
-  }
-
-  .msell-nav-link,
-  .msell-btn {
-    height: 40px;
-    padding: 0 14px;
-    font-size: 13px;
-  }
-
-  .msell-actions {
-    width: 100%;
-    justify-content: flex-end;
+  main {
+    padding-bottom: 110px !important;
   }
 }

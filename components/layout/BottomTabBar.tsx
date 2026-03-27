@@ -1,105 +1,92 @@
-'use client'
+import Link from "next/link";
+import { supabaseServer } from "@/lib/supabase/server";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-
-const tabs = [
-  { href: '/m', label: '홈', icon: '⌂' },
-  { href: '/m/listings', label: '거래', icon: '◫' },
-  { href: '/m/listings/create', label: '등록', icon: '+' },
-  { href: '/m/my/deals', label: '거래방', icon: '◌' },
-  { href: '/m/account', label: '마이', icon: '●' },
-]
-
-function isActive(pathname: string, href: string) {
-  if (href === '/m') return pathname === '/m'
-  return pathname === href || pathname.startsWith(`${href}/`)
+function providerLabel(provider?: string | null) {
+  if (!provider) return "Email 로그인";
+  if (provider === "google") return "Google 로그인";
+  if (provider === "kakao") return "Kakao 로그인";
+  if (provider === "custom:naver") return "Naver 로그인";
+  return `${provider} 로그인`;
 }
 
-export default function BottomTabBar() {
-  const pathname = usePathname()
+type NavItem = {
+  href: string;
+  label: string;
+};
 
-  if (!pathname?.startsWith('/m')) {
-    return null
-  }
+export default async function Header() {
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const navItems: NavItem[] = [
+    { href: "/", label: "홈" },
+    { href: "/listings", label: "거래목록" },
+    { href: "/listings/create", label: "자산등록" },
+    { href: "/my/listings", label: "내 매물" },
+    { href: "/my/deals", label: "내 거래" },
+    { href: "/account", label: "계정" },
+  ];
+
+  const username =
+    (user?.user_metadata?.username as string | undefined) ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email?.split("@")[0] ||
+    "게스트";
+
+  const provider =
+    typeof user?.app_metadata?.provider === "string"
+      ? user.app_metadata.provider
+      : null;
 
   return (
-    <nav
-      aria-label="모바일 하단 탭"
-      style={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 50,
-        padding: '10px 12px calc(env(safe-area-inset-bottom, 0px) + 10px)',
-        background:
-          'linear-gradient(to top, rgba(246,241,231,0.98), rgba(246,241,231,0.92))',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 760,
-          margin: '0 auto',
-          background: 'rgba(255,255,255,0.92)',
-          border: '1px solid #eadfcf',
-          borderRadius: 22,
-          padding: '8px',
-          boxShadow: '0 14px 34px rgba(47, 36, 23, 0.10)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-          gap: 6,
-        }}
-      >
-        {tabs.map((tab) => {
-          const active = isActive(pathname, tab.href)
+    <header className="ms-header">
+      <div className="ms-header__inner">
+        <div className="ms-header__left">
+          <Link href="/" className="ms-brand">
+            <span className="ms-brand__logo">M</span>
+            <span className="ms-brand__text">Msell</span>
+          </Link>
 
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              style={{
-                minHeight: 58,
-                borderRadius: 16,
-                textDecoration: 'none',
-                display: 'grid',
-                placeItems: 'center',
-                gap: 4,
-                background: active ? '#2f2417' : 'transparent',
-                color: active ? '#ffffff' : '#6a5743',
-                fontWeight: 800,
-                transition: 'all 0.18s ease',
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 22,
-                  height: 22,
-                }}
-              >
-                {tab.icon}
-              </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  lineHeight: 1,
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {tab.label}
-              </span>
+          <nav className="ms-header__nav" aria-label="주요 메뉴">
+            {navItems.map((item) => (
+              <Link key={item.href} href={item.href} className="ms-nav-pill">
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        <div className="ms-header__right">
+          {user ? (
+            <>
+              <Link href="/account" className="ms-account-chip">
+                <span className="ms-account-chip__avatar">
+                  {username.slice(0, 1).toUpperCase()}
+                </span>
+
+                <span className="ms-account-chip__meta">
+                  <span className="ms-account-chip__name">{username}</span>
+                  <span className="ms-account-chip__provider">
+                    {providerLabel(provider)}
+                  </span>
+                </span>
+              </Link>
+
+              <form action="/auth/logout" method="post">
+                <button type="submit" className="ms-logout-button">
+                  로그아웃
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link href="/auth/login" className="ms-logout-button ms-logout-link">
+              로그인
             </Link>
-          )
-        })}
+          )}
+        </div>
       </div>
-    </nav>
-  )
+    </header>
+  );
 }

@@ -83,7 +83,7 @@ export default async function AccountPage() {
       style={{
         minHeight: "100vh",
         background: "#f6f1e7",
-        padding: "32px 20px 80px",
+        padding: "32px 20px 96px",
       }}
     >
       <div
@@ -96,8 +96,8 @@ export default async function AccountPage() {
           style={{
             background:
               "linear-gradient(135deg, #2b1d12 0%, #4b2f1a 52%, #7a532d 100%)",
-            borderRadius: 32,
-            padding: 28,
+            borderRadius: 34,
+            padding: 30,
             color: "#fffaf2",
             boxShadow: "0 22px 60px rgba(56, 36, 19, 0.18)",
             border: "1px solid rgba(255,255,255,0.12)",
@@ -109,7 +109,7 @@ export default async function AccountPage() {
               fontWeight: 800,
               letterSpacing: "0.14em",
               opacity: 0.78,
-              marginBottom: 18,
+              marginBottom: 20,
             }}
           >
             ACCOUNT
@@ -118,22 +118,22 @@ export default async function AccountPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "92px minmax(0, 1fr)",
+              gridTemplateColumns: "96px minmax(0, 1fr)",
               gap: 22,
               alignItems: "center",
             }}
           >
             <div
               style={{
-                width: 92,
-                height: 92,
+                width: 96,
+                height: 96,
                 borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 background: "rgba(255,255,255,0.12)",
                 border: "1px solid rgba(255,255,255,0.18)",
-                fontSize: 34,
+                fontSize: 36,
                 fontWeight: 900,
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
                 flexShrink: 0,
@@ -146,7 +146,7 @@ export default async function AccountPage() {
               <h1
                 style={{
                   margin: 0,
-                  fontSize: 44,
+                  fontSize: 46,
                   lineHeight: 1.02,
                   fontWeight: 900,
                   letterSpacing: "-0.03em",
@@ -169,59 +169,30 @@ export default async function AccountPage() {
 
               <div
                 style={{
-                  marginTop: 12,
+                  marginTop: 14,
                   display: "flex",
                   gap: 10,
                   flexWrap: "wrap",
                 }}
               >
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    height: 34,
-                    padding: "0 14px",
-                    borderRadius: 999,
-                    background: "rgba(255,255,255,0.10)",
-                    border: "1px solid rgba(255,255,255,0.16)",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  {providerLabel(provider)}
-                </span>
-
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    height: 34,
-                    padding: "0 14px",
-                    borderRadius: 999,
-                    background: "rgba(255,255,255,0.10)",
-                    border: "1px solid rgba(255,255,255,0.16)",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  {role}
-                </span>
-
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    height: 34,
-                    padding: "0 14px",
-                    borderRadius: 999,
-                    background: "rgba(255,255,255,0.10)",
-                    border: "1px solid rgba(255,255,255,0.16)",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  활성
-                </span>
+                {[providerLabel(provider), role, "활성"].map((item) => (
+                  <span
+                    key={item}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      height: 34,
+                      padding: "0 14px",
+                      borderRadius: 999,
+                      background: "rgba(255,255,255,0.10)",
+                      border: "1px solid rgba(255,255,255,0.16)",
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {item}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -266,8 +237,8 @@ export default async function AccountPage() {
                   lineHeight: 1.6,
                 }}
               >
-                이름, 아이디, 연락처, 성별, 이메일, 로그인 방식, 권한과 바로가기를 한
-                화면에서 관리합니다.
+                이름, 아이디, 연락처, 성별, 이메일, 로그인 방식, 권한, 바로가기를 한
+                화면에서 정리합니다.
               </div>
             </div>
 
@@ -302,6 +273,7 @@ export default async function AccountPage() {
                   background: "#fffdf9",
                   border: "1px solid #eadfcf",
                   padding: "16px 16px 14px",
+                  boxShadow: "0 6px 16px rgba(61, 41, 22, 0.03)",
                 }}
               >
                 <div
@@ -338,6 +310,7 @@ export default async function AccountPage() {
                   background: "#fffdf9",
                   border: "1px solid #eadfcf",
                   padding: "16px 16px 14px",
+                  boxShadow: "0 6px 16px rgba(61, 41, 22, 0.03)",
                 }}
               >
                 <div
@@ -374,6 +347,7 @@ export default async function AccountPage() {
                   background: "#fffdf9",
                   border: "1px solid #eadfcf",
                   padding: "16px 16px 14px",
+                  boxShadow: "0 6px 16px rgba(61, 41, 22, 0.03)",
                 }}
               >
                 <div
@@ -410,6 +384,7 @@ export default async function AccountPage() {
                   background: "#fffdf9",
                   border: "1px solid #eadfcf",
                   padding: "16px 16px 14px",
+                  boxShadow: "0 6px 16px rgba(61, 41, 22, 0.03)",
                 }}
               >
                 <div
@@ -592,7 +567,7 @@ export default async function AccountPage() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      minHeight: 56,
+                      minHeight: 58,
                       borderRadius: 18,
                       background: "#fffaf4",
                       border: "1px solid #eadfcf",
@@ -611,7 +586,7 @@ export default async function AccountPage() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      minHeight: 56,
+                      minHeight: 58,
                       borderRadius: 18,
                       background: "#fffaf4",
                       border: "1px solid #eadfcf",
@@ -630,7 +605,7 @@ export default async function AccountPage() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      minHeight: 56,
+                      minHeight: 58,
                       borderRadius: 18,
                       background: "#fffaf4",
                       border: "1px solid #eadfcf",
@@ -650,7 +625,7 @@ export default async function AccountPage() {
               style={{
                 display: "flex",
                 justifyContent: "flex-end",
-                marginTop: 20,
+                marginTop: 22,
               }}
             >
               <button
