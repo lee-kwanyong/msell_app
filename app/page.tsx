@@ -1,799 +1,439 @@
 import Link from 'next/link'
 import { supabaseServer } from '@/lib/supabase/server'
 
-function formatPrice(value: number | null | undefined) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return '가격 협의'
-  return `${value.toLocaleString('ko-KR')}원`
+type ListingRow = {
+  id?: string
+  title?: string | null
+  category?: string | null
+  price?: number | string | null
+  status?: string | null
+  created_at?: string | null
 }
 
-function timeAgo(value?: string | null) {
-  if (!value) return ''
-  const date = new Date(value)
-  const diff = Date.now() - date.getTime()
-
-  const minute = 60 * 1000
-  const hour = 60 * minute
-  const day = 24 * hour
-
-  if (diff < hour) return `${Math.max(1, Math.floor(diff / minute))}분 전`
-  if (diff < day) return `${Math.max(1, Math.floor(diff / hour))}시간 전`
-  return `${Math.max(1, Math.floor(diff / day))}일 전`
+function formatPrice(value: number) {
+  return new Intl.NumberFormat('ko-KR').format(value)
 }
 
-function categoryLabel(value?: string | null) {
+function toNumber(value: unknown) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/,/g, '').trim()
+    const num = Number(cleaned)
+    return Number.isFinite(num) ? num : 0
+  }
+  return 0
+}
+
+function formatDayLabel(date: Date) {
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  return `${month}/${day}`
+}
+
+function buildAmountSeries(rows: ListingRow[]) {
+  const today = new Date()
+  const days: { key: string; label: string; amount: number }[] = []
+
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date(today)
+    d.setHours(0, 0, 0, 0)
+    d.setDate(today.getDate() - i)
+
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const key = `${yyyy}-${mm}-${dd}`
+
+    days.push({
+      key,
+      label: formatDayLabel(d),
+      amount: 0,
+    })
+  }
+
+  for (const row of rows) {
+    const createdAt = row.created_at ? new Date(row.created_at) : null
+    if (!createdAt || Number.isNaN(createdAt.getTime())) continue
+
+    const yyyy = createdAt.getFullYear()
+    const mm = String(createdAt.getMonth() + 1).padStart(2, '0')
+    const dd = String(createdAt.getDate()).padStart(2, '0')
+    const key = `${yyyy}-${mm}-${dd}`
+
+    const target = days.find((day) => day.key === key)
+    if (!target) continue
+
+    target.amount += toNumber(row.price)
+  }
+
+  return days
+}
+
+function buildPath(values: number[], width: number, height: number) {
+  if (values.length === 0) return ''
+  const max = Math.max(...values, 1)
+  const min = Math.min(...values, 0)
+  const range = Math.max(max - min, 1)
+
+  return values
+    .map((value, index) => {
+      const x = (index / Math.max(values.length - 1, 1)) * width
+      const y = height - ((value - min) / range) * height
+      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
+    })
+    .join(' ')
+}
+
+function buildAreaPath(linePath: string, width: number, height: number) {
+  if (!linePath) return ''
+  return `${linePath} L ${width} ${height} L 0 ${height} Z`
+}
+
+function getCategoryBadge(category?: string | null) {
+  const value = (category || '').trim()
   if (!value) return '기타'
-  return value.replace(/_/g, ' ')
+  return value
+}
+
+function getStatusLabel(status?: string | null) {
+  switch (status) {
+    case 'active':
+      return '거래가능'
+    case 'draft':
+      return '임시저장'
+    case 'hidden':
+      return '숨김'
+    case 'sold':
+      return '거래종료'
+    case 'reserved':
+      return '예약중'
+    case 'pending_review':
+      return '검토중'
+    default:
+      return status || '상태확인'
+  }
 }
 
 export default async function HomePage() {
   const supabase = await supabaseServer()
 
-  const { data: listings } = await supabase
-    .from('listings')
-    .select('id, title, category, price, status, created_at, description')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(6)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  const liveCount = listings?.length ?? 0
+  const { data: listingsRaw } = await supabase
+    .from('listings')
+    .select('id, title, category, price, status, created_at')
+    .order('created_at', { ascending: false })
+    .limit(60)
+
+  const listings: ListingRow[] = Array.isArray(listingsRaw) ? listingsRaw : []
+
+  const publicListings = listings.filter((item) =>
+    ['active', 'sold', 'reserved'].includes(String(item.status || ''))
+  )
+
+  const liveListings = listings.filter((item) => String(item.status || '') === 'active')
+  const latestListings = liveListings.slice(0, 6)
+
+  const amountSeries = buildAmountSeries(publicListings)
+  const chartValues = amountSeries.map((item) => item.amount)
+  const linePath = buildPath(chartValues, 100, 44)
+  const areaPath = buildAreaPath(linePath, 100, 44)
+
+  const totalLiveCount = liveListings.length
+  const totalLiveAmount = liveListings.reduce((sum, item) => sum + toNumber(item.price), 0)
+  const recentRegisteredCount = listings.filter((item) => {
+    if (!item.created_at) return false
+    const diff = Date.now() - new Date(item.created_at).getTime()
+    return diff <= 1000 * 60 * 60 * 24 * 7
+  }).length
+
+  const highestPrice = liveListings.reduce((max, item) => {
+    const price = toNumber(item.price)
+    return Math.max(max, price)
+  }, 0)
 
   return (
-    <main
-      style={{
-        background: '#f6f1e7',
-        minHeight: 'calc(100vh - 72px)',
-        padding: '38px 20px 90px',
-      }}
-    >
-      <div style={{ maxWidth: 1220, margin: '0 auto' }}>
-        <section
-          className="home-hero-grid"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.55fr) minmax(320px, 0.9fr)',
-            gap: 22,
-            alignItems: 'stretch',
-          }}
-        >
-          <div
-            style={{
-              position: 'relative',
-              overflow: 'hidden',
-              borderRadius: 34,
-              border: '1px solid #e4d8c8',
-              background:
-                'radial-gradient(circle at top right, rgba(236, 225, 208, 0.9), transparent 34%), linear-gradient(180deg, #fcfaf6 0%, #f7f1e8 100%)',
-              boxShadow: '0 24px 60px rgba(47,36,23,0.06)',
-              padding: '34px 34px 30px',
-              minHeight: 360,
-            }}
-          >
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '8px 13px',
-                borderRadius: 999,
-                background: '#efe3d2',
-                color: '#7b6140',
-                fontSize: 11,
-                fontWeight: 900,
-                letterSpacing: '0.08em',
-              }}
-            >
-              MSELL · DIGITAL ASSET MARKETPLACE
-            </div>
+    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
+      <section className="mx-auto w-full max-w-[1280px] px-5 pb-12 pt-8 md:px-8 md:pb-20 md:pt-10">
+        <div className="grid gap-5 xl:grid-cols-[1.45fr_0.95fr]">
+          <div className="overflow-hidden rounded-[36px] border border-black/5 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
+            <div className="bg-[radial-gradient(circle_at_top_left,rgba(120,119,198,0.10),transparent_28%),radial-gradient(circle_at_top_right,rgba(0,113,227,0.08),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfbfd_100%)] px-6 py-8 md:px-10 md:py-10">
+              <div className="inline-flex items-center rounded-full border border-black/6 bg-black/[0.03] px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-black/55">
+                MSELL · DIGITAL ASSET MARKET
+              </div>
 
-            <h1
-              className="hero-title"
-              style={{
-                margin: '18px 0 18px',
-                fontSize: 80,
-                lineHeight: 0.94,
-                letterSpacing: '-0.07em',
-                fontWeight: 900,
-                color: '#1f1710',
-                maxWidth: 760,
-                wordBreak: 'keep-all',
-              }}
-            >
-              디지털 자산 거래를
-              <br />
-              더 간결하게
-              <br />
-              관리하세요
-            </h1>
+              <h1 className="mt-5 max-w-[780px] text-[44px] font-semibold leading-[0.98] tracking-[-0.05em] text-[#111111] md:text-[72px]">
+                디지털 자산 거래를
+                <br />
+                더 단순하게,
+                <br />
+                더 선명하게.
+              </h1>
 
-            <p
-              style={{
-                margin: 0,
-                maxWidth: 760,
-                color: '#6f655b',
-                fontSize: 18,
-                lineHeight: 1.85,
-              }}
-            >
-              Msell은 실제 등록 자산과 실제 거래 흐름을 중심으로 화면을 구성합니다. 홈에서는
-              현재 공개된 자산 현황, 신규 등록 시작, 최신 등록 자산 확인까지 바로 이어질 수
-              있도록 핵심 동선만 정리했습니다.
-            </p>
+              <p className="mt-6 max-w-[760px] text-[16px] leading-8 text-black/62 md:text-[18px]">
+                계정, 채널, 사이트, 도메인, 소프트웨어 같은 디지털 자산을 등록하고,
+                문의와 거래 흐름을 한 화면 안에서 자연스럽게 이어가도록 구성했습니다.
+                홈에서는 현재 등록 흐름과 금액 추이를 바로 확인할 수 있습니다.
+              </p>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: 12,
-                marginTop: 28,
-                flexWrap: 'wrap',
-              }}
-            >
-              <Link
-                href="/listings"
-                style={{
-                  height: 50,
-                  padding: '0 20px',
-                  borderRadius: 16,
-                  border: 'none',
-                  background: 'linear-gradient(180deg, #3a2c1c 0%, #241b11 100%)',
-                  color: '#fffaf3',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 14,
-                  fontWeight: 900,
-                  boxShadow: '0 14px 28px rgba(47,36,23,0.16)',
-                }}
-              >
-                매물 둘러보기
-              </Link>
-
-              <Link
-                href="/listings/create"
-                style={{
-                  height: 50,
-                  padding: '0 20px',
-                  borderRadius: 16,
-                  border: '1px solid #dfd1bf',
-                  background: '#f8efe2',
-                  color: '#2f2417',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 14,
-                  fontWeight: 900,
-                }}
-              >
-                자산 등록하기
-              </Link>
-            </div>
-
-            <div
-              className="hero-metrics"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                gap: 14,
-                marginTop: 30,
-              }}
-            >
-              {[
-                {
-                  label: '운영 기준',
-                  value: '실자산 중심',
-                  desc: '임의 지표보다 실제 등록 흐름 우선',
-                },
-                {
-                  label: '화면 구조',
-                  value: '간결한 탐색',
-                  desc: '핵심 액션과 등록 정보에 집중',
-                },
-                {
-                  label: '확인 방식',
-                  value: '직접 진입',
-                  desc: '목록 확인 후 상세로 바로 이동',
-                },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  style={{
-                    border: '1px solid #e7dccc',
-                    background: 'rgba(255,253,250,0.82)',
-                    borderRadius: 22,
-                    padding: '18px 18px 16px',
-                    backdropFilter: 'blur(4px)',
-                  }}
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/listings"
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-[#111111] px-6 text-[15px] font-semibold text-white transition hover:bg-black"
                 >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: '#8a7458',
-                      marginBottom: 8,
-                    }}
-                  >
-                    {item.label}
+                  자산 둘러보기
+                </Link>
+
+                <Link
+                  href={user ? '/listings/create' : '/auth/login?next=/listings/create'}
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-black/10 bg-white px-6 text-[15px] font-semibold text-[#111111] transition hover:bg-[#f2f2f4]"
+                >
+                  자산 등록하기
+                </Link>
+              </div>
+
+              <div className="mt-9 grid gap-3 md:grid-cols-3">
+                <div className="rounded-[28px] border border-black/6 bg-white/80 p-5 backdrop-blur">
+                  <div className="text-[12px] font-medium text-black/45">현재 공개 자산</div>
+                  <div className="mt-2 text-[32px] font-semibold tracking-[-0.04em] text-[#111111]">
+                    {totalLiveCount}건
                   </div>
-                  <div
-                    style={{
-                      fontSize: 24,
-                      lineHeight: 1.1,
-                      fontWeight: 900,
-                      letterSpacing: '-0.04em',
-                      color: '#1f1710',
-                      marginBottom: 8,
-                    }}
-                  >
-                    {item.value}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      lineHeight: 1.7,
-                      color: '#7a6d5f',
-                    }}
-                  >
-                    {item.desc}
-                  </div>
+                  <p className="mt-2 text-[13px] leading-6 text-black/48">
+                    거래 가능한 상태의 자산만 기준으로 집계합니다.
+                  </p>
                 </div>
-              ))}
+
+                <div className="rounded-[28px] border border-black/6 bg-white/80 p-5 backdrop-blur">
+                  <div className="text-[12px] font-medium text-black/45">공개 자산 금액 합계</div>
+                  <div className="mt-2 text-[32px] font-semibold tracking-[-0.04em] text-[#111111]">
+                    ₩ {formatPrice(totalLiveAmount)}
+                  </div>
+                  <p className="mt-2 text-[13px] leading-6 text-black/48">
+                    현재 노출 중인 자산의 희망 가격 합계입니다.
+                  </p>
+                </div>
+
+                <div className="rounded-[28px] border border-black/6 bg-white/80 p-5 backdrop-blur">
+                  <div className="text-[12px] font-medium text-black/45">최근 7일 등록</div>
+                  <div className="mt-2 text-[32px] font-semibold tracking-[-0.04em] text-[#111111]">
+                    {recentRegisteredCount}건
+                  </div>
+                  <p className="mt-2 text-[13px] leading-6 text-black/48">
+                    최근 일주일 안에 새로 올라온 자산 수입니다.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gap: 18 }}>
-            <section
-              style={{
-                borderRadius: 30,
-                border: '1px solid #e4d8c8',
-                background: '#fffdfa',
-                boxShadow: '0 18px 50px rgba(47,36,23,0.05)',
-                padding: '26px 24px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#8b7760',
-                  fontWeight: 800,
-                  marginBottom: 10,
-                }}
-              >
-                현재 공개 현황
+          <div className="grid gap-5">
+            <div className="rounded-[36px] border border-black/5 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.06)] md:p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[12px] font-semibold tracking-[0.16em] text-black/40">
+                    AMOUNT TREND
+                  </div>
+                  <h2 className="mt-3 text-[30px] font-semibold leading-tight tracking-[-0.04em] text-[#111111]">
+                    거래금액 추이
+                  </h2>
+                  <p className="mt-2 text-[14px] leading-7 text-black/56">
+                    현재는 등록된 자산의 희망 가격 기준으로 7일 추이를 표시합니다.
+                  </p>
+                </div>
+
+                <div className="rounded-[22px] bg-[#f5f5f7] px-4 py-3 text-right">
+                  <div className="text-[11px] text-black/40">최고 등록 금액</div>
+                  <div className="mt-1 text-[20px] font-semibold tracking-[-0.03em] text-[#111111]">
+                    ₩ {formatPrice(highestPrice)}
+                  </div>
+                </div>
               </div>
 
-              <div
-                style={{
-                  fontSize: 58,
-                  lineHeight: 0.95,
-                  letterSpacing: '-0.06em',
-                  color: '#1f1710',
-                  fontWeight: 900,
-                }}
-              >
-                {liveCount}건
-              </div>
-
-              <p
-                style={{
-                  margin: '14px 0 20px',
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: '#746858',
-                }}
-              >
-                현재 활성 상태 기준으로 노출 중인 실제 등록 자산 수입니다.
-              </p>
-
-              <div
-                style={{
-                  borderTop: '1px solid #eee1d2',
-                  paddingTop: 16,
-                  display: 'grid',
-                  gap: 10,
-                }}
-              >
-                {[
-                  '활성 상태 자산만 홈에 반영',
-                  '최신 등록 흐름 기준으로 정렬',
-                  '상세 페이지로 즉시 이동 가능',
-                ].map((item) => (
-                  <div
-                    key={item}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      color: '#5e5245',
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
+              <div className="mt-6 rounded-[28px] bg-[linear-gradient(180deg,#fbfbfd_0%,#f6f7fb_100%)] p-4">
+                <div className="h-[220px] w-full rounded-[24px] border border-black/5 bg-white px-4 py-4">
+                  <svg
+                    viewBox="0 0 100 52"
+                    preserveAspectRatio="none"
+                    className="h-[170px] w-full"
+                    aria-label="금액 추이 그래프"
                   >
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 999,
-                        background: '#2f2417',
-                        flex: '0 0 auto',
-                      }}
-                    />
-                    {item}
+                    <defs>
+                      <linearGradient id="amountAreaFill" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(0,113,227,0.22)" />
+                        <stop offset="100%" stopColor="rgba(0,113,227,0.02)" />
+                      </linearGradient>
+                    </defs>
+
+                    {[0, 1, 2, 3].map((line) => {
+                      const y = 10 + line * 12
+                      return (
+                        <line
+                          key={line}
+                          x1="0"
+                          y1={y}
+                          x2="100"
+                          y2={y}
+                          stroke="rgba(0,0,0,0.08)"
+                          strokeWidth="0.6"
+                          strokeDasharray="1.5 2"
+                        />
+                      )
+                    })}
+
+                    {areaPath ? <path d={areaPath} fill="url(#amountAreaFill)" /> : null}
+
+                    {linePath ? (
+                      <path
+                        d={linePath}
+                        fill="none"
+                        stroke="rgba(0,113,227,0.95)"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    ) : null}
+
+                    {chartValues.map((value, index) => {
+                      const max = Math.max(...chartValues, 1)
+                      const min = Math.min(...chartValues, 0)
+                      const range = Math.max(max - min, 1)
+                      const x = (index / Math.max(chartValues.length - 1, 1)) * 100
+                      const y = 44 - ((value - min) / range) * 44
+
+                      return (
+                        <circle
+                          key={`${amountSeries[index]?.key ?? index}-dot`}
+                          cx={x}
+                          cy={y}
+                          r="1.6"
+                          fill="rgba(0,113,227,1)"
+                        />
+                      )
+                    })}
+                  </svg>
+
+                  <div className="mt-3 grid grid-cols-7 gap-2">
+                    {amountSeries.map((item) => (
+                      <div key={item.key} className="min-w-0">
+                        <div className="text-[11px] text-black/38">{item.label}</div>
+                        <div className="mt-1 truncate text-[12px] font-medium text-black/58">
+                          {item.amount > 0 ? `₩${formatPrice(item.amount)}` : '-'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[36px] border border-black/5 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.06)] md:p-7">
+              <div className="text-[12px] font-semibold tracking-[0.16em] text-black/40">
+                FLOW
+              </div>
+              <h2 className="mt-3 text-[28px] font-semibold tracking-[-0.04em] text-[#111111]">
+                홈에서 바로 이어지는 흐름
+              </h2>
+
+              <div className="mt-5 space-y-3">
+                {[
+                  ['1', '자산 등록', '제목, 카테고리, 가격, 설명만 정확하게 입력'],
+                  ['2', '문의 시작', '관심 있는 자산에서 바로 거래 문의 시작'],
+                  ['3', '진행 관리', '내 거래와 내 자산 화면에서 흐름 이어가기'],
+                ].map(([step, title, desc]) => (
+                  <div
+                    key={step}
+                    className="flex items-start gap-4 rounded-[24px] bg-[#f5f5f7] px-4 py-4"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[14px] font-semibold text-[#111111] shadow-[0_2px_10px_rgba(0,0,0,0.06)]">
+                      {step}
+                    </div>
+                    <div>
+                      <div className="text-[16px] font-semibold text-[#111111]">{title}</div>
+                      <p className="mt-1 text-[13px] leading-6 text-black/56">{desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-            </section>
-
-            <section
-              style={{
-                borderRadius: 30,
-                border: '1px solid #e4d8c8',
-                background: 'linear-gradient(180deg, #fffdfa 0%, #f8f1e7 100%)',
-                boxShadow: '0 18px 50px rgba(47,36,23,0.05)',
-                padding: '26px 24px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#8b7760',
-                  fontWeight: 800,
-                  marginBottom: 10,
-                }}
-              >
-                운영 방향
-              </div>
-
-              <div
-                style={{
-                  fontSize: 24,
-                  lineHeight: 1.18,
-                  letterSpacing: '-0.04em',
-                  color: '#1f1710',
-                  fontWeight: 900,
-                  marginBottom: 14,
-                  wordBreak: 'keep-all',
-                }}
-              >
-                적게 보여주고
-                <br />
-                정확하게 이동하게 합니다
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gap: 10,
-                  fontSize: 14,
-                  lineHeight: 1.8,
-                  color: '#746858',
-                }}
-              >
-                <div>
-                  홈 화면에서는 가장 먼저 현재 공개 자산 수를 보여주고, 사용자가 시장 상태를
-                  바로 파악할 수 있게 합니다.
-                </div>
-                <div>
-                  그 다음 단계로는 매물 둘러보기와 자산 등록하기를 바로 배치해, 탐색과 등록
-                  시작이 한 번에 이어지도록 구성합니다.
-                </div>
-                <div>
-                  최신 등록 자산 영역에서는 실제 활성 상태 자산만 최신순으로 노출해, 사용자가
-                  불필요한 항목 없이 바로 상세 페이지로 이동할 수 있게 합니다.
-                </div>
-                <div>
-                  화면 전체는 정보 수를 늘리기보다 현재 필요한 정보만 먼저 보여주고, 다음 행동이
-                  자연스럽게 이어지도록 정리하는 방향으로 운영합니다.
-                </div>
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <section
-          style={{
-            marginTop: 22,
-            borderRadius: 30,
-            border: '1px solid #e4d8c8',
-            background: 'linear-gradient(180deg, #fffdfa 0%, #f8f2e8 100%)',
-            boxShadow: '0 18px 50px rgba(47,36,23,0.05)',
-            padding: '22px 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 18,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              minWidth: 280,
-              flex: '1 1 620px',
-            }}
-          >
-            <div
-              style={{
-                width: 46,
-                height: 46,
-                borderRadius: 14,
-                background: '#2f2417',
-                color: '#fffaf3',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 26,
-                fontWeight: 900,
-                boxShadow: '0 12px 24px rgba(47,36,23,0.18)',
-              }}
-            >
-              M
-            </div>
-
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#8a7458',
-                  fontWeight: 800,
-                  marginBottom: 4,
-                }}
-              >
-                APP INSTALL
-              </div>
-              <div
-                style={{
-                  fontSize: 30,
-                  lineHeight: 1.05,
-                  letterSpacing: '-0.04em',
-                  color: '#1f1710',
-                  fontWeight: 900,
-                  marginBottom: 6,
-                }}
-              >
-                Msell 앱처럼 바로 실행하세요
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: '#756858',
-                }}
-              >
-                홈 화면에 추가하면 더 빠르게 접속할 수 있도록 설치 흐름을 유지합니다.
-              </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <button
-            type="button"
-            style={{
-              height: 46,
-              padding: '0 18px',
-              borderRadius: 16,
-              border: 'none',
-              background: 'linear-gradient(180deg, #3a2c1c 0%, #241b11 100%)',
-              color: '#fffaf3',
-              fontWeight: 900,
-              fontSize: 14,
-              cursor: 'pointer',
-              boxShadow: '0 12px 24px rgba(47,36,23,0.16)',
-            }}
-          >
-            앱 설치하기
-          </button>
-        </section>
-
-        <section style={{ marginTop: 28 }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 16,
-              alignItems: 'flex-end',
-              flexWrap: 'wrap',
-              marginBottom: 16,
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#8a7458',
-                  fontWeight: 900,
-                  marginBottom: 8,
-                }}
-              >
-                LIVE LISTINGS
-              </div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: 48,
-                  lineHeight: 0.98,
-                  letterSpacing: '-0.05em',
-                  color: '#1f1710',
-                  fontWeight: 900,
-                }}
-              >
-                최신 등록 자산
-              </h2>
-              <p
-                style={{
-                  margin: '12px 0 0',
-                  color: '#756858',
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                }}
-              >
-                현재 공개 상태의 실제 등록 자산을 최신순으로 표시합니다.
-              </p>
+      <section className="mx-auto w-full max-w-[1280px] px-5 pb-16 md:px-8 md:pb-24">
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <div>
+            <div className="text-[12px] font-semibold tracking-[0.16em] text-black/40">
+              LIVE LISTINGS
             </div>
-
-            <Link
-              href="/listings"
-              style={{
-                height: 44,
-                padding: '0 16px',
-                borderRadius: 14,
-                border: '1px solid #e0d4c4',
-                background: '#f0e4d3',
-                color: '#2f2417',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 14,
-                fontWeight: 900,
-              }}
-            >
-              전체 거래목록 보기
-            </Link>
+            <h2 className="mt-2 text-[40px] font-semibold tracking-[-0.05em] text-[#111111]">
+              최신 등록 자산
+            </h2>
+            <p className="mt-2 text-[15px] leading-7 text-black/56">
+              거래가능 상태 자산을 최신순으로 노출합니다.
+            </p>
           </div>
 
-          {liveCount > 0 ? (
-            <div
-              className="listing-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                gap: 16,
-              }}
-            >
-              {listings?.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/listings/${item.id}`}
-                  style={{
-                    textDecoration: 'none',
-                    color: 'inherit',
-                  }}
-                >
-                  <article
-                    style={{
-                      height: '100%',
-                      borderRadius: 26,
-                      border: '1px solid #e4d8c8',
-                      background: 'linear-gradient(180deg, #fffdfa 0%, #fbf6ee 100%)',
-                      boxShadow: '0 14px 40px rgba(47,36,23,0.05)',
-                      padding: '20px 20px 18px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 14,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        gap: 12,
-                        alignItems: 'center',
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '7px 11px',
-                          borderRadius: 999,
-                          background: '#efe3d2',
-                          color: '#7b6140',
-                          fontSize: 11,
-                          fontWeight: 900,
-                          letterSpacing: '0.04em',
-                        }}
-                      >
-                        {categoryLabel(item.category)}
-                      </span>
+          <Link
+            href="/listings"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-black/8 bg-white px-5 text-[14px] font-semibold text-[#111111] transition hover:bg-[#f2f2f4]"
+          >
+            전체 자산 보기
+          </Link>
+        </div>
 
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 800,
-                          color: '#8a7a67',
-                        }}
-                      >
-                        {timeAgo(item.created_at)}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 28,
-                        lineHeight: 1.08,
-                        letterSpacing: '-0.04em',
-                        fontWeight: 900,
-                        color: '#1f1710',
-                        minHeight: 60,
-                      }}
-                    >
-                      {item.title}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 15,
-                        lineHeight: 1.75,
-                        color: '#756858',
-                        minHeight: 78,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {item.description || '등록된 설명이 없습니다.'}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 'auto',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 12,
-                        borderTop: '1px solid #ece0d2',
-                        paddingTop: 14,
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: '#8b7760',
-                            fontWeight: 800,
-                            marginBottom: 4,
-                          }}
-                        >
-                          희망 가격
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 24,
-                            lineHeight: 1,
-                            letterSpacing: '-0.04em',
-                            color: '#1f1710',
-                            fontWeight: 900,
-                          }}
-                        >
-                          {formatPrice(item.price)}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          height: 42,
-                          padding: '0 14px',
-                          borderRadius: 14,
-                          background: '#2f2417',
-                          color: '#fffaf3',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 13,
-                          fontWeight: 900,
-                        }}
-                      >
-                        상세 보기
-                      </div>
-                    </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div
-              style={{
-                borderRadius: 26,
-                border: '1px solid #e4d8c8',
-                background: '#fffdfa',
-                boxShadow: '0 14px 40px rgba(47,36,23,0.05)',
-                padding: '26px 24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 16,
-                alignItems: 'center',
-                flexWrap: 'wrap',
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 22,
-                    lineHeight: 1.12,
-                    letterSpacing: '-0.04em',
-                    color: '#1f1710',
-                    fontWeight: 900,
-                    marginBottom: 8,
-                  }}
-                >
-                  아직 공개된 자산이 없습니다
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 1.7,
-                    color: '#756858',
-                  }}
-                >
-                  첫 자산을 등록해 홈 화면의 첫 매물을 만들어보세요.
-                </div>
-              </div>
-
+        <div className="grid gap-4 lg:grid-cols-3">
+          {latestListings.length > 0 ? (
+            latestListings.map((item) => (
               <Link
-                href="/listings/create"
-                style={{
-                  height: 46,
-                  padding: '0 18px',
-                  borderRadius: 16,
-                  border: 'none',
-                  background: 'linear-gradient(180deg, #3a2c1c 0%, #241b11 100%)',
-                  color: '#fffaf3',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 14,
-                  fontWeight: 900,
-                  boxShadow: '0 12px 24px rgba(47,36,23,0.16)',
-                }}
+                key={item.id || `${item.title}-${item.created_at}`}
+                href={item.id ? `/listings/${item.id}` : '/listings'}
+                className="group rounded-[32px] border border-black/5 bg-white p-6 shadow-[0_16px_40px_rgba(0,0,0,0.05)] transition duration-200 hover:-translate-y-[2px] hover:shadow-[0_22px_50px_rgba(0,0,0,0.08)]"
               >
-                첫 자산 등록하기
+                <div className="flex items-center justify-between gap-3">
+                  <div className="inline-flex rounded-full bg-[#f5f5f7] px-3 py-1 text-[12px] font-medium text-black/58">
+                    {getCategoryBadge(item.category)}
+                  </div>
+                  <div className="text-[12px] text-black/36">{getStatusLabel(item.status)}</div>
+                </div>
+
+                <h3 className="mt-5 line-clamp-2 text-[25px] font-semibold leading-[1.18] tracking-[-0.04em] text-[#111111]">
+                  {item.title || '제목 미입력'}
+                </h3>
+
+                <div className="mt-6 text-[30px] font-semibold tracking-[-0.05em] text-[#111111]">
+                  ₩ {formatPrice(toNumber(item.price))}
+                </div>
+
+                <div className="mt-6 flex items-center justify-between">
+                  <span className="text-[13px] text-black/46">상세 페이지로 이동</span>
+                  <span className="text-[18px] text-black/28 transition group-hover:translate-x-1">
+                    →
+                  </span>
+                </div>
               </Link>
+            ))
+          ) : (
+            <div className="lg:col-span-3 rounded-[32px] border border-dashed border-black/10 bg-white px-6 py-14 text-center shadow-[0_16px_40px_rgba(0,0,0,0.04)]">
+              <div className="text-[30px] font-semibold tracking-[-0.04em] text-[#111111]">
+                아직 등록된 자산이 없습니다.
+              </div>
+              <p className="mt-3 text-[15px] leading-7 text-black/56">
+                첫 자산을 등록하면 홈의 최신 자산과 금액 추이 영역이 함께 반영됩니다.
+              </p>
+              <div className="mt-6">
+                <Link
+                  href={user ? '/listings/create' : '/auth/login?next=/listings/create'}
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-[#111111] px-6 text-[15px] font-semibold text-white transition hover:bg-black"
+                >
+                  첫 자산 등록하기
+                </Link>
+              </div>
             </div>
           )}
-        </section>
-      </div>
-
-      <style>{`
-        @media (max-width: 1180px) {
-          .home-hero-grid {
-            grid-template-columns: 1fr !important;
-          }
-
-          .listing-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-        }
-
-        @media (max-width: 820px) {
-          .hero-metrics {
-            grid-template-columns: 1fr !important;
-          }
-
-          .listing-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-
-        @media (max-width: 760px) {
-          .hero-title {
-            font-size: 54px !important;
-            line-height: 0.98 !important;
-          }
-        }
-      `}</style>
+        </div>
+      </section>
     </main>
   )
 }
