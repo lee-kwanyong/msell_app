@@ -21,12 +21,6 @@ function normalizeUsername(value: string | null) {
   return normalized || null
 }
 
-function normalizePhone(value: string | null) {
-  if (!value) return null
-  const digits = value.replace(/[^0-9]/g, '')
-  return digits || null
-}
-
 export async function updateAccountAction(formData: FormData) {
   const supabase = await supabaseServer()
 
@@ -41,16 +35,8 @@ export async function updateAccountAction(formData: FormData) {
   const fullName = normalizeText(formData.get('full_name'))
   const usernameRaw = normalizeText(formData.get('username'))
   const username = normalizeUsername(usernameRaw)
-  const phoneNumberRaw = normalizeText(formData.get('phone_number'))
-  const phoneNumber = normalizePhone(phoneNumberRaw)
-
-  if (!phoneNumber) {
-    redirect('/account?error=' + encodeURIComponent('연락처를 입력해야 저장할 수 있습니다.'))
-  }
-
-  if (phoneNumber.length < 8) {
-    redirect('/account?error=' + encodeURIComponent('연락처 형식이 올바르지 않습니다.'))
-  }
+  const phoneNumber = normalizeText(formData.get('phone_number'))
+  const gender = normalizeText(formData.get('gender'))
 
   if (username && username.length < 2) {
     redirect('/account?error=' + encodeURIComponent('사용자명은 2자 이상이어야 합니다.'))
@@ -62,6 +48,7 @@ export async function updateAccountAction(formData: FormData) {
     full_name: fullName,
     username,
     phone_number: phoneNumber,
+    gender,
   }
 
   const { error } = await supabase
