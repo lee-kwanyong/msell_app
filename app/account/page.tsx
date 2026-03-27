@@ -2,34 +2,42 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 
+function firstString(...values: Array<string | null | undefined>) {
+  return values.find((value) => typeof value === 'string' && value.trim().length > 0) || ''
+}
+
 export default async function AccountPage() {
   const supabase = await supabaseServer()
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (userError || !user) {
     redirect('/auth/login?next=/account')
   }
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*')
+    .select('id, full_name, username, email, phone_number, gender, role, avatar_url')
     .eq('id', user.id)
     .maybeSingle()
 
-  const displayName =
-    profile?.full_name ||
-    profile?.username ||
-    user.user_metadata?.full_name ||
-    user.email ||
+  const displayName = firstString(
+    profile?.full_name,
+    profile?.username,
+    user.user_metadata?.full_name,
+    user.user_metadata?.name,
+    user.email?.split('@')[0],
     '사용자'
+  )
 
-  const email = profile?.email || user.email || ''
-  const phone = profile?.phone_number || ''
-  const username = profile?.username || ''
-  const gender = profile?.gender || ''
+  const email = firstString(profile?.email, user.email, '-')
+  const phone = firstString(profile?.phone_number, '-')
+  const username = firstString(profile?.username, '-')
+  const gender = firstString(profile?.gender, '-')
+  const role = firstString(profile?.role, 'user')
 
   return (
     <main
@@ -41,7 +49,7 @@ export default async function AccountPage() {
     >
       <div
         style={{
-          maxWidth: 880,
+          maxWidth: 920,
           margin: '0 auto',
           display: 'grid',
           gap: 16,
@@ -65,7 +73,7 @@ export default async function AccountPage() {
               marginBottom: 8,
             }}
           >
-            MY ACCOUNT
+            ACCOUNT
           </div>
 
           <h1
@@ -124,11 +132,12 @@ export default async function AccountPage() {
             gap: 10,
           }}
         >
-          <InfoRow label="이름" value={String(displayName)} />
-          <InfoRow label="이메일" value={String(email || '-')} />
-          <InfoRow label="연락처" value={String(phone || '-')} />
-          <InfoRow label="아이디" value={String(username || '-')} />
-          <InfoRow label="성별" value={String(gender || '-')} />
+          <InfoRow label="이름" value={displayName} />
+          <InfoRow label="이메일" value={email} />
+          <InfoRow label="연락처" value={phone} />
+          <InfoRow label="아이디" value={username} />
+          <InfoRow label="성별" value={gender} />
+          <InfoRow label="권한" value={role} />
         </section>
 
         <section

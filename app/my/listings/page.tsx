@@ -41,11 +41,13 @@ function getShortDescription(value?: string | null) {
 
 export default async function MyListingsPage() {
   const supabase = await supabaseServer()
+
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (userError || !user) {
     redirect('/auth/login?next=/my/listings')
   }
 
