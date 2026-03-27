@@ -126,42 +126,43 @@ export default async function HomePage() {
     <main
       style={{
         minHeight: '100vh',
-        background: '#f5f5f7',
-        color: '#111111',
+        background: 'linear-gradient(180deg, #f7f6f3 0%, #f3f2ee 100%)',
+        color: '#171411',
       }}
     >
       <section
         style={{
-          width: '100%',
           maxWidth: 1280,
           margin: '0 auto',
-          padding: '32px 20px 18px',
+          padding: '40px 24px 22px',
         }}
       >
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.45fr) minmax(360px, 0.95fr)',
-            gap: 20,
+            gridTemplateColumns: 'minmax(0, 1.55fr) minmax(360px, 0.95fr)',
+            gap: 22,
             alignItems: 'stretch',
           }}
         >
           <div
             style={{
-              borderRadius: 32,
-              background: '#ffffff',
-              border: '1px solid rgba(17,17,17,0.06)',
-              boxShadow: '0 18px 40px rgba(0,0,0,0.05)',
-              padding: 32,
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: 34,
+              background:
+                'radial-gradient(circle at top right, rgba(110,84,49,0.08), transparent 28%), linear-gradient(180deg, #fffdfa 0%, #f8f5ef 100%)',
+              border: '1px solid rgba(60,42,23,0.08)',
+              boxShadow: '0 20px 50px rgba(34,24,16,0.06)',
+              padding: 34,
             }}
           >
             <div
               style={{
-                fontSize: 12,
-                lineHeight: 1.2,
-                letterSpacing: '0.14em',
-                color: 'rgba(17,17,17,0.45)',
-                fontWeight: 600,
+                fontSize: 11,
+                letterSpacing: '0.18em',
+                color: 'rgba(58,40,22,0.48)',
+                fontWeight: 700,
               }}
             >
               MSELL
@@ -169,20 +170,22 @@ export default async function HomePage() {
 
             <h1
               style={{
-                marginTop: 18,
-                fontSize: 64,
-                lineHeight: 0.98,
-                letterSpacing: '-0.05em',
+                margin: '18px 0 0',
+                fontSize: 68,
+                lineHeight: 0.95,
+                letterSpacing: '-0.055em',
                 fontWeight: 700,
-                marginBottom: 0,
+                color: '#18130f',
               }}
             >
-              디지털 자산 거래
+              디지털 자산
+              <br />
+              마켓플레이스
             </h1>
 
             <div
               style={{
-                marginTop: 28,
+                marginTop: 26,
                 display: 'flex',
                 gap: 12,
                 flexWrap: 'wrap',
@@ -191,17 +194,18 @@ export default async function HomePage() {
               <Link
                 href="/listings"
                 style={{
-                  height: 44,
+                  height: 46,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '0 20px',
+                  padding: '0 22px',
                   borderRadius: 999,
-                  background: '#111111',
+                  background: '#24180f',
                   color: '#ffffff',
                   textDecoration: 'none',
                   fontSize: 14,
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  boxShadow: '0 10px 24px rgba(36,24,15,0.18)',
                 }}
               >
                 자산목록
@@ -210,18 +214,19 @@ export default async function HomePage() {
               <Link
                 href={user ? '/listings/create' : '/auth/login?next=/listings/create'}
                 style={{
-                  height: 44,
+                  height: 46,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '0 20px',
+                  padding: '0 22px',
                   borderRadius: 999,
-                  background: '#ffffff',
-                  color: '#111111',
+                  background: 'rgba(255,255,255,0.82)',
+                  color: '#24180f',
                   textDecoration: 'none',
                   fontSize: 14,
-                  fontWeight: 600,
-                  border: '1px solid rgba(17,17,17,0.10)',
+                  fontWeight: 700,
+                  border: '1px solid rgba(60,42,23,0.10)',
+                  backdropFilter: 'blur(10px)',
                 }}
               >
                 자산등록
@@ -230,7 +235,7 @@ export default async function HomePage() {
 
             <div
               style={{
-                marginTop: 30,
+                marginTop: 34,
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
                 gap: 14,
@@ -239,14 +244,16 @@ export default async function HomePage() {
               <div
                 style={{
                   borderRadius: 24,
-                  background: '#f7f7f8',
-                  padding: 22,
+                  background: 'rgba(255,255,255,0.78)',
+                  border: '1px solid rgba(60,42,23,0.06)',
+                  padding: 20,
+                  backdropFilter: 'blur(8px)',
                 }}
               >
                 <div
                   style={{
                     fontSize: 12,
-                    color: 'rgba(17,17,17,0.48)',
+                    color: 'rgba(52,38,24,0.48)',
                   }}
                 >
                   현재 공개 자산
@@ -254,9 +261,11 @@ export default async function HomePage() {
                 <div
                   style={{
                     marginTop: 8,
-                    fontSize: 36,
+                    fontSize: 38,
+                    lineHeight: 1,
                     fontWeight: 700,
-                    letterSpacing: '-0.04em',
+                    letterSpacing: '-0.05em',
+                    color: '#171411',
                   }}
                 >
                   {activeCount}
@@ -266,14 +275,16 @@ export default async function HomePage() {
               <div
                 style={{
                   borderRadius: 24,
-                  background: '#f7f7f8',
-                  padding: 22,
+                  background: 'rgba(255,255,255,0.78)',
+                  border: '1px solid rgba(60,42,23,0.06)',
+                  padding: 20,
+                  backdropFilter: 'blur(8px)',
                 }}
               >
                 <div
                   style={{
                     fontSize: 12,
-                    color: 'rgba(17,17,17,0.48)',
+                    color: 'rgba(52,38,24,0.48)',
                   }}
                 >
                   공개 금액 합계
@@ -281,9 +292,11 @@ export default async function HomePage() {
                 <div
                   style={{
                     marginTop: 8,
-                    fontSize: 36,
+                    fontSize: 38,
+                    lineHeight: 1,
                     fontWeight: 700,
-                    letterSpacing: '-0.04em',
+                    letterSpacing: '-0.05em',
+                    color: '#171411',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -296,14 +309,16 @@ export default async function HomePage() {
               <div
                 style={{
                   borderRadius: 24,
-                  background: '#f7f7f8',
-                  padding: 22,
+                  background: 'rgba(255,255,255,0.78)',
+                  border: '1px solid rgba(60,42,23,0.06)',
+                  padding: 20,
+                  backdropFilter: 'blur(8px)',
                 }}
               >
                 <div
                   style={{
                     fontSize: 12,
-                    color: 'rgba(17,17,17,0.48)',
+                    color: 'rgba(52,38,24,0.48)',
                   }}
                 >
                   최근 7일 등록
@@ -311,9 +326,11 @@ export default async function HomePage() {
                 <div
                   style={{
                     marginTop: 8,
-                    fontSize: 36,
+                    fontSize: 38,
+                    lineHeight: 1,
                     fontWeight: 700,
-                    letterSpacing: '-0.04em',
+                    letterSpacing: '-0.05em',
+                    color: '#171411',
                   }}
                 >
                   {weekCount}
@@ -324,10 +341,10 @@ export default async function HomePage() {
 
           <div
             style={{
-              borderRadius: 32,
-              background: '#ffffff',
-              border: '1px solid rgba(17,17,17,0.06)',
-              boxShadow: '0 18px 40px rgba(0,0,0,0.05)',
+              borderRadius: 34,
+              background: 'linear-gradient(180deg, #fffdfa 0%, #f8f5ef 100%)',
+              border: '1px solid rgba(60,42,23,0.08)',
+              boxShadow: '0 20px 50px rgba(34,24,16,0.06)',
               padding: 28,
             }}
           >
@@ -342,23 +359,22 @@ export default async function HomePage() {
               <div>
                 <div
                   style={{
-                    fontSize: 12,
-                    lineHeight: 1.2,
-                    letterSpacing: '0.14em',
-                    color: 'rgba(17,17,17,0.45)',
-                    fontWeight: 600,
+                    fontSize: 11,
+                    letterSpacing: '0.18em',
+                    color: 'rgba(58,40,22,0.48)',
+                    fontWeight: 700,
                   }}
                 >
                   AMOUNT TREND
                 </div>
                 <h2
                   style={{
-                    marginTop: 12,
-                    marginBottom: 0,
-                    fontSize: 32,
-                    lineHeight: 1.05,
-                    letterSpacing: '-0.04em',
+                    margin: '12px 0 0',
+                    fontSize: 30,
+                    lineHeight: 1.02,
+                    letterSpacing: '-0.045em',
                     fontWeight: 700,
+                    color: '#171411',
                   }}
                 >
                   거래금액 추이
@@ -368,10 +384,11 @@ export default async function HomePage() {
               <div
                 style={{
                   borderRadius: 999,
-                  background: '#f7f7f8',
-                  padding: '10px 14px',
+                  background: 'rgba(91,66,39,0.05)',
+                  color: 'rgba(58,40,22,0.58)',
                   fontSize: 12,
-                  color: 'rgba(17,17,17,0.55)',
+                  fontWeight: 600,
+                  padding: '9px 13px',
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -382,23 +399,24 @@ export default async function HomePage() {
             <div
               style={{
                 marginTop: 22,
-                borderRadius: 24,
-                background: '#f7f7f8',
+                borderRadius: 26,
+                background: 'rgba(255,255,255,0.72)',
+                border: '1px solid rgba(60,42,23,0.05)',
                 padding: 18,
               }}
             >
               <div
                 style={{
-                  height: 240,
+                  height: 258,
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
                   alignItems: 'end',
-                  gap: 14,
+                  gap: 12,
                 }}
               >
                 {amountSeries.map((item) => {
                   const heightPercent =
-                    item.amount > 0 ? Math.max((item.amount / maxAmount) * 100, 8) : 6
+                    item.amount > 0 ? Math.max((item.amount / maxAmount) * 100, 10) : 6
 
                   return (
                     <div
@@ -406,33 +424,35 @@ export default async function HomePage() {
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
-                        alignItems: 'center',
                         justifyContent: 'end',
+                        alignItems: 'center',
                         gap: 10,
                         height: '100%',
                       }}
                     >
                       <div
                         style={{
-                          height: 170,
                           width: '100%',
+                          height: 178,
                           display: 'flex',
-                          alignItems: 'end',
                           justifyContent: 'center',
+                          alignItems: 'end',
                         }}
                       >
                         <div
                           title={`${item.label} / ₩ ${formatPrice(item.amount)}`}
                           style={{
                             width: '100%',
-                            maxWidth: 54,
+                            maxWidth: 50,
+                            minHeight: item.amount > 0 ? 18 : 10,
                             height: `${heightPercent}%`,
-                            minHeight: item.amount > 0 ? 16 : 10,
-                            borderRadius: '18px 18px 10px 10px',
+                            borderRadius: '18px 18px 12px 12px',
                             background:
                               item.amount > 0
-                                ? 'linear-gradient(180deg, #1f7aff 0%, #0a66e8 100%)'
-                                : 'rgba(17,17,17,0.10)',
+                                ? 'linear-gradient(180deg, #5f452b 0%, #24180f 100%)'
+                                : 'rgba(36,24,15,0.10)',
+                            boxShadow:
+                              item.amount > 0 ? '0 12px 26px rgba(36,24,15,0.16)' : 'none',
                           }}
                         />
                       </div>
@@ -440,7 +460,7 @@ export default async function HomePage() {
                       <div
                         style={{
                           fontSize: 12,
-                          color: 'rgba(17,17,17,0.48)',
+                          color: 'rgba(52,38,24,0.52)',
                           textAlign: 'center',
                         }}
                       >
@@ -450,7 +470,7 @@ export default async function HomePage() {
                       <div
                         style={{
                           fontSize: 11,
-                          color: 'rgba(17,17,17,0.55)',
+                          color: 'rgba(52,38,24,0.58)',
                           textAlign: 'center',
                           lineHeight: 1.35,
                           wordBreak: 'break-all',
@@ -469,10 +489,9 @@ export default async function HomePage() {
 
       <section
         style={{
-          width: '100%',
           maxWidth: 1280,
           margin: '0 auto',
-          padding: '8px 20px 80px',
+          padding: '8px 24px 90px',
         }}
       >
         <div
@@ -480,30 +499,29 @@ export default async function HomePage() {
             display: 'flex',
             alignItems: 'end',
             justifyContent: 'space-between',
-            gap: 16,
+            gap: 18,
             marginBottom: 20,
           }}
         >
           <div>
             <div
               style={{
-                fontSize: 12,
-                lineHeight: 1.2,
-                letterSpacing: '0.14em',
-                color: 'rgba(17,17,17,0.45)',
-                fontWeight: 600,
+                fontSize: 11,
+                letterSpacing: '0.18em',
+                color: 'rgba(58,40,22,0.48)',
+                fontWeight: 700,
               }}
             >
               LIVE LISTINGS
             </div>
             <h2
               style={{
-                marginTop: 10,
-                marginBottom: 0,
-                fontSize: 42,
-                lineHeight: 1,
-                letterSpacing: '-0.05em',
+                margin: '10px 0 0',
+                fontSize: 46,
+                lineHeight: 0.98,
+                letterSpacing: '-0.055em',
                 fontWeight: 700,
+                color: '#171411',
               }}
             >
               최신 등록 자산
@@ -519,12 +537,12 @@ export default async function HomePage() {
               justifyContent: 'center',
               padding: '0 18px',
               borderRadius: 999,
-              background: '#ffffff',
-              color: '#111111',
+              background: 'rgba(255,255,255,0.78)',
+              color: '#24180f',
               textDecoration: 'none',
               fontSize: 14,
-              fontWeight: 600,
-              border: '1px solid rgba(17,17,17,0.10)',
+              fontWeight: 700,
+              border: '1px solid rgba(60,42,23,0.10)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -545,14 +563,14 @@ export default async function HomePage() {
                 key={item.id || `${item.title}-${item.created_at}`}
                 href={item.id ? `/listings/${item.id}` : '/listings'}
                 style={{
-                  textDecoration: 'none',
-                  color: '#111111',
-                  borderRadius: 28,
-                  background: '#ffffff',
-                  border: '1px solid rgba(17,17,17,0.06)',
-                  boxShadow: '0 14px 30px rgba(0,0,0,0.04)',
-                  padding: 24,
                   display: 'block',
+                  textDecoration: 'none',
+                  color: '#171411',
+                  borderRadius: 30,
+                  background: 'linear-gradient(180deg, #fffdfa 0%, #f8f5ef 100%)',
+                  border: '1px solid rgba(60,42,23,0.08)',
+                  boxShadow: '0 16px 36px rgba(34,24,16,0.05)',
+                  padding: 24,
                 }}
               >
                 <div
@@ -570,10 +588,11 @@ export default async function HomePage() {
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                       borderRadius: 999,
-                      background: '#f7f7f8',
+                      background: 'rgba(91,66,39,0.06)',
+                      color: 'rgba(52,38,24,0.66)',
                       padding: '7px 12px',
                       fontSize: 12,
-                      color: 'rgba(17,17,17,0.60)',
+                      fontWeight: 600,
                     }}
                   >
                     {item.category || '기타'}
@@ -582,7 +601,7 @@ export default async function HomePage() {
                   <div
                     style={{
                       fontSize: 12,
-                      color: 'rgba(17,17,17,0.42)',
+                      color: 'rgba(52,38,24,0.42)',
                       whiteSpace: 'nowrap',
                     }}
                   >
@@ -593,11 +612,12 @@ export default async function HomePage() {
                 <div
                   style={{
                     marginTop: 18,
+                    minHeight: 72,
                     fontSize: 30,
-                    lineHeight: 1.15,
-                    letterSpacing: '-0.04em',
+                    lineHeight: 1.14,
+                    letterSpacing: '-0.045em',
                     fontWeight: 700,
-                    minHeight: 70,
+                    color: '#171411',
                   }}
                 >
                   {item.title || '제목 없음'}
@@ -605,11 +625,12 @@ export default async function HomePage() {
 
                 <div
                   style={{
-                    marginTop: 20,
-                    fontSize: 36,
+                    marginTop: 22,
+                    fontSize: 38,
                     lineHeight: 1,
                     letterSpacing: '-0.05em',
                     fontWeight: 700,
+                    color: '#171411',
                   }}
                 >
                   ₩ {formatPrice(toNumber(item.price))}
@@ -620,19 +641,20 @@ export default async function HomePage() {
         ) : (
           <div
             style={{
-              borderRadius: 28,
-              background: '#ffffff',
-              border: '1px solid rgba(17,17,17,0.06)',
-              boxShadow: '0 14px 30px rgba(0,0,0,0.04)',
-              padding: '44px 28px',
+              borderRadius: 30,
+              background: 'linear-gradient(180deg, #fffdfa 0%, #f8f5ef 100%)',
+              border: '1px solid rgba(60,42,23,0.08)',
+              boxShadow: '0 16px 36px rgba(34,24,16,0.05)',
+              padding: '46px 28px',
               textAlign: 'center',
             }}
           >
             <div
               style={{
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: 700,
-                letterSpacing: '-0.03em',
+                letterSpacing: '-0.04em',
+                color: '#171411',
               }}
             >
               등록된 자산이 없습니다
@@ -648,11 +670,12 @@ export default async function HomePage() {
                   justifyContent: 'center',
                   padding: '0 20px',
                   borderRadius: 999,
-                  background: '#111111',
+                  background: '#24180f',
                   color: '#ffffff',
                   textDecoration: 'none',
                   fontSize: 14,
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  boxShadow: '0 10px 24px rgba(36,24,15,0.16)',
                 }}
               >
                 자산등록
