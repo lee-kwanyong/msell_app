@@ -3,9 +3,9 @@
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
 
-function normalize(value: FormDataEntryValue | null) {
-  if (typeof value !== 'string') return '';
-  return value.trim();
+function getString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 export async function updateAccountAction(formData: FormData) {
@@ -20,10 +20,10 @@ export async function updateAccountAction(formData: FormData) {
     redirect('/auth/login?next=/account');
   }
 
-  const full_name = normalize(formData.get('full_name'));
-  const username = normalize(formData.get('username'));
-  const phone_number = normalize(formData.get('phone_number'));
-  const gender = normalize(formData.get('gender'));
+  const full_name = getString(formData, 'full_name');
+  const username = getString(formData, 'username');
+  const phone_number = getString(formData, 'phone_number');
+  const gender = getString(formData, 'gender');
 
   if (!full_name) {
     redirect('/account?error=' + encodeURIComponent('이름을 입력해주세요.'));
@@ -39,9 +39,9 @@ export async function updateAccountAction(formData: FormData) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error: profileError } = await supabase.from('profiles').upsert(profilePayload, {
-    onConflict: 'id',
-  });
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .upsert(profilePayload, { onConflict: 'id' });
 
   if (profileError) {
     redirect(
@@ -50,7 +50,7 @@ export async function updateAccountAction(formData: FormData) {
     );
   }
 
-  const { error: authUpdateError } = await supabase.auth.updateUser({
+  const { error: authError } = await supabase.auth.updateUser({
     data: {
       full_name,
       username: username || null,
@@ -59,10 +59,10 @@ export async function updateAccountAction(formData: FormData) {
     },
   });
 
-  if (authUpdateError) {
+  if (authError) {
     redirect(
       '/account?error=' +
-        encodeURIComponent(authUpdateError.message || '계정 정보 저장 중 오류가 발생했습니다.'),
+        encodeURIComponent(authError.message || '계정 정보 저장 중 오류가 발생했습니다.'),
     );
   }
 

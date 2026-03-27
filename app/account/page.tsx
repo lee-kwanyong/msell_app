@@ -16,9 +16,14 @@ function pickFirst(value: string | string[] | undefined) {
   return value ?? '';
 }
 
-export default async function AccountPage({
-  searchParams,
-}: AccountPageProps) {
+function displayGender(value: string) {
+  if (value === 'male') return '남성';
+  if (value === 'female') return '여성';
+  if (value === 'other') return '기타';
+  return '-';
+}
+
+export default async function AccountPage({ searchParams }: AccountPageProps) {
   const supabase = await supabaseServer();
 
   const [
@@ -38,7 +43,7 @@ export default async function AccountPage({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, username, phone_number, gender, email')
+    .select('full_name, username, phone_number, gender, email, role')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -53,6 +58,7 @@ export default async function AccountPage({
   const gender =
     profile?.gender ?? (user.user_metadata?.gender as string | undefined) ?? '';
   const email = profile?.email ?? user.email ?? '';
+  const role = typeof profile?.role === 'string' ? profile.role : 'user';
 
   const updated = pickFirst(resolvedSearchParams.updated) === '1';
   const error = pickFirst(resolvedSearchParams.error);
@@ -67,7 +73,7 @@ export default async function AccountPage({
     >
       <div
         style={{
-          maxWidth: 880,
+          maxWidth: 1120,
           margin: '0 auto',
           display: 'grid',
           gap: 20,
@@ -75,21 +81,22 @@ export default async function AccountPage({
       >
         <section
           style={{
-            background: '#ffffff',
+            borderRadius: 30,
             border: '1px solid #eadfcf',
-            borderRadius: 28,
-            padding: '28px 24px',
-            boxShadow: '0 20px 60px rgba(47, 36, 23, 0.06)',
+            background: '#ffffff',
+            boxShadow: '0 24px 80px rgba(47, 36, 23, 0.08)',
+            overflow: 'hidden',
           }}
         >
           <div
             style={{
+              padding: '28px 28px 22px',
+              borderBottom: '1px solid #efe5d8',
               display: 'flex',
               justifyContent: 'space-between',
-              gap: 16,
               alignItems: 'flex-start',
+              gap: 16,
               flexWrap: 'wrap',
-              marginBottom: 20,
             }}
           >
             <div style={{ display: 'grid', gap: 8 }}>
@@ -103,7 +110,7 @@ export default async function AccountPage({
                   background: '#f6efe4',
                   color: '#7a5a33',
                   fontSize: 12,
-                  fontWeight: 700,
+                  fontWeight: 800,
                 }}
               >
                 ACCOUNT
@@ -112,9 +119,9 @@ export default async function AccountPage({
               <h1
                 style={{
                   margin: 0,
-                  fontSize: 34,
-                  lineHeight: 1.1,
                   color: '#24170f',
+                  fontSize: 34,
+                  lineHeight: 1.08,
                   letterSpacing: '-0.04em',
                 }}
               >
@@ -129,7 +136,7 @@ export default async function AccountPage({
                   lineHeight: 1.7,
                 }}
               >
-                계정 기본 정보와 프로필 값을 관리할 수 있습니다.
+                기본 프로필, 연락처, 계정 상태를 한 번에 관리합니다.
               </p>
             </div>
 
@@ -144,13 +151,14 @@ export default async function AccountPage({
                 href="/my/listings"
                 style={{
                   textDecoration: 'none',
-                  height: 42,
+                  height: 44,
                   padding: '0 16px',
-                  borderRadius: 12,
+                  borderRadius: 14,
                   border: '1px solid #e5d7c4',
                   background: '#ffffff',
                   color: '#2f2417',
-                  fontWeight: 700,
+                  fontSize: 14,
+                  fontWeight: 800,
                   display: 'inline-flex',
                   alignItems: 'center',
                 }}
@@ -162,359 +170,360 @@ export default async function AccountPage({
                 href="/my/deals"
                 style={{
                   textDecoration: 'none',
-                  height: 42,
+                  height: 44,
                   padding: '0 16px',
-                  borderRadius: 12,
+                  borderRadius: 14,
                   border: '1px solid #e5d7c4',
                   background: '#ffffff',
                   color: '#2f2417',
-                  fontWeight: 700,
+                  fontSize: 14,
+                  fontWeight: 800,
                   display: 'inline-flex',
                   alignItems: 'center',
                 }}
               >
                 내 거래
               </Link>
+
+              <Link
+                href="/notifications"
+                style={{
+                  textDecoration: 'none',
+                  height: 44,
+                  padding: '0 16px',
+                  borderRadius: 14,
+                  border: '1px solid #e5d7c4',
+                  background: '#eadfcf',
+                  color: '#2f2417',
+                  fontSize: 14,
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+              >
+                알림
+              </Link>
             </div>
           </div>
 
-          {updated ? (
-            <div
-              style={{
-                marginBottom: 16,
-                borderRadius: 16,
-                border: '1px solid #cfe7d4',
-                background: '#f2fbf5',
-                color: '#1f6b3b',
-                padding: '14px 16px',
-                fontSize: 14,
-                fontWeight: 700,
-              }}
-            >
-              계정 정보가 저장되었습니다.
-            </div>
-          ) : null}
-
-          {error ? (
-            <div
-              style={{
-                marginBottom: 16,
-                borderRadius: 16,
-                border: '1px solid #efc9c2',
-                background: '#fff5f3',
-                color: '#9a3412',
-                padding: '14px 16px',
-                fontSize: 14,
-                fontWeight: 700,
-                wordBreak: 'break-word',
-              }}
-            >
-              {error}
-            </div>
-          ) : null}
-
           <div
             style={{
+              padding: 28,
               display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1.2fr) minmax(320px, 0.8fr)',
-              gap: 18,
+              gridTemplateColumns: 'minmax(0, 1.35fr) minmax(300px, 0.9fr)',
+              gap: 20,
             }}
           >
-            <form
-              action={updateAccountAction}
-              style={{
-                display: 'grid',
-                gap: 16,
-                padding: 20,
-                borderRadius: 22,
-                border: '1px solid #eee4d7',
-                background: '#fffdf9',
-              }}
-            >
-              <div style={{ display: 'grid', gap: 8 }}>
-                <label
-                  htmlFor="email"
-                  style={{ fontSize: 13, fontWeight: 800, color: '#5c4630' }}
-                >
-                  이메일
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  value={email}
-                  readOnly
+            <div style={{ display: 'grid', gap: 16 }}>
+              {updated ? (
+                <div
                   style={{
-                    width: '100%',
-                    height: 52,
-                    borderRadius: 14,
-                    border: '1px solid #e6dac9',
-                    background: '#f5efe6',
-                    padding: '0 16px',
-                    color: '#7a6a59',
-                    fontSize: 15,
-                    outline: 'none',
+                    borderRadius: 16,
+                    border: '1px solid #cfe7d4',
+                    background: '#f2fbf5',
+                    color: '#1f6b3b',
+                    padding: '14px 16px',
+                    fontSize: 14,
+                    fontWeight: 800,
                   }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gap: 8 }}>
-                <label
-                  htmlFor="full_name"
-                  style={{ fontSize: 13, fontWeight: 800, color: '#5c4630' }}
                 >
-                  이름
-                </label>
-                <input
-                  id="full_name"
-                  name="full_name"
-                  defaultValue={fullName}
-                  placeholder="이름을 입력하세요"
-                  required
-                  style={{
-                    width: '100%',
-                    height: 52,
-                    borderRadius: 14,
-                    border: '1px solid #e6dac9',
-                    background: '#ffffff',
-                    padding: '0 16px',
-                    color: '#24170f',
-                    fontSize: 15,
-                    outline: 'none',
-                  }}
-                />
-              </div>
+                  계정 정보가 저장되었습니다.
+                </div>
+              ) : null}
 
-              <div style={{ display: 'grid', gap: 8 }}>
-                <label
-                  htmlFor="username"
-                  style={{ fontSize: 13, fontWeight: 800, color: '#5c4630' }}
+              {error ? (
+                <div
+                  style={{
+                    borderRadius: 16,
+                    border: '1px solid #efc9c2',
+                    background: '#fff5f3',
+                    color: '#9a3412',
+                    padding: '14px 16px',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    wordBreak: 'break-word',
+                  }}
                 >
-                  사용자명
-                </label>
-                <input
-                  id="username"
-                  name="username"
-                  defaultValue={username}
-                  placeholder="사용자명을 입력하세요"
-                  style={{
-                    width: '100%',
-                    height: 52,
-                    borderRadius: 14,
-                    border: '1px solid #e6dac9',
-                    background: '#ffffff',
-                    padding: '0 16px',
-                    color: '#24170f',
-                    fontSize: 15,
-                    outline: 'none',
-                  }}
-                />
-              </div>
+                  {error}
+                </div>
+              ) : null}
 
-              <div
+              <form
+                action={updateAccountAction}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: 14,
-                }}
-              >
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <label
-                    htmlFor="phone_number"
-                    style={{ fontSize: 13, fontWeight: 800, color: '#5c4630' }}
-                  >
-                    연락처
-                  </label>
-                  <input
-                    id="phone_number"
-                    name="phone_number"
-                    defaultValue={phoneNumber}
-                    placeholder="연락처를 입력하세요"
-                    style={{
-                      width: '100%',
-                      height: 52,
-                      borderRadius: 14,
-                      border: '1px solid #e6dac9',
-                      background: '#ffffff',
-                      padding: '0 16px',
-                      color: '#24170f',
-                      fontSize: 15,
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <label
-                    htmlFor="gender"
-                    style={{ fontSize: 13, fontWeight: 800, color: '#5c4630' }}
-                  >
-                    성별
-                  </label>
-                  <select
-                    id="gender"
-                    name="gender"
-                    defaultValue={gender}
-                    style={{
-                      width: '100%',
-                      height: 52,
-                      borderRadius: 14,
-                      border: '1px solid #e6dac9',
-                      background: '#ffffff',
-                      padding: '0 16px',
-                      color: '#24170f',
-                      fontSize: 15,
-                      outline: 'none',
-                    }}
-                  >
-                    <option value="">선택 안 함</option>
-                    <option value="male">남성</option>
-                    <option value="female">여성</option>
-                    <option value="other">기타</option>
-                  </select>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: 10,
-                  flexWrap: 'wrap',
-                  paddingTop: 4,
-                }}
-              >
-                <Link
-                  href="/"
-                  style={{
-                    textDecoration: 'none',
-                    height: 48,
-                    padding: '0 18px',
-                    borderRadius: 14,
-                    border: '1px solid #e5d7c4',
-                    background: '#eadfcf',
-                    color: '#2f2417',
-                    fontWeight: 800,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  홈으로
-                </Link>
-
-                <button
-                  type="submit"
-                  style={{
-                    height: 48,
-                    padding: '0 20px',
-                    borderRadius: 14,
-                    border: 'none',
-                    background: '#2f2417',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: 14,
-                    cursor: 'pointer',
-                  }}
-                >
-                  저장하기
-                </button>
-              </div>
-            </form>
-
-            <div
-              style={{
-                display: 'grid',
-                gap: 14,
-              }}
-            >
-              <div
-                style={{
-                  borderRadius: 22,
+                  gap: 16,
+                  borderRadius: 24,
                   border: '1px solid #eee4d7',
                   background: '#fffdf9',
-                  padding: 20,
-                  display: 'grid',
-                  gap: 14,
+                  padding: 22,
                 }}
               >
-                <div style={{ display: 'grid', gap: 6 }}>
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: 18,
-                      color: '#24170f',
-                      letterSpacing: '-0.03em',
-                    }}
-                  >
-                    계정 요약
-                  </h2>
-                  <p
-                    style={{
-                      margin: 0,
-                      color: '#6b5b4d',
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    현재 로그인된 계정의 기본 상태입니다.
-                  </p>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: 14,
+                  }}
+                >
+                  <Field label="이메일">
+                    <input
+                      name="email"
+                      value={email}
+                      readOnly
+                      style={readOnlyInputStyle}
+                    />
+                  </Field>
+
+                  <Field label="계정 등급">
+                    <input
+                      value={role === 'admin' ? '관리자' : '일반 사용자'}
+                      readOnly
+                      style={readOnlyInputStyle}
+                    />
+                  </Field>
                 </div>
 
                 <div
                   style={{
                     display: 'grid',
-                    gap: 10,
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: 14,
                   }}
                 >
-                  <SummaryRow label="이메일" value={email || '-'} />
-                  <SummaryRow label="이름" value={fullName || '-'} />
-                  <SummaryRow label="사용자명" value={username || '-'} />
-                  <SummaryRow label="연락처" value={phoneNumber || '-'} />
-                  <SummaryRow
-                    label="성별"
-                    value={
-                      gender === 'male'
-                        ? '남성'
-                        : gender === 'female'
-                          ? '여성'
-                          : gender === 'other'
-                            ? '기타'
-                            : '-'
-                    }
-                  />
+                  <Field label="이름" htmlFor="full_name">
+                    <input
+                      id="full_name"
+                      name="full_name"
+                      defaultValue={fullName}
+                      placeholder="이름을 입력하세요"
+                      required
+                      style={inputStyle}
+                    />
+                  </Field>
+
+                  <Field label="사용자명" htmlFor="username">
+                    <input
+                      id="username"
+                      name="username"
+                      defaultValue={username}
+                      placeholder="사용자명을 입력하세요"
+                      style={inputStyle}
+                    />
+                  </Field>
                 </div>
-              </div>
 
-              <div
-                style={{
-                  borderRadius: 22,
-                  border: '1px solid #eee4d7',
-                  background: '#fffdf9',
-                  padding: 20,
-                  display: 'grid',
-                  gap: 12,
-                }}
-              >
-                <h2
+                <div
                   style={{
-                    margin: 0,
-                    fontSize: 18,
-                    color: '#24170f',
-                    letterSpacing: '-0.03em',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: 14,
                   }}
                 >
-                  빠른 이동
-                </h2>
+                  <Field label="연락처" htmlFor="phone_number">
+                    <input
+                      id="phone_number"
+                      name="phone_number"
+                      defaultValue={phoneNumber}
+                      placeholder="연락처를 입력하세요"
+                      style={inputStyle}
+                    />
+                  </Field>
 
+                  <Field label="성별" htmlFor="gender">
+                    <select
+                      id="gender"
+                      name="gender"
+                      defaultValue={gender}
+                      style={inputStyle}
+                    >
+                      <option value="">선택 안 함</option>
+                      <option value="male">남성</option>
+                      <option value="female">여성</option>
+                      <option value="other">기타</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <div
+                  style={{
+                    borderRadius: 18,
+                    border: '1px solid #efe5d8',
+                    background: '#faf6ef',
+                    padding: 16,
+                    display: 'grid',
+                    gap: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      color: '#24170f',
+                      fontSize: 14,
+                      fontWeight: 800,
+                    }}
+                  >
+                    계정 안내
+                  </div>
+                  <div
+                    style={{
+                      color: '#6b5b4d',
+                      fontSize: 14,
+                      lineHeight: 1.65,
+                    }}
+                  >
+                    저장 시 profiles와 auth user metadata가 함께 갱신됩니다.
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Link
+                    href="/"
+                    style={{
+                      textDecoration: 'none',
+                      height: 48,
+                      padding: '0 18px',
+                      borderRadius: 14,
+                      border: '1px solid #e5d7c4',
+                      background: '#eadfcf',
+                      color: '#2f2417',
+                      fontWeight: 800,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    홈으로
+                  </Link>
+
+                  <button
+                    type="submit"
+                    style={{
+                      height: 48,
+                      padding: '0 22px',
+                      borderRadius: 14,
+                      border: 'none',
+                      background: '#2f2417',
+                      color: '#ffffff',
+                      fontSize: 14,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    계정 저장
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div style={{ display: 'grid', gap: 16 }}>
+              <Panel
+                title="계정 요약"
+                description="현재 저장된 핵심 프로필 값입니다."
+              >
+                <SummaryRow label="이메일" value={email || '-'} />
+                <SummaryRow label="이름" value={fullName || '-'} />
+                <SummaryRow label="사용자명" value={username || '-'} />
+                <SummaryRow label="연락처" value={phoneNumber || '-'} />
+                <SummaryRow label="성별" value={displayGender(gender)} />
+                <SummaryRow
+                  label="권한"
+                  value={role === 'admin' ? '관리자' : '일반 사용자'}
+                />
+              </Panel>
+
+              <Panel
+                title="빠른 이동"
+                description="자주 쓰는 메뉴로 바로 이동합니다."
+              >
                 <QuickLink href="/listings/create" label="새 자산 등록" />
-                <QuickLink href="/notifications" label="알림 확인" />
                 <QuickLink href="/my/listings" label="내 자산 관리" />
                 <QuickLink href="/my/deals" label="내 거래 관리" />
-              </div>
+                <QuickLink href="/notifications" label="알림 확인" />
+              </Panel>
             </div>
           </div>
         </section>
       </div>
     </main>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <label
+        htmlFor={htmlFor}
+        style={{
+          fontSize: 13,
+          fontWeight: 800,
+          color: '#5c4630',
+        }}
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        borderRadius: 24,
+        border: '1px solid #eee4d7',
+        background: '#fffdf9',
+        padding: 20,
+        display: 'grid',
+        gap: 14,
+      }}
+    >
+      <div style={{ display: 'grid', gap: 6 }}>
+        <h2
+          style={{
+            margin: 0,
+            color: '#24170f',
+            fontSize: 18,
+            letterSpacing: '-0.03em',
+          }}
+        >
+          {title}
+        </h2>
+        <p
+          style={{
+            margin: 0,
+            color: '#6b5b4d',
+            fontSize: 14,
+            lineHeight: 1.6,
+          }}
+        >
+          {description}
+        </p>
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -574,3 +583,21 @@ function QuickLink({ href, label }: { href: string; label: string }) {
     </Link>
   );
 }
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  height: 52,
+  borderRadius: 14,
+  border: '1px solid #e6dac9',
+  background: '#ffffff',
+  padding: '0 16px',
+  color: '#24170f',
+  fontSize: 15,
+  outline: 'none',
+};
+
+const readOnlyInputStyle: React.CSSProperties = {
+  ...inputStyle,
+  background: '#f5efe6',
+  color: '#7a6a59',
+};
