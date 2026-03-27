@@ -89,7 +89,9 @@ export default async function AccountPage({
     ''
   const phoneNumber =
     profile?.phone_number ??
-    (typeof user.user_metadata?.phone_number === 'string' ? user.user_metadata.phone_number : '') ??
+    (typeof user.user_metadata?.phone_number === 'string'
+      ? user.user_metadata.phone_number
+      : '') ??
     ''
   const gender =
     profile?.gender ??
@@ -351,6 +353,7 @@ export default async function AccountPage({
                         id="email"
                         value={email}
                         disabled
+                        readOnly
                         style={{
                           width: '100%',
                           height: 54,
@@ -382,6 +385,7 @@ export default async function AccountPage({
                         id="role"
                         value={roleLabel(role)}
                         disabled
+                        readOnly
                         style={{
                           width: '100%',
                           height: 54,
@@ -555,8 +559,7 @@ export default async function AccountPage({
                         color: '#756858',
                       }}
                     >
-                      저장 시 profiles와 auth user metadata를 함께 갱신합니다. 이메일은
-                      인증 계정 기준으로 유지됩니다.
+                      저장 시 profiles와 auth user metadata를 함께 갱신합니다. 이메일은 인증 계정 기준으로 유지됩니다.
                     </div>
                   </div>
 

@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 
 function normalizePhone(value: string) {
@@ -12,7 +13,7 @@ function normalizeGender(value: string) {
   return null
 }
 
-export async function updateAccountAction(formData: FormData) {
+export async function updateAccountAction(formData: FormData): Promise<void> {
   const supabase = await supabaseServer()
 
   const {
@@ -20,11 +21,17 @@ export async function updateAccountAction(formData: FormData) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return { ok: false, message: '로그인이 필요합니다.' }
+    redirect('/auth/login?next=/account')
   }
 
-  const fullName = String(formData.get('full_name') ?? '').trim().slice(0, 50)
-  const username = String(formData.get('username') ?? '').trim().slice(0, 30)
+  const fullName = String(formData.get('full_name') ?? '')
+    .trim()
+    .slice(0, 50)
+
+  const username = String(formData.get('username') ?? '')
+    .trim()
+    .slice(0, 30)
+
   const phoneNumber = normalizePhone(String(formData.get('phone_number') ?? ''))
   const gender = normalizeGender(String(formData.get('gender') ?? ''))
 
@@ -42,7 +49,7 @@ export async function updateAccountAction(formData: FormData) {
     .upsert(profilePayload, { onConflict: 'id' })
 
   if (profileError) {
-    return { ok: false, message: profileError.message }
+    redirect(`/account?error=${encodeURIComponent(profileError.message)}`)
   }
 
   const { error: authError } = await supabase.auth.updateUser({
@@ -55,10 +62,9 @@ export async function updateAccountAction(formData: FormData) {
   })
 
   if (authError) {
-    return { ok: false, message: authError.message }
+    redirect(`/account?error=${encodeURIComponent(authError.message)}`)
   }
 
   revalidatePath('/account')
-
-  return { ok: true, message: '계정 정보가 저장되었습니다.' }
+  redirect('/account?saved=1')
 }
