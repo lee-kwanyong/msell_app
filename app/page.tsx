@@ -52,7 +52,6 @@ function buildAmountSeries(rows: ListingRow[]) {
 
   for (const row of rows) {
     if (!row.created_at) continue
-
     const createdAt = new Date(row.created_at)
     if (Number.isNaN(createdAt.getTime())) continue
 
@@ -226,7 +225,6 @@ export default async function HomePage() {
                   fontSize: 14,
                   fontWeight: 700,
                   border: '1px solid rgba(60,42,23,0.10)',
-                  backdropFilter: 'blur(10px)',
                 }}
               >
                 자산등록
@@ -241,86 +239,9 @@ export default async function HomePage() {
                 gap: 14,
               }}
             >
-              <div
-                style={{
-                  borderRadius: 24,
-                  background: 'rgba(255,255,255,0.78)',
-                  border: '1px solid rgba(60,42,23,0.06)',
-                  padding: 20,
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <div style={{ fontSize: 12, color: 'rgba(52,38,24,0.48)' }}>
-                  현재 공개 자산
-                </div>
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 38,
-                    lineHeight: 1,
-                    fontWeight: 700,
-                    letterSpacing: '-0.05em',
-                    color: '#171411',
-                  }}
-                >
-                  {activeCount}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  borderRadius: 24,
-                  background: 'rgba(255,255,255,0.78)',
-                  border: '1px solid rgba(60,42,23,0.06)',
-                  padding: 20,
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <div style={{ fontSize: 12, color: 'rgba(52,38,24,0.48)' }}>
-                  공개 금액 합계
-                </div>
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 38,
-                    lineHeight: 1,
-                    fontWeight: 700,
-                    letterSpacing: '-0.05em',
-                    color: '#171411',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  ₩ {formatPrice(totalVisibleAmount)}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  borderRadius: 24,
-                  background: 'rgba(255,255,255,0.78)',
-                  border: '1px solid rgba(60,42,23,0.06)',
-                  padding: 20,
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <div style={{ fontSize: 12, color: 'rgba(52,38,24,0.48)' }}>
-                  최근 7일 등록
-                </div>
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 38,
-                    lineHeight: 1,
-                    fontWeight: 700,
-                    letterSpacing: '-0.05em',
-                    color: '#171411',
-                  }}
-                >
-                  {weekCount}
-                </div>
-              </div>
+              <SummaryCard label="현재 공개 자산" value={String(activeCount)} />
+              <SummaryCard label="공개 금액 합계" value={`₩ ${formatPrice(totalVisibleAmount)}`} />
+              <SummaryCard label="최근 7일 등록" value={String(weekCount)} />
             </div>
           </div>
 
@@ -845,5 +766,42 @@ export default async function HomePage() {
         )}
       </section>
     </main>
+  )
+}
+
+function SummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        borderRadius: 24,
+        background: 'rgba(255,255,255,0.78)',
+        border: '1px solid rgba(60,42,23,0.06)',
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          color: 'rgba(52,38,24,0.48)',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          marginTop: 8,
+          fontSize: 38,
+          lineHeight: 1,
+          fontWeight: 700,
+          letterSpacing: '-0.05em',
+          color: '#171411',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {value}
+      </div>
+    </div>
   )
 }
