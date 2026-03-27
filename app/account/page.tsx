@@ -1,50 +1,13 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
-import { updateAccountAction } from './actions'
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
-
-function roleLabel(role?: string | null) {
-  if (!role) return '일반 사용자'
-  if (role === 'admin') return '관리자'
-  return role
-}
-
-function maskEmail(email?: string | null) {
-  if (!email) return '-'
-  const [id, domain] = email.split('@')
-  if (!domain) return email
-  if (id.length <= 3) return `${id[0] ?? '*'}**@${domain}`
-  return `${id.slice(0, 3)}${'*'.repeat(Math.max(1, id.length - 3))}@${domain}`
-}
-
-function formatJoinDate(value?: string | null) {
-  if (!value) return '-'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '-'
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(
-    d.getDate(),
-  ).padStart(2, '0')}`
-}
-
-function getString(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value
-}
-
-export default async function AccountPage({
-  searchParams,
-}: {
-  searchParams: SearchParams
-}) {
+export default async function AccountPage() {
   const supabase = await supabaseServer()
 
-  const [
-    {
-      data: { user },
-    },
-    resolvedSearchParams,
-  ] = await Promise.all([supabase.auth.getUser(), searchParams])
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
     redirect('/auth/login?next=/account')
@@ -56,618 +19,187 @@ export default async function AccountPage({
     .eq('id', user.id)
     .maybeSingle()
 
-  const { count: listingCount } = await supabase
-    .from('listings')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+  const displayName =
+    profile?.full_name ||
+    profile?.username ||
+    user.user_metadata?.full_name ||
+    user.email ||
+    '사용자'
 
-  const { count: dealCount } = await supabase
-    .from('deals')
-    .select('*', { count: 'exact', head: true })
-    .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-
-  const { count: unreadCount } = await supabase
-    .from('notifications')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('is_read', false)
-
-  const email = user.email ?? ''
-  const fullName =
-    profile?.full_name ??
-    (typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name : '') ??
-    ''
-  const username =
-    profile?.username ??
-    (typeof user.user_metadata?.username === 'string' ? user.user_metadata.username : '') ??
-    ''
-  const phoneNumber =
-    profile?.phone_number ??
-    (typeof user.user_metadata?.phone_number === 'string'
-      ? user.user_metadata.phone_number
-      : '') ??
-    ''
-  const role = profile?.role ?? 'user'
-
-  const saved = getString(resolvedSearchParams?.saved)
-  const error = getString(resolvedSearchParams?.error)
+  const email = profile?.email || user.email || ''
+  const phone = profile?.phone_number || ''
+  const username = profile?.username || ''
+  const gender = profile?.gender || ''
 
   return (
     <main
       style={{
+        minHeight: '100vh',
         background: '#f6f1e7',
-        minHeight: 'calc(100vh - 72px)',
-        padding: '44px 20px 84px',
+        padding: '24px 20px 80px',
       }}
     >
-      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <div
+        style={{
+          maxWidth: 880,
+          margin: '0 auto',
+          display: 'grid',
+          gap: 16,
+        }}
+      >
         <section
           style={{
-            border: '1px solid #e5d9ca',
-            background: '#fcfaf6',
-            borderRadius: 30,
-            overflow: 'hidden',
-            boxShadow: '0 18px 50px rgba(47,36,23,0.05)',
+            borderRadius: 28,
+            padding: 28,
+            background: 'linear-gradient(135deg, rgba(47,36,23,1) 0%, rgba(73,56,36,1) 100%)',
+            color: '#fffdf8',
+            boxShadow: '0 16px 38px rgba(47, 36, 23, 0.12)',
           }}
         >
           <div
             style={{
-              padding: '30px 32px 26px',
-              borderBottom: '1px solid #ece0d2',
-              background: 'linear-gradient(180deg, #fcfaf6 0%, #f7f1e8 100%)',
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: '0.1em',
+              color: 'rgba(255,248,236,0.78)',
+              marginBottom: 8,
+            }}
+          >
+            MY ACCOUNT
+          </div>
+
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 34,
+              lineHeight: 1.15,
+              fontWeight: 900,
+            }}
+          >
+            계정
+          </h1>
+
+          <div
+            style={{
+              marginTop: 16,
+              padding: 16,
+              borderRadius: 18,
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'grid',
+              gap: 6,
             }}
           >
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 20,
-                alignItems: 'flex-start',
-                flexWrap: 'wrap',
+                fontSize: 22,
+                fontWeight: 900,
+                color: '#fffaf2',
+                lineHeight: 1.2,
               }}
             >
-              <div style={{ minWidth: 260, flex: '1 1 520px' }}>
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '7px 12px',
-                    borderRadius: 999,
-                    background: '#efe3d2',
-                    color: '#7b6140',
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  ACCOUNT CENTER
-                </div>
-
-                <h1
-                  style={{
-                    margin: '16px 0 10px',
-                    fontSize: 42,
-                    lineHeight: 1.04,
-                    letterSpacing: '-0.04em',
-                    fontWeight: 900,
-                    color: '#1f1710',
-                  }}
-                >
-                  내 계정
-                </h1>
-
-                <p
-                  style={{
-                    margin: 0,
-                    maxWidth: 640,
-                    color: '#6f655b',
-                    fontSize: 14,
-                    lineHeight: 1.7,
-                  }}
-                >
-                  프로필과 기본 계정 정보를 정리하는 공간입니다. 필요한 정보만 선명하게
-                  보이도록 구성하고, 저장 흐름과 개인정보 보호 원칙도 함께 안내합니다.
-                </p>
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 74px)',
-                  gap: 10,
-                }}
-              >
-                {[
-                  { label: '자산', value: listingCount ?? 0 },
-                  { label: '거래', value: dealCount ?? 0 },
-                  { label: '알림', value: unreadCount ?? 0 },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    style={{
-                      border: '1px solid #e2d5c4',
-                      background: '#fff',
-                      borderRadius: 18,
-                      height: 74,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      boxShadow: '0 8px 18px rgba(47,36,23,0.04)',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: '#8b7760',
-                        fontWeight: 800,
-                        marginBottom: 6,
-                      }}
-                    >
-                      {item.label}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 24,
-                        lineHeight: 1,
-                        color: '#1f1710',
-                        fontWeight: 900,
-                      }}
-                    >
-                      {item.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {displayName}
             </div>
-          </div>
-
-          <div style={{ padding: 28 }}>
-            {saved === '1' ? (
-              <div
-                style={{
-                  marginBottom: 18,
-                  borderRadius: 16,
-                  border: '1px solid #d8e7d0',
-                  background: '#f5fbf1',
-                  color: '#2a5a21',
-                  padding: '13px 15px',
-                  fontSize: 14,
-                  fontWeight: 700,
-                }}
-              >
-                계정 정보가 저장되었습니다.
-              </div>
-            ) : null}
-
-            {error ? (
-              <div
-                style={{
-                  marginBottom: 18,
-                  borderRadius: 16,
-                  border: '1px solid #efcdc8',
-                  background: '#fff4f2',
-                  color: '#8a2f25',
-                  padding: '13px 15px',
-                  fontSize: 14,
-                  fontWeight: 700,
-                }}
-              >
-                {error}
-              </div>
-            ) : null}
-
             <div
-              className="account-layout"
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1.52fr) minmax(320px, 0.88fr)',
-                gap: 20,
-                alignItems: 'start',
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'rgba(255,248,236,0.78)',
+                wordBreak: 'break-all',
               }}
             >
-              <section
-                style={{
-                  border: '1px solid #e8dccd',
-                  background: '#fff',
-                  borderRadius: 26,
-                  padding: 22,
-                }}
-              >
-                <div style={{ marginBottom: 18 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: '#8a7458',
-                      fontWeight: 800,
-                      marginBottom: 8,
-                    }}
-                  >
-                    프로필 편집
-                  </div>
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: 24,
-                      lineHeight: 1.15,
-                      color: '#1f1710',
-                      fontWeight: 900,
-                      letterSpacing: '-0.03em',
-                    }}
-                  >
-                    기본 정보 관리
-                  </h2>
-                </div>
-
-                <form action={updateAccountAction}>
-                  <div
-                    className="account-form-grid"
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                      gap: 14,
-                    }}
-                  >
-                    <div>
-                      <label
-                        htmlFor="email"
-                        style={{
-                          display: 'block',
-                          marginBottom: 8,
-                          fontSize: 13,
-                          color: '#3f3121',
-                          fontWeight: 800,
-                        }}
-                      >
-                        이메일
-                      </label>
-                      <input
-                        id="email"
-                        value={email}
-                        disabled
-                        readOnly
-                        style={{
-                          width: '100%',
-                          height: 52,
-                          borderRadius: 15,
-                          border: '1px solid #e6d8c6',
-                          background: '#f7f1e7',
-                          padding: '0 15px',
-                          color: '#7c6e5f',
-                          fontSize: 14,
-                          outline: 'none',
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="role"
-                        style={{
-                          display: 'block',
-                          marginBottom: 8,
-                          fontSize: 13,
-                          color: '#3f3121',
-                          fontWeight: 800,
-                        }}
-                      >
-                        계정 등급
-                      </label>
-                      <input
-                        id="role"
-                        value={roleLabel(role)}
-                        disabled
-                        readOnly
-                        style={{
-                          width: '100%',
-                          height: 52,
-                          borderRadius: 15,
-                          border: '1px solid #e6d8c6',
-                          background: '#f7f1e7',
-                          padding: '0 15px',
-                          color: '#7c6e5f',
-                          fontSize: 14,
-                          outline: 'none',
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="full_name"
-                        style={{
-                          display: 'block',
-                          marginBottom: 8,
-                          fontSize: 13,
-                          color: '#3f3121',
-                          fontWeight: 800,
-                        }}
-                      >
-                        이름
-                      </label>
-                      <input
-                        id="full_name"
-                        name="full_name"
-                        defaultValue={fullName}
-                        placeholder="이름을 입력하세요"
-                        style={{
-                          width: '100%',
-                          height: 52,
-                          borderRadius: 15,
-                          border: '1px solid #dfd1bf',
-                          background: '#fffdfa',
-                          padding: '0 15px',
-                          color: '#221a12',
-                          fontSize: 14,
-                          outline: 'none',
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="username"
-                        style={{
-                          display: 'block',
-                          marginBottom: 8,
-                          fontSize: 13,
-                          color: '#3f3121',
-                          fontWeight: 800,
-                        }}
-                      >
-                        사용자명
-                      </label>
-                      <input
-                        id="username"
-                        name="username"
-                        defaultValue={username}
-                        placeholder="username"
-                        style={{
-                          width: '100%',
-                          height: 52,
-                          borderRadius: 15,
-                          border: '1px solid #dfd1bf',
-                          background: '#fffdfa',
-                          padding: '0 15px',
-                          color: '#221a12',
-                          fontSize: 14,
-                          outline: 'none',
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <label
-                        htmlFor="phone_number"
-                        style={{
-                          display: 'block',
-                          marginBottom: 8,
-                          fontSize: 13,
-                          color: '#3f3121',
-                          fontWeight: 800,
-                        }}
-                      >
-                        연락처
-                      </label>
-                      <input
-                        id="phone_number"
-                        name="phone_number"
-                        defaultValue={phoneNumber}
-                        placeholder="연락처를 입력하세요"
-                        style={{
-                          width: '100%',
-                          height: 52,
-                          borderRadius: 15,
-                          border: '1px solid #dfd1bf',
-                          background: '#fffdfa',
-                          padding: '0 15px',
-                          color: '#221a12',
-                          fontSize: 14,
-                          outline: 'none',
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 16,
-                      border: '1px solid #eee2d3',
-                      background: '#faf5ee',
-                      borderRadius: 18,
-                      padding: '17px 18px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 900,
-                        color: '#2f2417',
-                        marginBottom: 10,
-                      }}
-                    >
-                      계정 안내 및 개인정보 보호
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'grid',
-                        gap: 8,
-                        fontSize: 13,
-                        lineHeight: 1.75,
-                        color: '#6f6254',
-                      }}
-                    >
-                      <div>
-                        • 저장 시 <span style={{ fontWeight: 800, color: '#2f2417' }}>profiles</span>와{' '}
-                        <span style={{ fontWeight: 800, color: '#2f2417' }}>
-                          auth user metadata
-                        </span>
-                        가 함께 갱신되어 서비스 내 계정 정보가 일관되게 유지됩니다.
-                      </div>
-                      <div>
-                        • 이메일은 로그인과 인증의 기준값이므로 이 화면에서 직접 수정되지
-                        않으며, 인증 계정 기준으로 안정적으로 유지됩니다.
-                      </div>
-                      <div>
-                        • 연락처와 이름, 사용자명은 거래 진행, 알림 전달, 계정 식별에 필요한
-                        범위 안에서만 사용되며 불필요한 정보는 요구하지 않습니다.
-                      </div>
-                      <div>
-                        • 입력한 개인정보는 계정 운영과 거래 경험 개선 목적 범위 내에서만
-                        반영되며, 화면에는 필요한 정보만 최소한으로 노출되도록 구성했습니다.
-                      </div>
-                      <div>
-                        • 민감도가 높은 정보는 현재 화면에서 수집하지 않으며, 저장 이후에도
-                        언제든지 직접 수정하여 최신 상태로 관리할 수 있습니다.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: 12,
-                      marginTop: 18,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <Link
-                      href="/"
-                      style={{
-                        height: 46,
-                        padding: '0 16px',
-                        borderRadius: 14,
-                        border: '1px solid #e0d4c4',
-                        background: '#f7efe4',
-                        color: '#2f2417',
-                        textDecoration: 'none',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 14,
-                        fontWeight: 800,
-                      }}
-                    >
-                      홈으로
-                    </Link>
-
-                    <button
-                      type="submit"
-                      style={{
-                        height: 48,
-                        minWidth: 108,
-                        padding: '0 20px',
-                        borderRadius: 14,
-                        border: 'none',
-                        background: 'linear-gradient(180deg, #3a2c1c 0%, #241b11 100%)',
-                        color: '#fffaf3',
-                        fontSize: 14,
-                        fontWeight: 900,
-                        cursor: 'pointer',
-                        boxShadow: '0 10px 24px rgba(47,36,23,0.18)',
-                      }}
-                    >
-                      계정 저장
-                    </button>
-                  </div>
-                </form>
-              </section>
-
-              <section
-                style={{
-                  border: '1px solid #e8dccd',
-                  background: '#fff',
-                  borderRadius: 26,
-                  padding: 22,
-                }}
-              >
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: 24,
-                    lineHeight: 1.1,
-                    color: '#1f1710',
-                    fontWeight: 900,
-                    letterSpacing: '-0.03em',
-                  }}
-                >
-                  계정 요약
-                </h3>
-
-                <p
-                  style={{
-                    margin: '10px 0 18px',
-                    fontSize: 14,
-                    color: '#7a6d5f',
-                    lineHeight: 1.65,
-                  }}
-                >
-                  현재 저장된 핵심 계정 정보를 간결하게 정리했습니다.
-                </p>
-
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {[
-                    ['이메일', maskEmail(email)],
-                    ['이름', fullName || '-'],
-                    ['사용자명', username || '-'],
-                    ['연락처', phoneNumber || '-'],
-                    ['권한', roleLabel(role)],
-                    ['가입일', formatJoinDate(user.created_at)],
-                  ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      style={{
-                        border: '1px solid #ede1d0',
-                        background: '#fcf8f2',
-                        borderRadius: 16,
-                        padding: '12px 14px',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: '#8b7760',
-                          fontWeight: 800,
-                          marginBottom: 4,
-                        }}
-                      >
-                        {label}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 15,
-                          color: '#20170f',
-                          fontWeight: 800,
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        {value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              {email}
             </div>
           </div>
         </section>
+
+        <section
+          style={{
+            background: '#ffffff',
+            border: '1px solid #eadfcf',
+            borderRadius: 22,
+            padding: 18,
+            boxShadow: '0 14px 34px rgba(47, 36, 23, 0.06)',
+            display: 'grid',
+            gap: 10,
+          }}
+        >
+          <InfoRow label="이름" value={String(displayName)} />
+          <InfoRow label="이메일" value={String(email || '-')} />
+          <InfoRow label="연락처" value={String(phone || '-')} />
+          <InfoRow label="아이디" value={String(username || '-')} />
+          <InfoRow label="성별" value={String(gender || '-')} />
+        </section>
+
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 12,
+          }}
+        >
+          <Link href="/my/listings" style={actionLinkStyle}>
+            내 매물
+          </Link>
+          <Link href="/my/deals" style={actionLinkStyle}>
+            내 거래
+          </Link>
+          <Link href="/listings/create" style={actionLinkStyle}>
+            자산 등록
+          </Link>
+        </section>
       </div>
-
-      <style>{`
-        @media (max-width: 1024px) {
-          .account-layout {
-            grid-template-columns: 1fr !important;
-          }
-        }
-
-        @media (max-width: 720px) {
-          .account-form-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </main>
   )
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gap: 5,
+        padding: '13px 14px',
+        borderRadius: 16,
+        background: '#fbf7f0',
+        border: '1px solid #efe4d5',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          color: '#8a745b',
+          letterSpacing: '0.06em',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 800,
+          color: '#241b11',
+          lineHeight: 1.6,
+          wordBreak: 'break-all',
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  )
+}
+
+const actionLinkStyle: React.CSSProperties = {
+  minHeight: 52,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: 16,
+  background: '#ffffff',
+  border: '1px solid #eadfcf',
+  color: '#2f2417',
+  textDecoration: 'none',
+  fontWeight: 800,
+  boxShadow: '0 14px 34px rgba(47, 36, 23, 0.06)',
 }

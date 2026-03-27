@@ -1,26 +1,12 @@
 import Link from 'next/link'
 import { supabaseServer } from '@/lib/supabase/server'
 
-type ProfileRow = {
-  id?: string | null
-  email?: string | null
-  full_name?: string | null
-  username?: string | null
-  avatar_url?: string | null
-  role?: string | null
+function firstString(...values: Array<string | null | undefined>) {
+  return values.find((value) => typeof value === 'string' && value.trim().length > 0) || ''
 }
 
-function firstString(...values: unknown[]) {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim()
-    }
-  }
-  return ''
-}
-
-function getInitial(text: string) {
-  return (text || 'U').slice(0, 1).toUpperCase()
+function getInitial(value: string) {
+  return value.trim().charAt(0).toUpperCase()
 }
 
 function getProviderLabel(provider?: string | null) {
@@ -35,8 +21,21 @@ function getProviderLabel(provider?: string | null) {
     case 'email':
       return '이메일 로그인'
     default:
-      return '로그인'
+      return ''
   }
+}
+
+const navButtonStyle: React.CSSProperties = {
+  textDecoration: 'none',
+  border: '1px solid #ddcfba',
+  background: '#fffaf2',
+  color: '#2f2417',
+  borderRadius: 999,
+  padding: '10px 14px',
+  fontWeight: 800,
+  fontSize: 14,
+  lineHeight: 1,
+  whiteSpace: 'nowrap',
 }
 
 export default async function Header() {
@@ -46,16 +45,16 @@ export default async function Header() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  let profile: ProfileRow | null = null
+  let profile: any = null
 
-  if (user) {
+  if (user?.id) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, email, full_name, username, avatar_url, role')
+      .select('id, role, full_name, username, email, avatar_url, phone_number')
       .eq('id', user.id)
       .maybeSingle()
 
-    profile = (data as ProfileRow | null) ?? null
+    profile = data
   }
 
   const displayName = firstString(
@@ -64,23 +63,17 @@ export default async function Header() {
     user?.user_metadata?.full_name,
     user?.user_metadata?.name,
     user?.user_metadata?.nickname,
-    user?.user_metadata?.preferred_username,
     user?.email?.split('@')[0]
   )
 
   const displayEmail = firstString(profile?.email, user?.email)
-
   const avatarUrl = firstString(
     profile?.avatar_url,
     user?.user_metadata?.avatar_url,
     user?.user_metadata?.picture
   )
 
-  const provider = firstString(
-    user?.app_metadata?.provider,
-    user?.user_metadata?.provider
-  )
-
+  const provider = firstString(user?.app_metadata?.provider, user?.user_metadata?.provider)
   const providerLabel = getProviderLabel(provider)
   const isAdmin = profile?.role === 'admin'
 
@@ -130,7 +123,6 @@ export default async function Header() {
           </Link>
 
           <nav
-            className="msell-header-nav"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -144,6 +136,7 @@ export default async function Header() {
             <Link href="/listings" style={navButtonStyle}>
               거래목록
             </Link>
+
             {user ? (
               <>
                 <Link href="/my/listings" style={navButtonStyle}>
@@ -166,7 +159,6 @@ export default async function Header() {
         </div>
 
         <div
-          className="msell-header-user"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -257,90 +249,50 @@ export default async function Header() {
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {providerLabel}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: '#8a7458',
-                        lineHeight: 1.2,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      연결 이메일: {displayEmail || '없음'}
+                      {providerLabel || displayEmail || ''}
                     </span>
                   </div>
                 </div>
               </Link>
 
-              <Link href="/auth/logout" style={primaryButtonStyle}>
-                로그아웃
-              </Link>
+              <form action="/auth/logout" method="post">
+                <button
+                  type="submit"
+                  style={{
+                    border: 0,
+                    cursor: 'pointer',
+                    color: '#ffffff',
+                    background: '#2f2417',
+                    padding: '10px 14px',
+                    borderRadius: 12,
+                    fontWeight: 800,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  로그아웃
+                </button>
+              </form>
             </>
           ) : (
             <>
               <Link href="/auth/login" style={navButtonStyle}>
                 로그인
               </Link>
-              <Link href="/auth/signup" style={primaryButtonStyle}>
+              <Link
+                href="/auth/signup"
+                style={{
+                  ...navButtonStyle,
+                  background: '#2f2417',
+                  color: '#ffffff',
+                  border: '1px solid #2f2417',
+                }}
+              >
                 회원가입
               </Link>
             </>
           )}
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 980px) {
-          .msell-header-nav {
-            display: none !important;
-          }
-
-          .msell-header-user {
-            gap: 8px !important;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .msell-header-user a[href="/account"] > div {
-            max-width: 200px !important;
-          }
-        }
-      `}</style>
     </header>
   )
-}
-
-const navButtonStyle: React.CSSProperties = {
-  height: 40,
-  padding: '0 14px',
-  borderRadius: 999,
-  border: '1px solid #ddcfba',
-  background: '#fffaf2',
-  color: '#2f2417',
-  textDecoration: 'none',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: 13,
-  fontWeight: 800,
-  whiteSpace: 'nowrap',
-}
-
-const primaryButtonStyle: React.CSSProperties = {
-  height: 40,
-  padding: '0 14px',
-  borderRadius: 999,
-  border: '1px solid #2f2417',
-  background: '#2f2417',
-  color: '#ffffff',
-  textDecoration: 'none',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: 13,
-  fontWeight: 800,
-  whiteSpace: 'nowrap',
 }
