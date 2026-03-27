@@ -68,6 +68,29 @@ export async function signInWithGoogle(next: string) {
   redirect(data.url)
 }
 
+export async function signInWithKakao(next: string) {
+  const safeNext = normalizeNext(next)
+  const supabase = await supabaseServer()
+  const origin = await getOrigin()
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'kakao',
+    options: {
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+    },
+  })
+
+  if (error || !data?.url) {
+    redirect(
+      `/auth/login?next=${encodeURIComponent(safeNext)}&error=${encodeURIComponent(
+        error?.message || '카카오 로그인 연결에 실패했습니다.'
+      )}`
+    )
+  }
+
+  redirect(data.url)
+}
+
 export async function signInWithNaver(next: string) {
   const safeNext = normalizeNext(next)
   const supabase = await supabaseServer()

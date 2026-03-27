@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { loginAction, signInWithGoogle, signInWithNaver } from './actions'
+import { loginAction, signInWithGoogle, signInWithKakao, signInWithNaver } from './actions'
 
 type PageProps = {
   searchParams?: Promise<{
@@ -69,17 +69,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
           >
             로그인
           </h1>
-
-          <div
-            style={{
-              marginTop: 10,
-              fontSize: 14,
-              lineHeight: 1.7,
-              color: 'rgba(52,38,24,0.64)',
-            }}
-          >
-            계정에 로그인
-          </div>
 
           {error ? (
             <div
@@ -234,6 +223,30 @@ export default async function LoginPage({ searchParams }: PageProps) {
             <form
               action={async () => {
                 'use server'
+                await signInWithKakao(next)
+              }}
+            >
+              <button
+                type="submit"
+                style={{
+                  width: '100%',
+                  height: 50,
+                  borderRadius: 18,
+                  border: '1px solid rgba(0,0,0,0.06)',
+                  background: '#FEE500',
+                  color: '#191919',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                카카오로 계속하기
+              </button>
+            </form>
+
+            <form
+              action={async () => {
+                'use server'
                 await signInWithNaver(next)
               }}
             >
@@ -243,9 +256,9 @@ export default async function LoginPage({ searchParams }: PageProps) {
                   width: '100%',
                   height: 50,
                   borderRadius: 18,
-                  border: '1px solid rgba(60,42,23,0.10)',
-                  background: 'rgba(255,255,255,0.82)',
-                  color: '#24180f',
+                  border: '1px solid rgba(0,0,0,0.04)',
+                  background: '#03C75A',
+                  color: '#ffffff',
                   fontSize: 14,
                   fontWeight: 700,
                   cursor: 'pointer',
