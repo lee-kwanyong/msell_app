@@ -30,11 +30,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           margin: '0 auto',
         }}
       >
-        <div
-          style={{
-            marginBottom: 20,
-          }}
-        >
+        <div style={{ marginBottom: 20 }}>
           <h1
             style={{
               margin: 0,
@@ -59,57 +55,11 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           </p>
         </div>
 
-        {success ? (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: '14px 16px',
-              borderRadius: 16,
-              background: '#f4efe6',
-              border: '1px solid #dbcdb8',
-              color: '#2f2417',
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {success}
-          </div>
-        ) : null}
+        {success ? <div style={successStyle}>{success}</div> : null}
+        {error ? <div style={errorStyle}>{error}</div> : null}
 
-        {error ? (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: '14px 16px',
-              borderRadius: 16,
-              background: '#fff4f2',
-              border: '1px solid #efc2ba',
-              color: '#9a3d2f',
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {error}
-          </div>
-        ) : null}
-
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e7dccb',
-            borderRadius: 28,
-            boxShadow: '0 20px 50px rgba(47, 36, 23, 0.06)',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: 28,
-              borderBottom: '1px solid #efe5d6',
-              background:
-                'linear-gradient(180deg, rgba(246,241,231,0.9) 0%, rgba(255,255,255,1) 100%)',
-            }}
-          >
+        <div style={cardStyle}>
+          <div style={cardHeaderStyle}>
             <div
               style={{
                 fontSize: 14,
@@ -141,19 +91,10 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           >
             <AuthGateway mode="signup" next={next} />
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                color: '#8b7966',
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            >
-              <div style={{ flex: 1, height: 1, background: '#eee3d4' }} />
+            <div style={dividerStyle}>
+              <div style={dividerLineStyle} />
               <span>또는 직접 회원가입</span>
-              <div style={{ flex: 1, height: 1, background: '#eee3d4' }} />
+              <div style={dividerLineStyle} />
             </div>
 
             <form
@@ -231,18 +172,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
             </form>
           </div>
 
-          <div
-            style={{
-              padding: 28,
-              borderTop: '1px solid #efe5d6',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 12,
-              flexWrap: 'wrap',
-              background: '#fffdf9',
-            }}
-          >
+          <div style={footerStyle}>
             <span
               style={{
                 fontSize: 14,
@@ -275,13 +205,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label
-      htmlFor={htmlFor}
-      style={{
-        display: 'grid',
-        gap: 8,
-      }}
-    >
+    <label htmlFor={htmlFor} style={{ display: 'grid', gap: 8 }}>
       <span
         style={{
           fontSize: 14,
@@ -295,6 +219,69 @@ function Field({
     </label>
   );
 }
+
+const cardStyle: React.CSSProperties = {
+  background: '#ffffff',
+  border: '1px solid #e7dccb',
+  borderRadius: 28,
+  boxShadow: '0 20px 50px rgba(47, 36, 23, 0.06)',
+  overflow: 'hidden',
+};
+
+const cardHeaderStyle: React.CSSProperties = {
+  padding: 28,
+  borderBottom: '1px solid #efe5d6',
+  background:
+    'linear-gradient(180deg, rgba(246,241,231,0.9) 0%, rgba(255,255,255,1) 100%)',
+};
+
+const successStyle: React.CSSProperties = {
+  marginBottom: 16,
+  padding: '14px 16px',
+  borderRadius: 16,
+  background: '#f4efe6',
+  border: '1px solid #dbcdb8',
+  color: '#2f2417',
+  fontSize: 14,
+  fontWeight: 600,
+};
+
+const errorStyle: React.CSSProperties = {
+  marginBottom: 16,
+  padding: '14px 16px',
+  borderRadius: 16,
+  background: '#fff4f2',
+  border: '1px solid #efc2ba',
+  color: '#9a3d2f',
+  fontSize: 14,
+  fontWeight: 600,
+};
+
+const dividerStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  color: '#8b7966',
+  fontSize: 13,
+  fontWeight: 700,
+};
+
+const dividerLineStyle: React.CSSProperties = {
+  flex: 1,
+  height: 1,
+  background: '#eee3d4',
+};
+
+const footerStyle: React.CSSProperties = {
+  padding: 28,
+  borderTop: '1px solid #efe5d6',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
+  flexWrap: 'wrap',
+  background: '#fffdf9',
+};
 
 const inputStyle: React.CSSProperties = {
   width: '100%',

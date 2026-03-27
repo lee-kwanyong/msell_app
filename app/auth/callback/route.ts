@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     const loginUrl = new URL('/auth/login', requestUrl.origin);
     loginUrl.searchParams.set(
       'error',
-      errorDescription || error || '소셜 로그인 처리 중 오류가 발생했습니다.',
+      errorDescription || error || '소셜 로그인 처리 중 오류가 발생했습니다.'
     );
     loginUrl.searchParams.set('next', next);
     return NextResponse.redirect(loginUrl);
@@ -107,7 +107,7 @@ export async function GET(request: Request) {
     metadata.nick,
     full_name,
     user.email?.split('@')[0],
-    user.id.slice(0, 8),
+    user.id.slice(0, 8)
   );
 
   if (!username) {

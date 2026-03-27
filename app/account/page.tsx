@@ -63,11 +63,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           margin: '0 auto',
         }}
       >
-        <div
-          style={{
-            marginBottom: 20,
-          }}
-        >
+        <div style={{ marginBottom: 20 }}>
           <h1
             style={{
               margin: 0,
@@ -92,58 +88,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           </p>
         </div>
 
-        {success ? (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: '14px 16px',
-              borderRadius: 16,
-              background: '#f4efe6',
-              border: '1px solid #dbcdb8',
-              color: '#2f2417',
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {success}
-          </div>
-        ) : null}
+        {success ? <div style={successStyle}>{success}</div> : null}
+        {error ? <div style={errorStyle}>{error}</div> : null}
 
-        {error ? (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: '14px 16px',
-              borderRadius: 16,
-              background: '#fff4f2',
-              border: '1px solid #efc2ba',
-              color: '#9a3d2f',
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {error}
-          </div>
-        ) : null}
-
-        <form
-          action={updateAccountAction}
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e7dccb',
-            borderRadius: 28,
-            boxShadow: '0 20px 50px rgba(47, 36, 23, 0.06)',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: 28,
-              borderBottom: '1px solid #efe5d6',
-              background:
-                'linear-gradient(180deg, rgba(246,241,231,0.9) 0%, rgba(255,255,255,1) 100%)',
-            }}
-          >
+        <form action={updateAccountAction} style={formCardStyle}>
+          <div style={topSectionStyle}>
             <div
               style={{
                 display: 'flex',
@@ -259,18 +208,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             </Field>
           </div>
 
-          <div
-            style={{
-              padding: 28,
-              borderTop: '1px solid #efe5d6',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 12,
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: '#fffdf9',
-            }}
-          >
+          <div style={bottomSectionStyle}>
             <div
               style={{
                 fontSize: 13,
@@ -314,13 +252,7 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label
-      htmlFor={htmlFor}
-      style={{
-        display: 'grid',
-        gap: 8,
-      }}
-    >
+    <label htmlFor={htmlFor} style={{ display: 'grid', gap: 8 }}>
       <span
         style={{
           fontSize: 14,
@@ -344,6 +276,54 @@ function Field({
     </label>
   );
 }
+
+const successStyle: React.CSSProperties = {
+  marginBottom: 16,
+  padding: '14px 16px',
+  borderRadius: 16,
+  background: '#f4efe6',
+  border: '1px solid #dbcdb8',
+  color: '#2f2417',
+  fontSize: 14,
+  fontWeight: 600,
+};
+
+const errorStyle: React.CSSProperties = {
+  marginBottom: 16,
+  padding: '14px 16px',
+  borderRadius: 16,
+  background: '#fff4f2',
+  border: '1px solid #efc2ba',
+  color: '#9a3d2f',
+  fontSize: 14,
+  fontWeight: 600,
+};
+
+const formCardStyle: React.CSSProperties = {
+  background: '#ffffff',
+  border: '1px solid #e7dccb',
+  borderRadius: 28,
+  boxShadow: '0 20px 50px rgba(47, 36, 23, 0.06)',
+  overflow: 'hidden',
+};
+
+const topSectionStyle: React.CSSProperties = {
+  padding: 28,
+  borderBottom: '1px solid #efe5d6',
+  background:
+    'linear-gradient(180deg, rgba(246,241,231,0.9) 0%, rgba(255,255,255,1) 100%)',
+};
+
+const bottomSectionStyle: React.CSSProperties = {
+  padding: 28,
+  borderTop: '1px solid #efe5d6',
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 12,
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  background: '#fffdf9',
+};
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
