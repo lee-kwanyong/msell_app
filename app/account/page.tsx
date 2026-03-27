@@ -1,203 +1,186 @@
-import { redirect } from "next/navigation";
-import { supabaseServer } from "@/lib/supabase/server";
-import { updateAccountAction } from "./actions";
+import { redirect } from 'next/navigation'
+import { supabaseServer } from '@/lib/supabase/server'
+import { updateAccountAction } from './actions'
 
-type ProfileRow = {
-  full_name?: string | null;
-  username?: string | null;
-  phone_number?: string | null;
-  email?: string | null;
-};
+type SearchParams = Promise<{
+  success?: string
+  error?: string
+}>
 
-type SearchParams = {
-  success?: string;
-  error?: string;
-};
-
-function getMessage(searchParams?: SearchParams) {
-  if (searchParams?.success === "1") {
+function getMessage(searchParams: { success?: string; error?: string }) {
+  if (searchParams.success === '1') {
     return {
-      type: "success" as const,
-      text: "계정 정보가 저장되었습니다.",
-    };
+      type: 'success' as const,
+      text: '계정 정보가 저장되었습니다.',
+    }
   }
 
-  switch (searchParams?.error) {
-    case "missing_phone":
-      return {
-        type: "error" as const,
-        text: "연락처를 입력해 주세요.",
-      };
-    case "update_failed":
-      return {
-        type: "error" as const,
-        text: "저장에 실패했습니다.",
-      };
-    default:
-      return null;
+  if (searchParams.error === 'missing_phone') {
+    return {
+      type: 'error' as const,
+      text: '연락처를 입력해야 저장할 수 있습니다.',
+    }
   }
+
+  if (searchParams.error === 'update_failed') {
+    return {
+      type: 'error' as const,
+      text: '계정 저장 중 문제가 발생했습니다.',
+    }
+  }
+
+  return null
 }
 
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams?: Promise<SearchParams>;
+  searchParams: SearchParams
 }) {
-  const query = (await searchParams) || {};
-  const supabase = await supabaseServer();
+  const supabase = await supabaseServer()
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/auth/login?next=/account");
+    redirect('/auth/login?next=/account')
   }
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("full_name, username, phone_number, email")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, username, phone_number')
+    .eq('id', user.id)
+    .single()
 
-  const profile = (profileData || {}) as ProfileRow;
-  const message = getMessage(query);
+  const resolvedSearchParams = await searchParams
+  const message = getMessage(resolvedSearchParams || {})
 
-  const emailValue =
-    profile.email ||
-    user.email ||
-    "";
-
-  const fullNameValue = profile.full_name || "";
-  const usernameValue = profile.username || "";
-  const phoneValue = profile.phone_number || "";
+  const fullName = profile?.full_name || ''
+  const username = profile?.username || ''
+  const phoneNumber = profile?.phone_number || ''
+  const email = user.email || ''
 
   return (
     <main
       style={{
-        minHeight: "100vh",
-        background: "#f6f1e7",
+        minHeight: '100vh',
+        background: '#f6f1e7',
       }}
     >
       <div
         style={{
           maxWidth: 980,
-          margin: "0 auto",
-          padding: "20px 16px 56px",
+          margin: '0 auto',
+          padding: '28px 20px 80px',
         }}
       >
         <section
           style={{
-            background: "rgba(255,255,255,0.82)",
-            border: "1px solid #e6dac8",
-            borderRadius: 24,
-            padding: 16,
-            boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
-            backdropFilter: "blur(10px)",
-            marginBottom: 14,
+            marginBottom: 18,
+            borderRadius: 22,
+            background: '#fff',
+            border: '1px solid rgba(47,36,23,0.08)',
+            boxShadow: '0 10px 28px rgba(47,36,23,0.05)',
+            padding: '18px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
           }}
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1fr) auto",
-              gap: 12,
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: "0.1em",
-                  color: "#8a7357",
-                  marginBottom: 4,
-                }}
-              >
-                ACCOUNT
-              </div>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 24,
-                  lineHeight: 1.08,
-                  color: "#241b11",
-                  fontWeight: 900,
-                  letterSpacing: "-0.03em",
-                }}
-              >
-                계정 설정
-              </h1>
-            </div>
-
+          <div>
             <div
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: 42,
-                padding: "0 14px",
-                borderRadius: 14,
-                background: "#fff",
-                border: "1px solid #eadfcf",
-                color: "#6e5a43",
-                fontSize: 13,
-                fontWeight: 700,
-                whiteSpace: "nowrap",
+                color: '#9a6b2f',
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: '0.08em',
+                marginBottom: 6,
               }}
             >
-              {emailValue || "이메일 없음"}
+              ACCOUNT
             </div>
+            <h1
+              style={{
+                margin: 0,
+                color: '#2f2417',
+                fontSize: 34,
+                lineHeight: 1.1,
+                letterSpacing: '-0.04em',
+                fontWeight: 900,
+              }}
+            >
+              계정 설정
+            </h1>
           </div>
-        </section>
 
-        {message ? (
-          <section
+          <div
             style={{
-              background: message.type === "success" ? "#f7fbf6" : "#fff5f2",
-              border:
-                message.type === "success"
-                  ? "1px solid #cfe3c8"
-                  : "1px solid #f0c7b6",
-              color: message.type === "success" ? "#2f5d2a" : "#9a3412",
-              borderRadius: 18,
-              padding: "14px 16px",
-              marginBottom: 14,
-              fontSize: 14,
+              display: 'inline-flex',
+              alignItems: 'center',
+              minHeight: 42,
+              padding: '0 14px',
+              borderRadius: 999,
+              background: '#fbf8f2',
+              border: '1px solid rgba(47,36,23,0.08)',
+              color: '#6f5d49',
+              fontSize: 13,
               fontWeight: 700,
             }}
           >
-            {message.text}
-          </section>
-        ) : null}
+            {email}
+          </div>
+        </section>
 
         <div
-          className="msell-account-layout"
           style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) 320px",
-            gap: 14,
-            alignItems: "start",
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.3fr) minmax(260px, 0.7fr)',
+            gap: 16,
+            alignItems: 'start',
           }}
         >
           <section
             style={{
-              background: "#fff",
-              border: "1px solid #eadfcf",
               borderRadius: 24,
-              padding: 22,
-              boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
+              background: '#fff',
+              border: '1px solid rgba(47,36,23,0.08)',
+              boxShadow: '0 10px 28px rgba(47,36,23,0.05)',
+              padding: 18,
             }}
           >
-            <form action={updateAccountAction} style={{ display: "grid", gap: 16 }}>
-              <div style={{ display: "grid", gap: 8 }}>
+            {message ? (
+              <div
+                style={{
+                  marginBottom: 14,
+                  borderRadius: 14,
+                  padding: '12px 14px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  background: message.type === 'success' ? '#ecfdf5' : '#fff1f2',
+                  color: message.type === 'success' ? '#166534' : '#9f1239',
+                  border:
+                    message.type === 'success'
+                      ? '1px solid rgba(22,101,52,0.12)'
+                      : '1px solid rgba(190,24,93,0.12)',
+                }}
+              >
+                {message.text}
+              </div>
+            ) : null}
+
+            <form action={updateAccountAction}>
+              <div style={{ marginBottom: 12 }}>
                 <label
                   htmlFor="full_name"
                   style={{
-                    fontSize: 14,
+                    display: 'block',
+                    marginBottom: 6,
+                    color: '#2f2417',
+                    fontSize: 13,
                     fontWeight: 800,
-                    color: "#241b11",
                   }}
                 >
                   이름
@@ -205,29 +188,30 @@ export default async function AccountPage({
                 <input
                   id="full_name"
                   name="full_name"
-                  type="text"
-                  defaultValue={fullNameValue}
-                  placeholder="이름"
+                  defaultValue={fullName}
+                  placeholder="이름을 입력하세요"
                   style={{
-                    height: 50,
-                    borderRadius: 16,
-                    border: "1px solid #d7c6ae",
-                    background: "#fffdf9",
-                    padding: "0 16px",
+                    width: '100%',
+                    height: 48,
+                    borderRadius: 14,
+                    border: '1px solid rgba(47,36,23,0.12)',
+                    background: '#fffdf9',
+                    padding: '0 14px',
                     fontSize: 14,
-                    color: "#241b11",
-                    outline: "none",
+                    color: '#2f2417',
                   }}
                 />
               </div>
 
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ marginBottom: 12 }}>
                 <label
                   htmlFor="username"
                   style={{
-                    fontSize: 14,
+                    display: 'block',
+                    marginBottom: 6,
+                    color: '#2f2417',
+                    fontSize: 13,
                     fontWeight: 800,
-                    color: "#241b11",
                   }}
                 >
                   아이디
@@ -235,29 +219,30 @@ export default async function AccountPage({
                 <input
                   id="username"
                   name="username"
-                  type="text"
-                  defaultValue={usernameValue}
-                  placeholder="아이디"
+                  defaultValue={username}
+                  placeholder="아이디를 입력하세요"
                   style={{
-                    height: 50,
-                    borderRadius: 16,
-                    border: "1px solid #d7c6ae",
-                    background: "#fffdf9",
-                    padding: "0 16px",
+                    width: '100%',
+                    height: 48,
+                    borderRadius: 14,
+                    border: '1px solid rgba(47,36,23,0.12)',
+                    background: '#fffdf9',
+                    padding: '0 14px',
                     fontSize: 14,
-                    color: "#241b11",
-                    outline: "none",
+                    color: '#2f2417',
                   }}
                 />
               </div>
 
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ marginBottom: 12 }}>
                 <label
                   htmlFor="phone_number"
                   style={{
-                    fontSize: 14,
+                    display: 'block',
+                    marginBottom: 6,
+                    color: '#2f2417',
+                    fontSize: 13,
                     fontWeight: 800,
-                    color: "#241b11",
                   }}
                 >
                   연락처
@@ -265,30 +250,31 @@ export default async function AccountPage({
                 <input
                   id="phone_number"
                   name="phone_number"
-                  type="text"
-                  defaultValue={phoneValue}
-                  placeholder="연락처"
+                  defaultValue={phoneNumber}
+                  placeholder="연락처를 입력하세요"
                   required
                   style={{
-                    height: 50,
-                    borderRadius: 16,
-                    border: "1px solid #d7c6ae",
-                    background: "#fffdf9",
-                    padding: "0 16px",
+                    width: '100%',
+                    height: 48,
+                    borderRadius: 14,
+                    border: '1px solid rgba(47,36,23,0.12)',
+                    background: '#fffdf9',
+                    padding: '0 14px',
                     fontSize: 14,
-                    color: "#241b11",
-                    outline: "none",
+                    color: '#2f2417',
                   }}
                 />
               </div>
 
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ marginBottom: 16 }}>
                 <label
                   htmlFor="email"
                   style={{
-                    fontSize: 14,
+                    display: 'block',
+                    marginBottom: 6,
+                    color: '#2f2417',
+                    fontSize: 13,
                     fontWeight: 800,
-                    color: "#241b11",
                   }}
                 >
                   이메일
@@ -296,46 +282,40 @@ export default async function AccountPage({
                 <input
                   id="email"
                   name="email"
-                  type="email"
-                  value={emailValue}
-                  readOnly
+                  value={email}
+                  disabled
                   style={{
-                    height: 50,
-                    borderRadius: 16,
-                    border: "1px solid #e6dac8",
-                    background: "#f8f4ed",
-                    padding: "0 16px",
+                    width: '100%',
+                    height: 48,
+                    borderRadius: 14,
+                    border: '1px solid rgba(47,36,23,0.08)',
+                    background: '#f7f2ea',
+                    padding: '0 14px',
                     fontSize: 14,
-                    color: "#6e5a43",
-                    outline: "none",
+                    color: '#7a6753',
                   }}
                 />
               </div>
 
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  marginTop: 4,
+                  display: 'flex',
+                  justifyContent: 'flex-end',
                 }}
               >
                 <button
                   type="submit"
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minWidth: 160,
-                    height: 50,
-                    padding: "0 18px",
-                    border: 0,
-                    borderRadius: 16,
-                    background: "#2f2417",
-                    color: "#fff",
-                    fontSize: 15,
+                    minWidth: 122,
+                    height: 46,
+                    border: 'none',
+                    borderRadius: 14,
+                    background: '#2f2417',
+                    color: '#fff',
+                    fontSize: 14,
                     fontWeight: 900,
-                    cursor: "pointer",
-                    boxShadow: "0 14px 24px rgba(47,36,23,0.14)",
+                    cursor: 'pointer',
+                    padding: '0 20px',
                   }}
                 >
                   저장하기
@@ -346,175 +326,138 @@ export default async function AccountPage({
 
           <aside
             style={{
-              display: "grid",
-              gap: 14,
+              borderRadius: 24,
+              background: '#fff',
+              border: '1px solid rgba(47,36,23,0.08)',
+              boxShadow: '0 10px 28px rgba(47,36,23,0.05)',
+              padding: 18,
             }}
           >
-            <section
+            <div
               style={{
-                background: "#fff",
-                border: "1px solid #eadfcf",
-                borderRadius: 24,
-                padding: 20,
-                boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
+                color: '#9a6b2f',
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: '0.08em',
+                marginBottom: 10,
+              }}
+            >
+              ACCOUNT INFO
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gap: 14,
               }}
             >
               <div
                 style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: "#8a7357",
-                  letterSpacing: "0.08em",
-                  marginBottom: 12,
+                  paddingBottom: 12,
+                  borderBottom: '1px solid rgba(47,36,23,0.08)',
                 }}
               >
-                ACCOUNT INFO
+                <div
+                  style={{
+                    color: '#8d7760',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    marginBottom: 6,
+                  }}
+                >
+                  이메일
+                </div>
+                <div
+                  style={{
+                    color: '#2f2417',
+                    fontSize: 14,
+                    fontWeight: 900,
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {email}
+                </div>
               </div>
 
               <div
                 style={{
-                  display: "grid",
-                  gap: 12,
+                  paddingBottom: 12,
+                  borderBottom: '1px solid rgba(47,36,23,0.08)',
                 }}
               >
                 <div
                   style={{
-                    display: "grid",
-                    gap: 4,
+                    color: '#8d7760',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    marginBottom: 6,
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#8a7357",
-                      fontWeight: 700,
-                    }}
-                  >
-                    이메일
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      color: "#241b11",
-                      fontWeight: 800,
-                      wordBreak: "break-all",
-                    }}
-                  >
-                    {emailValue || "-"}
-                  </span>
+                  이름
                 </div>
-
                 <div
                   style={{
-                    height: 1,
-                    background: "#f0e5d6",
-                  }}
-                />
-
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 4,
+                    color: '#2f2417',
+                    fontSize: 14,
+                    fontWeight: 900,
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#8a7357",
-                      fontWeight: 700,
-                    }}
-                  >
-                    이름
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      color: "#241b11",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {fullNameValue || "-"}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    height: 1,
-                    background: "#f0e5d6",
-                  }}
-                />
-
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 4,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#8a7357",
-                      fontWeight: 700,
-                    }}
-                  >
-                    아이디
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      color: "#241b11",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {usernameValue || "-"}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    height: 1,
-                    background: "#f0e5d6",
-                  }}
-                />
-
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 4,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#8a7357",
-                      fontWeight: 700,
-                    }}
-                  >
-                    연락처
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      color: "#241b11",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {phoneValue || "-"}
-                  </span>
+                  {fullName || '-'}
                 </div>
               </div>
-            </section>
+
+              <div
+                style={{
+                  paddingBottom: 12,
+                  borderBottom: '1px solid rgba(47,36,23,0.08)',
+                }}
+              >
+                <div
+                  style={{
+                    color: '#8d7760',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    marginBottom: 6,
+                  }}
+                >
+                  아이디
+                </div>
+                <div
+                  style={{
+                    color: '#2f2417',
+                    fontSize: 14,
+                    fontWeight: 900,
+                  }}
+                >
+                  {username || '-'}
+                </div>
+              </div>
+
+              <div>
+                <div
+                  style={{
+                    color: '#8d7760',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    marginBottom: 6,
+                  }}
+                >
+                  연락처
+                </div>
+                <div
+                  style={{
+                    color: '#2f2417',
+                    fontSize: 14,
+                    fontWeight: 900,
+                  }}
+                >
+                  {phoneNumber || '-'}
+                </div>
+              </div>
+            </div>
           </aside>
         </div>
-
-        <style>{`
-          @media (max-width: 920px) {
-            .msell-account-layout {
-              grid-template-columns: 1fr !important;
-            }
-          }
-        `}</style>
       </div>
     </main>
-  );
+  )
 }
