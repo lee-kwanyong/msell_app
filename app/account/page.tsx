@@ -3,18 +3,20 @@ import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
 import { updateAccountAction } from './actions';
 
-type SearchParams = Promise<{
-  updated?: string;
-  error?: string;
-}>;
-
 export const dynamic = 'force-dynamic';
+
+type AccountPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function pickFirst(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return value ?? '';
+}
 
 export default async function AccountPage({
   searchParams,
-}: {
-  searchParams?: SearchParams;
-}) {
+}: AccountPageProps) {
   const supabase = await supabaseServer();
 
   const [
@@ -23,7 +25,10 @@ export default async function AccountPage({
       error: userError,
     },
     resolvedSearchParams,
-  ] = await Promise.all([supabase.auth.getUser(), searchParams ?? Promise.resolve({})]);
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    searchParams ?? Promise.resolve({}),
+  ]);
 
   if (userError || !user) {
     redirect('/auth/login?next=/account');
@@ -35,15 +40,20 @@ export default async function AccountPage({
     .eq('id', user.id)
     .maybeSingle();
 
-  const fullName = profile?.full_name ?? (user.user_metadata?.full_name as string | undefined) ?? '';
-  const username = profile?.username ?? (user.user_metadata?.username as string | undefined) ?? '';
+  const fullName =
+    profile?.full_name ?? (user.user_metadata?.full_name as string | undefined) ?? '';
+  const username =
+    profile?.username ?? (user.user_metadata?.username as string | undefined) ?? '';
   const phoneNumber =
-    profile?.phone_number ?? (user.user_metadata?.phone_number as string | undefined) ?? '';
-  const gender = profile?.gender ?? (user.user_metadata?.gender as string | undefined) ?? '';
+    profile?.phone_number ??
+    (user.user_metadata?.phone_number as string | undefined) ??
+    '';
+  const gender =
+    profile?.gender ?? (user.user_metadata?.gender as string | undefined) ?? '';
   const email = profile?.email ?? user.email ?? '';
 
-  const updated = resolvedSearchParams?.updated === '1';
-  const error = resolvedSearchParams?.error;
+  const updated = pickFirst(resolvedSearchParams.updated) === '1';
+  const error = pickFirst(resolvedSearchParams.error);
 
   return (
     <main
