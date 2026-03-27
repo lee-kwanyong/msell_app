@@ -1,109 +1,73 @@
-import Link from 'next/link'
-import { supabaseServer } from '@/lib/supabase/server'
+import Link from "next/link";
+import { supabaseServer } from "@/lib/supabase/server";
 
-function firstString(...values: Array<string | null | undefined>) {
-  return values.find((value) => typeof value === 'string' && value.trim().length > 0) || ''
+function providerLabel(provider?: string | null) {
+  if (!provider) return "Email 로그인";
+  if (provider === "google") return "Google 로그인";
+  if (provider === "kakao") return "Kakao 로그인";
+  if (provider === "custom:naver") return "Naver 로그인";
+  return `${provider} 로그인`;
 }
 
-function getInitial(value: string) {
-  return value.trim().charAt(0).toUpperCase()
-}
-
-function getProviderLabel(provider?: string | null) {
-  switch (provider) {
-    case 'google':
-      return 'Google 로그인'
-    case 'kakao':
-      return 'Kakao 로그인'
-    case 'naver':
-    case 'custom:naver':
-      return 'Naver 로그인'
-    case 'email':
-      return '이메일 로그인'
-    default:
-      return ''
-  }
-}
-
-const navButtonStyle: React.CSSProperties = {
-  textDecoration: 'none',
-  border: '1px solid #ddcfba',
-  background: '#fffaf2',
-  color: '#2f2417',
-  borderRadius: 999,
-  padding: '10px 14px',
-  fontWeight: 800,
-  fontSize: 14,
-  lineHeight: 1,
-  whiteSpace: 'nowrap',
-}
+type NavItem = {
+  href: string;
+  label: string;
+};
 
 export default async function Header() {
-  const supabase = await supabaseServer()
-
+  const supabase = await supabaseServer();
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-  let profile: any = null
+  const navItems: NavItem[] = [
+    { href: "/", label: "홈" },
+    { href: "/listings", label: "거래목록" },
+    { href: "/listings/create", label: "자산등록" },
+    { href: "/my/listings", label: "내 매물" },
+    { href: "/my/deals", label: "내 거래" },
+    { href: "/account", label: "계정" },
+  ];
 
-  if (user?.id) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, role, full_name, username, email, avatar_url, phone_number')
-      .eq('id', user.id)
-      .maybeSingle()
+  const username =
+    (user?.user_metadata?.username as string | undefined) ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email?.split("@")[0] ||
+    "게스트";
 
-    profile = data
-  }
-
-  const displayName = firstString(
-    profile?.full_name,
-    profile?.username,
-    user?.user_metadata?.full_name,
-    user?.user_metadata?.name,
-    user?.user_metadata?.nickname,
-    user?.email?.split('@')[0]
-  )
-
-  const displayEmail = firstString(profile?.email, user?.email)
-  const avatarUrl = firstString(
-    profile?.avatar_url,
-    user?.user_metadata?.avatar_url,
-    user?.user_metadata?.picture
-  )
-
-  const provider = firstString(user?.app_metadata?.provider, user?.user_metadata?.provider)
-  const providerLabel = getProviderLabel(provider)
-  const isAdmin = profile?.role === 'admin'
+  const provider =
+    typeof user?.app_metadata?.provider === "string"
+      ? user.app_metadata.provider
+      : null;
 
   return (
     <header
       style={{
-        position: 'sticky',
+        width: "100%",
+        borderBottom: "1px solid #eadfce",
+        background: "#f6f1e7",
+        position: "sticky",
         top: 0,
         zIndex: 40,
-        backdropFilter: 'blur(14px)',
-        background: 'rgba(246, 241, 231, 0.86)',
-        borderBottom: '1px solid #eadfcf',
+        backdropFilter: "blur(10px)",
       }}
     >
       <div
         style={{
-          maxWidth: 1280,
-          margin: '0 auto',
-          padding: '14px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
+          maxWidth: 1180,
+          margin: "0 auto",
+          padding: "14px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 18,
         }}
       >
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
+            display: "flex",
+            alignItems: "center",
+            gap: 18,
             minWidth: 0,
             flex: 1,
           }}
@@ -111,57 +75,84 @@ export default async function Header() {
           <Link
             href="/"
             style={{
-              textDecoration: 'none',
-              color: '#241b11',
-              fontWeight: 900,
-              fontSize: 22,
-              letterSpacing: '-0.03em',
-              whiteSpace: 'nowrap',
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              textDecoration: "none",
+              color: "#20150d",
+              minWidth: "fit-content",
             }}
           >
-            Msell
+            <span
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                background: "linear-gradient(135deg, #2b1d12 0%, #6f4725 100%)",
+                color: "#fffaf2",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 20,
+                fontWeight: 900,
+                boxShadow: "0 8px 20px rgba(47, 36, 23, 0.18)",
+              }}
+            >
+              M
+            </span>
+            <span
+              style={{
+                fontSize: 18,
+                fontWeight: 900,
+                letterSpacing: "-0.03em",
+              }}
+            >
+              Msell
+            </span>
           </Link>
 
           <nav
             style={{
-              display: 'flex',
-              alignItems: 'center',
+              display: "flex",
+              alignItems: "center",
               gap: 10,
-              flexWrap: 'wrap',
+              flexWrap: "wrap",
             }}
           >
-            <Link href="/" style={navButtonStyle}>
-              홈
-            </Link>
-            <Link href="/listings" style={navButtonStyle}>
-              거래목록
-            </Link>
-
-            {user ? (
-              <>
-                <Link href="/my/listings" style={navButtonStyle}>
-                  내 매물
-                </Link>
-                <Link href="/my/deals" style={navButtonStyle}>
-                  내 거래
-                </Link>
-                <Link href="/account" style={navButtonStyle}>
-                  계정
-                </Link>
-                {isAdmin ? (
-                  <Link href="/admin" style={navButtonStyle}>
-                    관리자
-                  </Link>
-                ) : null}
-              </>
-            ) : null}
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  height: 38,
+                  padding: "0 14px",
+                  borderRadius: 999,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  border: "1px solid #d8cab8",
+                  background:
+                    item.href === "/listings/create" ? "#2f2417" : "#f9f5ee",
+                  color: item.href === "/listings/create" ? "#fffaf2" : "#2f2417",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  boxShadow:
+                    item.href === "/listings/create"
+                      ? "0 10px 18px rgba(47, 36, 23, 0.18)"
+                      : "none",
+                }}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
         </div>
 
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             gap: 10,
             flexShrink: 0,
           }}
@@ -171,102 +162,71 @@ export default async function Header() {
               <Link
                 href="/account"
                 style={{
-                  textDecoration: 'none',
-                  color: '#2f2417',
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  textDecoration: "none",
+                  color: "#2f2417",
+                  border: "1px solid #d8cab8",
+                  background: "#fbf7f1",
+                  borderRadius: 999,
+                  padding: "7px 12px 7px 8px",
+                  minHeight: 44,
                 }}
               >
-                <div
+                <span
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    background: '#fffaf2',
-                    border: '1px solid #ddcfba',
-                    borderRadius: 999,
-                    padding: '8px 12px 8px 8px',
-                    minWidth: 0,
-                    maxWidth: 340,
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: "#2f2417",
+                    color: "#fffaf2",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 13,
+                    fontWeight: 900,
+                    flexShrink: 0,
                   }}
                 >
-                  <div
+                  {username.slice(0, 1).toUpperCase()}
+                </span>
+                <span style={{ display: "grid", lineHeight: 1.1 }}>
+                  <span
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '50%',
-                      background: '#2f2417',
-                      color: '#ffffff',
-                      display: 'grid',
-                      placeItems: 'center',
+                      fontSize: 13,
                       fontWeight: 900,
-                      fontSize: 14,
-                      overflow: 'hidden',
-                      flexShrink: 0,
+                      color: "#2f2417",
                     }}
                   >
-                    {avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={avatarUrl}
-                        alt="프로필"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                    ) : (
-                      getInitial(displayName || displayEmail || 'U')
-                    )}
-                  </div>
-
-                  <div
+                    {username}
+                  </span>
+                  <span
                     style={{
-                      minWidth: 0,
-                      display: 'grid',
-                      gap: 2,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#8a7156",
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 900,
-                        color: '#241b11',
-                        lineHeight: 1.2,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {displayName || '회원'}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: '#8a7458',
-                        lineHeight: 1.2,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {providerLabel || displayEmail || ''}
-                    </span>
-                  </div>
-                </div>
+                    {providerLabel(provider)}
+                  </span>
+                </span>
               </Link>
 
               <form action="/auth/logout" method="post">
                 <button
                   type="submit"
                   style={{
+                    height: 44,
+                    padding: "0 16px",
+                    borderRadius: 14,
                     border: 0,
-                    cursor: 'pointer',
-                    color: '#ffffff',
-                    background: '#2f2417',
-                    padding: '10px 14px',
-                    borderRadius: 12,
-                    fontWeight: 800,
-                    whiteSpace: 'nowrap',
+                    background: "#2f2417",
+                    color: "#fffaf2",
+                    fontSize: 13,
+                    fontWeight: 900,
+                    cursor: "pointer",
+                    boxShadow: "0 8px 18px rgba(47, 36, 23, 0.18)",
                   }}
                 >
                   로그아웃
@@ -274,25 +234,28 @@ export default async function Header() {
               </form>
             </>
           ) : (
-            <>
-              <Link href="/auth/login" style={navButtonStyle}>
-                로그인
-              </Link>
-              <Link
-                href="/auth/signup"
-                style={{
-                  ...navButtonStyle,
-                  background: '#2f2417',
-                  color: '#ffffff',
-                  border: '1px solid #2f2417',
-                }}
-              >
-                회원가입
-              </Link>
-            </>
+            <Link
+              href="/auth/login"
+              style={{
+                height: 44,
+                padding: "0 16px",
+                borderRadius: 14,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textDecoration: "none",
+                border: 0,
+                background: "#2f2417",
+                color: "#fffaf2",
+                fontSize: 13,
+                fontWeight: 900,
+              }}
+            >
+              로그인
+            </Link>
           )}
         </div>
       </div>
     </header>
-  )
+  );
 }
