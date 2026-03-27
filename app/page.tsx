@@ -123,159 +123,537 @@ export default async function HomePage() {
   }).length
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7] text-[#111111]">
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 md:py-10">
-        <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-          <div className="rounded-[32px] border border-black/5 bg-white p-6 shadow-sm md:p-8">
-            <div className="text-[12px] font-medium tracking-[0.14em] text-black/45">
+    <main
+      style={{
+        minHeight: '100vh',
+        background: '#f5f5f7',
+        color: '#111111',
+      }}
+    >
+      <section
+        style={{
+          width: '100%',
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: '32px 20px 18px',
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.45fr) minmax(360px, 0.95fr)',
+            gap: 20,
+            alignItems: 'stretch',
+          }}
+        >
+          <div
+            style={{
+              borderRadius: 32,
+              background: '#ffffff',
+              border: '1px solid rgba(17,17,17,0.06)',
+              boxShadow: '0 18px 40px rgba(0,0,0,0.05)',
+              padding: 32,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                lineHeight: 1.2,
+                letterSpacing: '0.14em',
+                color: 'rgba(17,17,17,0.45)',
+                fontWeight: 600,
+              }}
+            >
               MSELL
             </div>
 
-            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-black md:text-6xl">
+            <h1
+              style={{
+                marginTop: 18,
+                fontSize: 64,
+                lineHeight: 0.98,
+                letterSpacing: '-0.05em',
+                fontWeight: 700,
+                marginBottom: 0,
+              }}
+            >
               디지털 자산 거래
             </h1>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div
+              style={{
+                marginTop: 28,
+                display: 'flex',
+                gap: 12,
+                flexWrap: 'wrap',
+              }}
+            >
               <Link
                 href="/listings"
-                className="inline-flex h-11 items-center justify-center rounded-full bg-black px-5 text-sm font-semibold text-white transition hover:opacity-90"
+                style={{
+                  height: 44,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 20px',
+                  borderRadius: 999,
+                  background: '#111111',
+                  color: '#ffffff',
+                  textDecoration: 'none',
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
               >
                 자산목록
               </Link>
 
               <Link
                 href={user ? '/listings/create' : '/auth/login?next=/listings/create'}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-black/10 bg-white px-5 text-sm font-semibold text-black transition hover:bg-black/[0.03]"
+                style={{
+                  height: 44,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 20px',
+                  borderRadius: 999,
+                  background: '#ffffff',
+                  color: '#111111',
+                  textDecoration: 'none',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  border: '1px solid rgba(17,17,17,0.10)',
+                }}
               >
                 자산등록
               </Link>
             </div>
 
-            <div className="mt-8 grid gap-3 md:grid-cols-3">
-              <div className="rounded-[24px] bg-[#f7f7f8] p-5">
-                <div className="text-xs text-black/45">현재 공개 자산</div>
-                <div className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-black">
+            <div
+              style={{
+                marginTop: 30,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: 14,
+              }}
+            >
+              <div
+                style={{
+                  borderRadius: 24,
+                  background: '#f7f7f8',
+                  padding: 22,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'rgba(17,17,17,0.48)',
+                  }}
+                >
+                  현재 공개 자산
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 36,
+                    fontWeight: 700,
+                    letterSpacing: '-0.04em',
+                  }}
+                >
                   {activeCount}
                 </div>
               </div>
 
-              <div className="rounded-[24px] bg-[#f7f7f8] p-5">
-                <div className="text-xs text-black/45">공개 금액 합계</div>
-                <div className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-black">
+              <div
+                style={{
+                  borderRadius: 24,
+                  background: '#f7f7f8',
+                  padding: 22,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'rgba(17,17,17,0.48)',
+                  }}
+                >
+                  공개 금액 합계
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 36,
+                    fontWeight: 700,
+                    letterSpacing: '-0.04em',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
                   ₩ {formatPrice(totalVisibleAmount)}
                 </div>
               </div>
 
-              <div className="rounded-[24px] bg-[#f7f7f8] p-5">
-                <div className="text-xs text-black/45">최근 7일 등록</div>
-                <div className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-black">
+              <div
+                style={{
+                  borderRadius: 24,
+                  background: '#f7f7f8',
+                  padding: 22,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'rgba(17,17,17,0.48)',
+                  }}
+                >
+                  최근 7일 등록
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 36,
+                    fontWeight: 700,
+                    letterSpacing: '-0.04em',
+                  }}
+                >
                   {weekCount}
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-black/5 bg-white p-6 shadow-sm md:p-8">
-            <div className="flex items-center justify-between gap-3">
+          <div
+            style={{
+              borderRadius: 32,
+              background: '#ffffff',
+              border: '1px solid rgba(17,17,17,0.06)',
+              boxShadow: '0 18px 40px rgba(0,0,0,0.05)',
+              padding: 28,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
               <div>
-                <div className="text-[12px] font-medium tracking-[0.14em] text-black/45">
+                <div
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.2,
+                    letterSpacing: '0.14em',
+                    color: 'rgba(17,17,17,0.45)',
+                    fontWeight: 600,
+                  }}
+                >
                   AMOUNT TREND
                 </div>
-                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-black">
+                <h2
+                  style={{
+                    marginTop: 12,
+                    marginBottom: 0,
+                    fontSize: 32,
+                    lineHeight: 1.05,
+                    letterSpacing: '-0.04em',
+                    fontWeight: 700,
+                  }}
+                >
                   거래금액 추이
                 </h2>
               </div>
 
-              <div className="rounded-full bg-[#f7f7f8] px-3 py-2 text-xs text-black/55">
+              <div
+                style={{
+                  borderRadius: 999,
+                  background: '#f7f7f8',
+                  padding: '10px 14px',
+                  fontSize: 12,
+                  color: 'rgba(17,17,17,0.55)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 최근 7일
               </div>
             </div>
 
-            <div className="mt-6 rounded-[24px] bg-[#f7f7f8] p-4">
-              <div className="flex h-52 items-end gap-3">
+            <div
+              style={{
+                marginTop: 22,
+                borderRadius: 24,
+                background: '#f7f7f8',
+                padding: 18,
+              }}
+            >
+              <div
+                style={{
+                  height: 240,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                  alignItems: 'end',
+                  gap: 14,
+                }}
+              >
                 {amountSeries.map((item) => {
-                  const heightPercent = item.amount > 0 ? Math.max((item.amount / maxAmount) * 100, 8) : 6
+                  const heightPercent =
+                    item.amount > 0 ? Math.max((item.amount / maxAmount) * 100, 8) : 6
 
                   return (
-                    <div key={item.key} className="flex flex-1 flex-col items-center justify-end gap-3">
-                      <div className="flex h-40 w-full items-end justify-center">
+                    <div
+                      key={item.key}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'end',
+                        gap: 10,
+                        height: '100%',
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 170,
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'end',
+                          justifyContent: 'center',
+                        }}
+                      >
                         <div
-                          className="w-full max-w-[56px] rounded-t-[18px] bg-black"
-                          style={{ height: `${heightPercent}%` }}
                           title={`${item.label} / ₩ ${formatPrice(item.amount)}`}
+                          style={{
+                            width: '100%',
+                            maxWidth: 54,
+                            height: `${heightPercent}%`,
+                            minHeight: item.amount > 0 ? 16 : 10,
+                            borderRadius: '18px 18px 10px 10px',
+                            background:
+                              item.amount > 0
+                                ? 'linear-gradient(180deg, #1f7aff 0%, #0a66e8 100%)'
+                                : 'rgba(17,17,17,0.10)',
+                          }}
                         />
                       </div>
-                      <div className="text-xs text-black/45">{item.label}</div>
+
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: 'rgba(17,17,17,0.48)',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {item.label}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: 'rgba(17,17,17,0.55)',
+                          textAlign: 'center',
+                          lineHeight: 1.35,
+                          wordBreak: 'break-all',
+                        }}
+                      >
+                        {item.amount > 0 ? `₩${formatPrice(item.amount)}` : '-'}
+                      </div>
                     </div>
                   )
                 })}
-              </div>
-
-              <div className="mt-4 grid grid-cols-7 gap-2">
-                {amountSeries.map((item) => (
-                  <div key={`${item.key}-value`} className="truncate text-center text-xs text-black/55">
-                    {item.amount > 0 ? `₩${formatPrice(item.amount)}` : '-'}
-                  </div>
-                ))}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 pb-16 md:px-6 md:pb-24">
-        <div className="mb-5 flex items-end justify-between gap-4">
+      <section
+        style={{
+          width: '100%',
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: '8px 20px 80px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'end',
+            justifyContent: 'space-between',
+            gap: 16,
+            marginBottom: 20,
+          }}
+        >
           <div>
-            <div className="text-[12px] font-medium tracking-[0.14em] text-black/45">
+            <div
+              style={{
+                fontSize: 12,
+                lineHeight: 1.2,
+                letterSpacing: '0.14em',
+                color: 'rgba(17,17,17,0.45)',
+                fontWeight: 600,
+              }}
+            >
               LIVE LISTINGS
             </div>
-            <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-black md:text-4xl">
+            <h2
+              style={{
+                marginTop: 10,
+                marginBottom: 0,
+                fontSize: 42,
+                lineHeight: 1,
+                letterSpacing: '-0.05em',
+                fontWeight: 700,
+              }}
+            >
               최신 등록 자산
             </h2>
           </div>
 
           <Link
             href="/listings"
-            className="inline-flex h-10 items-center justify-center rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-black transition hover:bg-black/[0.03]"
+            style={{
+              height: 42,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 18px',
+              borderRadius: 999,
+              background: '#ffffff',
+              color: '#111111',
+              textDecoration: 'none',
+              fontSize: 14,
+              fontWeight: 600,
+              border: '1px solid rgba(17,17,17,0.10)',
+              whiteSpace: 'nowrap',
+            }}
           >
             전체 자산 보기
           </Link>
         </div>
 
         {latestListings.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: 18,
+            }}
+          >
             {latestListings.map((item) => (
               <Link
                 key={item.id || `${item.title}-${item.created_at}`}
                 href={item.id ? `/listings/${item.id}` : '/listings'}
-                className="rounded-[28px] border border-black/5 bg-white p-6 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md"
+                style={{
+                  textDecoration: 'none',
+                  color: '#111111',
+                  borderRadius: 28,
+                  background: '#ffffff',
+                  border: '1px solid rgba(17,17,17,0.06)',
+                  boxShadow: '0 14px 30px rgba(0,0,0,0.04)',
+                  padding: 24,
+                  display: 'block',
+                }}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="truncate rounded-full bg-[#f7f7f8] px-3 py-1 text-xs text-black/60">
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      maxWidth: '70%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      borderRadius: 999,
+                      background: '#f7f7f8',
+                      padding: '7px 12px',
+                      fontSize: 12,
+                      color: 'rgba(17,17,17,0.60)',
+                    }}
+                  >
                     {item.category || '기타'}
                   </div>
-                  <div className="text-xs text-black/40">{getStatusLabel(item.status)}</div>
+
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: 'rgba(17,17,17,0.42)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {getStatusLabel(item.status)}
+                  </div>
                 </div>
 
-                <div className="mt-5 line-clamp-2 text-2xl font-semibold tracking-[-0.03em] text-black">
+                <div
+                  style={{
+                    marginTop: 18,
+                    fontSize: 30,
+                    lineHeight: 1.15,
+                    letterSpacing: '-0.04em',
+                    fontWeight: 700,
+                    minHeight: 70,
+                  }}
+                >
                   {item.title || '제목 없음'}
                 </div>
 
-                <div className="mt-6 text-3xl font-semibold tracking-[-0.04em] text-black">
+                <div
+                  style={{
+                    marginTop: 20,
+                    fontSize: 36,
+                    lineHeight: 1,
+                    letterSpacing: '-0.05em',
+                    fontWeight: 700,
+                  }}
+                >
                   ₩ {formatPrice(toNumber(item.price))}
                 </div>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="rounded-[28px] border border-black/5 bg-white p-10 text-center shadow-sm">
-            <div className="text-xl font-semibold tracking-[-0.03em] text-black">
+          <div
+            style={{
+              borderRadius: 28,
+              background: '#ffffff',
+              border: '1px solid rgba(17,17,17,0.06)',
+              boxShadow: '0 14px 30px rgba(0,0,0,0.04)',
+              padding: '44px 28px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 24,
+                fontWeight: 700,
+                letterSpacing: '-0.03em',
+              }}
+            >
               등록된 자산이 없습니다
             </div>
-            <div className="mt-5">
+
+            <div style={{ marginTop: 20 }}>
               <Link
                 href={user ? '/listings/create' : '/auth/login?next=/listings/create'}
-                className="inline-flex h-11 items-center justify-center rounded-full bg-black px-5 text-sm font-semibold text-white transition hover:opacity-90"
+                style={{
+                  height: 44,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 20px',
+                  borderRadius: 999,
+                  background: '#111111',
+                  color: '#ffffff',
+                  textDecoration: 'none',
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
               >
                 자산등록
               </Link>
