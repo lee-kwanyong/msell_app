@@ -1,86 +1,171 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 
 type AuthGatewayProps = {
-  mode?: 'login' | 'signup';
-  next?: string;
+  mode: 'login' | 'signup';
   mobile?: boolean;
 };
 
+const NAVER_PROVIDER =
+  process.env.NEXT_PUBLIC_NAVER_SUPABASE_PROVIDER_ID || 'custom:naver';
+
 export default function AuthGateway({
-  mode = 'login',
-  next = '/',
+  mode,
   mobile = false,
 }: AuthGatewayProps) {
-  const supabase = useMemo(() => supabaseBrowser(), []);
+  const supabase = supabaseBrowser();
   const searchParams = useSearchParams();
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+  const [error, setError] = useState<string>('');
 
-  const error =
-    searchParams.get('error_description') ||
-    searchParams.get('error') ||
-    '';
+  const next = useMemo(() => {
+    const value = searchParams.get('next');
+    if (!value || typeof value !== 'string') {
+      return mobile ? '/m' : '/';
+    }
+    return value;
+  }, [searchParams, mobile]);
 
-  const nextPath = searchParams.get('next') || next || '/';
+  const callbackUrl = useMemo(() => {
+    if (typeof window === 'undefined') return undefined;
+    const url = new URL('/auth/callback', window.location.origin);
+    url.searchParams.set('next', next);
+    return url.toString();
+  }, [next]);
 
-  async function handleOAuth(provider: 'google' | 'custom:naver') {
+  async function handleOAuth(provider: 'google' | string) {
     try {
+      setError('');
       setLoadingProvider(provider);
-
-      const redirectTo =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
-          : undefined;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo,
-          queryParams:
-            provider === 'google'
-              ? {
-                  access_type: 'offline',
-                  prompt: 'select_account',
-                }
-              : undefined,
+          redirectTo: callbackUrl,
         },
       });
 
       if (error) {
-        const path = mode === 'signup' ? '/auth/signup' : '/auth/login';
-        window.location.href = `${path}?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(nextPath)}`;
-        return;
+        setError(error.message || '소셜 로그인 중 오류가 발생했습니다.');
       }
     } catch (e) {
-      const message =
-        e instanceof Error ? e.message : '소셜 로그인 중 오류가 발생했습니다.';
-      const path = mode === 'signup' ? '/auth/signup' : '/auth/login';
-      window.location.href = `${path}?error=${encodeURIComponent(message)}&next=${encodeURIComponent(nextPath)}`;
+      setError(
+        e instanceof Error
+          ? e.message
+          : '소셜 로그인 중 알 수 없는 오류가 발생했습니다.',
+      );
     } finally {
       setLoadingProvider(null);
     }
   }
 
+  const isLogin = mode === 'login';
+  const title = isLogin ? '로그인' : '회원가입';
+  const description = isLogin
+    ? '구글 또는 네이버로 간편하게 로그인하세요.'
+    : '구글 또는 네이버로 빠르게 가입하고 시작하세요.';
+
+  const switchHref = mobile
+    ? isLogin
+      ? '/m/auth/signup'
+      : '/m/auth/login'
+    : isLogin
+      ? '/auth/signup'
+      : '/auth/login';
+
+  const switchLabel = isLogin ? '회원가입' : '로그인';
+
   return (
     <div
       style={{
+        width: '100%',
         display: 'grid',
-        gap: mobile ? 10 : 12,
+        gap: 14,
       }}
     >
+      <div style={{ display: 'grid', gap: 6 }}>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: mobile ? 24 : 30,
+            fontWeight: 800,
+            color: '#24170f',
+            letterSpacing: '-0.03em',
+          }}
+        >
+          {title}
+        </h1>
+        <p
+          style={{
+            margin: 0,
+            fontSize: mobile ? 14 : 15,
+            lineHeight: 1.6,
+            color: '#6b5b4d',
+          }}
+        >
+          {description}
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gap: 10 }}>
+        <button
+          type="button"
+          onClick={() => handleOAuth('google')}
+          disabled={!!loadingProvider}
+          style={{
+            height: mobile ? 52 : 56,
+            width: '100%',
+            borderRadius: 14,
+            border: '1px solid #ddd2c2',
+            background: '#ffffff',
+            color: '#24170f',
+            fontSize: 15,
+            fontWeight: 700,
+            cursor: loadingProvider ? 'not-allowed' : 'pointer',
+            opacity: loadingProvider ? 0.72 : 1,
+          }}
+        >
+          {loadingProvider === 'google'
+            ? '구글 로그인 이동 중...'
+            : `Google로 ${isLogin ? '로그인' : '시작하기'}`}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleOAuth(NAVER_PROVIDER)}
+          disabled={!!loadingProvider}
+          style={{
+            height: mobile ? 52 : 56,
+            width: '100%',
+            borderRadius: 14,
+            border: '1px solid #cfe8cc',
+            background: '#03c75a',
+            color: '#ffffff',
+            fontSize: 15,
+            fontWeight: 800,
+            cursor: loadingProvider ? 'not-allowed' : 'pointer',
+            opacity: loadingProvider ? 0.72 : 1,
+          }}
+        >
+          {loadingProvider === NAVER_PROVIDER
+            ? '네이버 로그인 이동 중...'
+            : `네이버로 ${isLogin ? '로그인' : '시작하기'}`}
+        </button>
+      </div>
+
       {error ? (
         <div
           style={{
-            padding: mobile ? '12px 14px' : '14px 16px',
-            borderRadius: 16,
-            border: '1px solid #efc2ba',
-            background: '#fff4f2',
-            color: '#9a3d2f',
-            fontSize: mobile ? 13 : 14,
-            fontWeight: 600,
+            borderRadius: 12,
+            border: '1px solid #efc9c2',
+            background: '#fff5f3',
+            color: '#9a3412',
+            padding: '12px 14px',
+            fontSize: 14,
             lineHeight: 1.5,
           }}
         >
@@ -88,85 +173,26 @@ export default function AuthGateway({
         </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => handleOAuth('google')}
-        disabled={!!loadingProvider}
+      <div
         style={{
-          ...buttonStyle,
-          height: mobile ? 50 : 54,
-          background: '#ffffff',
-          color: '#2f2417',
-          border: '1px solid #ddcfbb',
-          fontSize: mobile ? 14 : 15,
+          borderTop: '1px solid #ece3d6',
+          paddingTop: 14,
+          fontSize: 14,
+          color: '#6b5b4d',
         }}
       >
-        <span style={iconWrapStyle}>G</span>
-        <span>
-          {loadingProvider === 'google'
-            ? '구글 연결 중...'
-            : mode === 'signup'
-              ? '구글로 회원가입'
-              : '구글로 로그인'}
-        </span>
-      </button>
-
-      <button
-        type="button"
-        onClick={() => handleOAuth('custom:naver')}
-        disabled={!!loadingProvider}
-        style={{
-          ...buttonStyle,
-          height: mobile ? 50 : 54,
-          background: '#03c75a',
-          color: '#ffffff',
-          border: '1px solid #03c75a',
-          fontSize: mobile ? 14 : 15,
-        }}
-      >
-        <span
+        {isLogin ? '아직 계정이 없나요? ' : '이미 계정이 있나요? '}
+        <Link
+          href={switchHref}
           style={{
-            ...iconWrapStyle,
-            background: 'rgba(255,255,255,0.16)',
-            color: '#ffffff',
+            color: '#2f2417',
+            fontWeight: 800,
+            textDecoration: 'none',
           }}
         >
-          N
-        </span>
-        <span>
-          {loadingProvider === 'custom:naver'
-            ? '네이버 연결 중...'
-            : mode === 'signup'
-              ? '네이버로 회원가입'
-              : '네이버로 로그인'}
-        </span>
-      </button>
+          {switchLabel}
+        </Link>
+      </div>
     </div>
   );
 }
-
-const buttonStyle: React.CSSProperties = {
-  width: '100%',
-  borderRadius: 16,
-  padding: '0 16px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 10,
-  fontWeight: 800,
-  cursor: 'pointer',
-};
-
-const iconWrapStyle: React.CSSProperties = {
-  width: 28,
-  height: 28,
-  borderRadius: 999,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#f3ede3',
-  color: '#2f2417',
-  fontSize: 13,
-  fontWeight: 900,
-  flexShrink: 0,
-};
