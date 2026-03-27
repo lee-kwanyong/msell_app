@@ -7,11 +7,13 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 type AuthGatewayProps = {
   mode?: 'login' | 'signup';
   next?: string;
+  mobile?: boolean;
 };
 
 export default function AuthGateway({
   mode = 'login',
   next = '/',
+  mobile = false,
 }: AuthGatewayProps) {
   const supabase = useMemo(() => supabaseBrowser(), []);
   const searchParams = useSearchParams();
@@ -66,18 +68,18 @@ export default function AuthGateway({
     <div
       style={{
         display: 'grid',
-        gap: 12,
+        gap: mobile ? 10 : 12,
       }}
     >
       {error ? (
         <div
           style={{
-            padding: '14px 16px',
+            padding: mobile ? '12px 14px' : '14px 16px',
             borderRadius: 16,
             border: '1px solid #efc2ba',
             background: '#fff4f2',
             color: '#9a3d2f',
-            fontSize: 14,
+            fontSize: mobile ? 13 : 14,
             fontWeight: 600,
             lineHeight: 1.5,
           }}
@@ -92,9 +94,11 @@ export default function AuthGateway({
         disabled={!!loadingProvider}
         style={{
           ...buttonStyle,
+          height: mobile ? 50 : 54,
           background: '#ffffff',
           color: '#2f2417',
           border: '1px solid #ddcfbb',
+          fontSize: mobile ? 14 : 15,
         }}
       >
         <span style={iconWrapStyle}>G</span>
@@ -113,9 +117,11 @@ export default function AuthGateway({
         disabled={!!loadingProvider}
         style={{
           ...buttonStyle,
+          height: mobile ? 50 : 54,
           background: '#03c75a',
           color: '#ffffff',
           border: '1px solid #03c75a',
+          fontSize: mobile ? 14 : 15,
         }}
       >
         <span
@@ -141,14 +147,12 @@ export default function AuthGateway({
 
 const buttonStyle: React.CSSProperties = {
   width: '100%',
-  height: 54,
   borderRadius: 16,
   padding: '0 16px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   gap: 10,
-  fontSize: 15,
   fontWeight: 800,
   cursor: 'pointer',
 };
