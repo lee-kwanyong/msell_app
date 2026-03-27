@@ -86,8 +86,6 @@ export default function AuthGateway({
 
   const radius = mobile ? 24 : 30
   const contentPadding = mobile ? 20 : 28
-  const headingSize = mobile ? 28 : 34
-  const subTextSize = mobile ? 13 : 14
 
   return (
     <div
@@ -106,29 +104,28 @@ export default function AuthGateway({
           background: 'linear-gradient(180deg, #fcfaf6 0%, #f7f1e8 100%)',
         }}
       >
-        <h2
+        <h1
           style={{
             margin: 0,
-            fontSize: headingSize,
-            lineHeight: 1.05,
+            fontSize: mobile ? 34 : 42,
+            lineHeight: 1,
             color: '#1f1710',
             fontWeight: 900,
-            letterSpacing: '-0.04em',
+            letterSpacing: '-0.05em',
           }}
         >
           {mode === 'signup' ? '회원가입' : '로그인'}
-        </h2>
+        </h1>
 
         <p
           style={{
             margin: '12px 0 0',
             color: '#756858',
-            fontSize: subTextSize,
+            fontSize: 14,
             lineHeight: 1.7,
-            maxWidth: 520,
           }}
         >
-          구글, 카카오, 네이버 또는 이메일로 Msell에 접속할 수 있습니다.
+          구글, 카카오, 네이버 또는 이메일로 접속할 수 있습니다.
         </p>
       </div>
 

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
+import CategoryDropdown from '@/components/listings/CategoryDropdown'
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
@@ -32,11 +33,6 @@ export default async function CreateListingPage({
   if (!user) {
     redirect('/auth/login?next=/listings/create')
   }
-
-  const { data: categories } = await supabase
-    .from('categories')
-    .select('slug, name')
-    .order('name', { ascending: true })
 
   const error = getString(resolvedSearchParams?.error)
   const title = getString(resolvedSearchParams?.title) ?? ''
@@ -103,14 +99,13 @@ export default async function CreateListingPage({
             <p
               style={{
                 margin: 0,
-                maxWidth: 700,
+                maxWidth: 760,
                 color: '#6f655b',
                 fontSize: 14,
                 lineHeight: 1.7,
               }}
             >
-              핵심 필드만 간결하게 입력하는 구조로 정리했습니다. 등록 실패가 나지 않도록
-              폼과 저장 로직을 동일한 기준으로 맞춘 버전입니다.
+              제목, 카테고리, 가격, 이전 방식, 설명, 상태를 입력하면 등록됩니다.
             </p>
           </div>
 
@@ -188,30 +183,7 @@ export default async function CreateListingPage({
                   >
                     카테고리
                   </label>
-                  <select
-                    id="category"
-                    name="category"
-                    defaultValue={category}
-                    required
-                    style={{
-                      width: '100%',
-                      height: 54,
-                      borderRadius: 15,
-                      border: '1px solid #dfd1bf',
-                      background: '#fffdfa',
-                      padding: '0 15px',
-                      color: '#221a12',
-                      fontSize: 14,
-                      outline: 'none',
-                    }}
-                  >
-                    <option value="">카테고리 선택</option>
-                    {(categories ?? []).map((item) => (
-                      <option key={item.slug} value={item.slug}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
+                  <CategoryDropdown name="category" defaultValue={category} required />
                 </div>
 
                 <div>
@@ -369,9 +341,8 @@ export default async function CreateListingPage({
                   color: '#6f6254',
                 }}
               >
-                등록 시 제목, 카테고리, 가격, 설명이 저장되며 이전 방식은 설명 상단에 함께
-                정리됩니다. 값이 비어 있거나 형식이 맞지 않으면 등록되지 않도록 안전하게
-                막아둔 상태입니다.
+                카테고리는 로고와 함께 선택할 수 있도록 정리되어 있습니다. 입력값이 비어 있거나
+                형식이 맞지 않으면 등록되지 않습니다.
               </div>
 
               <div
