@@ -5,212 +5,101 @@ import { supabaseServer } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: 'Msell',
-  description: 'Digital Asset Marketplace',
+  description: 'Digital asset marketplace',
+  manifest: '/manifest.webmanifest',
 }
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
-type ProfileRow = {
-  role?: string | null
-}
-
-function NavLink({
-  href,
-  children,
-  active = false,
-}: {
-  href: string
-  children: React.ReactNode
-  active?: boolean
-}) {
-  return (
-    <Link
-      href={href}
-      style={{
-        height: 40,
-        padding: '0 16px',
-        borderRadius: 999,
-        border: active ? 'none' : '1px solid #ddcfba',
-        background: active ? '#2f2417' : '#fffaf2',
-        color: active ? '#ffffff' : '#2f2417',
-        textDecoration: 'none',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 14,
-        fontWeight: 800,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {children}
-    </Link>
-  )
-}
-
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+async function Header() {
   const supabase = await supabaseServer()
 
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  let isAdmin = false
+  let unreadCount = 0
 
   if (user) {
-    const [{ data: profile }, { data: rpcIsAdmin }] = await Promise.all([
-      supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
-      supabase.rpc('is_admin'),
-    ])
+    const { count } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false)
 
-    const me = (profile as ProfileRow | null) ?? null
-    isAdmin = rpcIsAdmin === true || me?.role === 'admin'
+    unreadCount = count || 0
   }
 
   return (
-    <html lang="ko">
-      <body
-        style={{
-          margin: 0,
-          background: '#f6f1e7',
-          color: '#241b11',
-        }}
-      >
-        <header
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 50,
-            background: 'rgba(246, 241, 231, 0.92)',
-            backdropFilter: 'blur(14px)',
-            borderBottom: '1px solid #e8dccb',
-          }}
-        >
-          <div
-            style={{
-              maxWidth: 1280,
-              margin: '0 auto',
-              padding: '18px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 16,
-              flexWrap: 'wrap',
-            }}
-          >
-            <Link
-              href="/"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                textDecoration: 'none',
-                color: '#241b11',
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  background: '#2f2417',
-                  color: '#ffffff',
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontWeight: 900,
-                  fontSize: 24,
-                  flexShrink: 0,
-                }}
-              >
-                M
-              </div>
+    <header className="msell-header-shell">
+      <div className="msell-header">
+        <Link href="/" className="msell-brand">
+          <span className="msell-brand-mark">M</span>
+          <span className="msell-brand-text">Msell</span>
+        </Link>
 
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 900,
-                    lineHeight: 1.05,
-                    color: '#241b11',
-                  }}
-                >
-                  Msell
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: '#7a6752',
-                    letterSpacing: '0.08em',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  DIGITAL ASSET MARKETPLACE
-                </div>
-              </div>
+        <nav className="msell-nav" aria-label="주요 메뉴">
+          <Link href="/" className="msell-nav-link">
+            홈
+          </Link>
+          <Link href="/listings" className="msell-nav-link">
+            자산목록
+          </Link>
+          <Link href="/listings/create" className="msell-nav-link">
+            자산등록
+          </Link>
+
+          {user ? (
+            <>
+              <Link href="/my/listings" className="msell-nav-link">
+                내 자산
+              </Link>
+              <Link href="/my/deals" className="msell-nav-link">
+                내 거래
+              </Link>
+              <Link href="/notifications" className="msell-nav-link msell-nav-link-badge">
+                알림
+                {unreadCount > 0 ? (
+                  <span className="msell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                ) : null}
+              </Link>
+              <Link href="/account" className="msell-nav-link">
+                계정
+              </Link>
+            </>
+          ) : null}
+        </nav>
+
+        <div className="msell-header-actions">
+          {user ? (
+            <Link href="/auth/logout" className="msell-btn msell-btn-primary">
+              로그아웃
             </Link>
+          ) : (
+            <>
+              <Link href="/auth/login" className="msell-btn msell-btn-secondary">
+                로그인
+              </Link>
+              <Link href="/auth/signup" className="msell-btn msell-btn-primary">
+                회원가입
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  )
+}
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                flexWrap: 'wrap',
-                justifyContent: 'flex-end',
-              }}
-            >
-              <NavLink href="/listings">거래목록</NavLink>
-              <NavLink href="/listings/create">등록하기</NavLink>
-
-              {user ? (
-                <>
-                  <NavLink href="/my/listings">내 자산</NavLink>
-                  <NavLink href="/my/deals">내 거래</NavLink>
-                  <NavLink href="/account">계정</NavLink>
-
-                  {isAdmin ? <NavLink href="/admin">어드민</NavLink> : null}
-
-                  <form
-                    action="/auth/logout"
-                    method="post"
-                    style={{ margin: 0 }}
-                  >
-                    <button
-                      type="submit"
-                      style={{
-                        height: 40,
-                        padding: '0 16px',
-                        borderRadius: 999,
-                        border: 'none',
-                        background: '#2f2417',
-                        color: '#ffffff',
-                        fontSize: 14,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      로그아웃
-                    </button>
-                  </form>
-                </>
-              ) : (
-                <>
-                  <NavLink href="/auth/login">로그인</NavLink>
-                  <NavLink href="/auth/signup" active>
-                    회원가입
-                  </NavLink>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <div>{children}</div>
+export default async function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    <html lang="ko">
+      <body>
+        <div className="msell-app-bg">
+          <Header />
+          <div className="msell-page-shell">{children}</div>
+        </div>
       </body>
     </html>
   )

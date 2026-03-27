@@ -1,474 +1,478 @@
-import Link from "next/link";
-import { supabaseServer } from "@/lib/supabase/server";
-import {
-  CATEGORY_LABEL,
-  CategoryBadge,
-  getCategoryLabel,
-} from "@/components/listings/CategoryVisual";
-
-type SearchParams = {
-  q?: string;
-  category?: string;
-};
+import Link from 'next/link'
+import { supabaseServer } from '@/lib/supabase/server'
+import CategoryVisual from '@/components/listings/CategoryVisual'
 
 type ListingRow = {
-  id: string;
-  title: string | null;
-  category: string | null;
-  price: number | string | null;
-  status: string | null;
-  created_at: string | null;
-  thumbnail_url?: string | null;
-  image_url?: string | null;
-  cover_image_url?: string | null;
-  seller_name?: string | null;
-  description?: string | null;
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  draft: "임시저장",
-  pending_review: "검수대기",
-  active: "거래가능",
-  reserved: "예약중",
-  sold: "거래종료",
-  hidden: "숨김",
-  rejected: "반려",
-  archived: "보관됨",
-};
-
-function formatPrice(value: number | string | null) {
-  if (value === null || value === undefined || value === "") return "가격협의";
-  const num = Number(value);
-  if (Number.isNaN(num)) return "가격협의";
-  return `${num.toLocaleString("ko-KR")}원`;
+  id: string
+  title: string | null
+  category: string | null
+  price: number | null
+  status: string | null
+  created_at: string | null
+  view_count?: number | null
+  like_count?: number | null
+  inquiry_count?: number | null
+  description?: string | null
 }
 
-function formatDate(value: string | null) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
+function formatPrice(price: number | null | undefined) {
+  if (!price || Number.isNaN(price)) return '가격 협의'
+  return `${price.toLocaleString('ko-KR')}원`
 }
 
-function getImage(row: ListingRow) {
-  return row.thumbnail_url || row.image_url || row.cover_image_url || null;
+function formatDate(value: string | null | undefined) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'numeric',
+    day: 'numeric',
+  }).format(date)
 }
 
-function getStatusLabel(status: string | null) {
-  if (!status) return "상태미정";
-  return STATUS_LABEL[status] || status;
-}
-
-export default async function ListingsPage({
-  searchParams,
-}: {
-  searchParams?: Promise<SearchParams>;
-}) {
-  const params = (await searchParams) || {};
-  const q = (params.q || "").trim();
-  const category = (params.category || "").trim();
-
-  const supabase = await supabaseServer();
-
-  let query = supabase
-    .from("listings")
-    .select("*")
-    .in("status", ["active", "reserved", "sold"])
-    .order("created_at", { ascending: false });
-
-  if (q) {
-    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+function getStatusLabel(status?: string | null) {
+  switch (status) {
+    case 'active':
+      return '거래가능'
+    case 'draft':
+      return '임시저장'
+    case 'hidden':
+      return '숨김'
+    case 'pending_review':
+      return '검수대기'
+    case 'reserved':
+      return '예약중'
+    case 'sold':
+      return '거래종료'
+    case 'rejected':
+      return '반려'
+    case 'archived':
+      return '보관됨'
+    default:
+      return '상태확인'
   }
+}
 
-  if (category) {
-    query = query.eq("category", category);
+function getStatusStyle(status?: string | null) {
+  switch (status) {
+    case 'active':
+      return {
+        background: '#ecfdf5',
+        color: '#166534',
+        border: '1px solid rgba(22,101,52,0.12)',
+      }
+    case 'reserved':
+      return {
+        background: '#fff7ed',
+        color: '#9a3412',
+        border: '1px solid rgba(154,52,18,0.12)',
+      }
+    case 'sold':
+      return {
+        background: '#f3f4f6',
+        color: '#374151',
+        border: '1px solid rgba(55,65,81,0.10)',
+      }
+    default:
+      return {
+        background: '#f6f1e7',
+        color: '#5c4731',
+        border: '1px solid rgba(47,36,23,0.08)',
+      }
   }
+}
 
-  const { data, error } = await query.limit(120);
+export default async function ListingsPage() {
+  const supabase = await supabaseServer()
 
-  const listings: ListingRow[] = Array.isArray(data) ? (data as ListingRow[]) : [];
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  const rows = ((data as ListingRow[] | null) || []).filter((item) => {
+    const status = item.status || ''
+    return ['active', 'reserved', 'sold'].includes(status)
+  })
 
   return (
     <main
       style={{
-        minHeight: "100vh",
-        background: "#f6f1e7",
+        minHeight: '100vh',
+        background: '#f6f1e7',
       }}
     >
       <div
         style={{
-          maxWidth: 1720,
-          margin: "0 auto",
-          padding: "20px 16px 48px",
+          maxWidth: 1480,
+          margin: '0 auto',
+          padding: '28px 20px 60px',
         }}
       >
         <section
           style={{
-            background: "rgba(255,255,255,0.82)",
-            border: "1px solid #e6dac8",
-            borderRadius: 24,
-            padding: "16px",
-            boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
-            backdropFilter: "blur(10px)",
-            marginBottom: 14,
+            borderRadius: 28,
+            background:
+              'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(246,241,231,0.92) 100%)',
+            border: '1px solid rgba(47,36,23,0.08)',
+            boxShadow: '0 18px 50px rgba(47,36,23,0.06)',
+            padding: '24px 22px',
+            marginBottom: 22,
           }}
         >
           <div
-            className="msell-listings-toolbar"
             style={{
-              display: "grid",
-              gridTemplateColumns: "auto minmax(0, 1fr) auto",
-              alignItems: "center",
-              gap: 12,
+              display: 'flex',
+              gap: 16,
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
             }}
           >
-            <div
-              style={{
-                minWidth: 200,
-              }}
-            >
+            <div style={{ minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 11,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  borderRadius: 999,
+                  background: '#efe7da',
+                  color: '#6b5338',
+                  padding: '7px 12px',
+                  fontSize: 12,
                   fontWeight: 800,
-                  letterSpacing: "0.1em",
-                  color: "#8a7357",
-                  marginBottom: 4,
+                  letterSpacing: '-0.02em',
+                  marginBottom: 12,
                 }}
               >
-                MSELL MARKET
+                자산 마켓
               </div>
+
               <h1
                 style={{
                   margin: 0,
-                  fontSize: 20,
-                  lineHeight: 1.1,
-                  color: "#241b11",
-                  fontWeight: 900,
-                  letterSpacing: "-0.03em",
-                }}
-              >
-                거래목록
-              </h1>
-            </div>
-
-            <form
-              action="/listings"
-              method="get"
-              className="msell-listings-search"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr) 220px auto",
-                gap: 8,
-                alignItems: "center",
-                width: "100%",
-              }}
-            >
-              <input
-                type="text"
-                name="q"
-                defaultValue={q}
-                placeholder="검색"
-                style={{
-                  height: 44,
-                  borderRadius: 14,
-                  border: "1px solid #decfbc",
-                  background: "#fcfaf6",
-                  padding: "0 14px",
-                  fontSize: 14,
-                  outline: "none",
-                  color: "#241b11",
-                  width: "100%",
-                }}
-              />
-
-              <select
-                name="category"
-                defaultValue={category}
-                style={{
-                  height: 44,
-                  borderRadius: 14,
-                  border: "1px solid #decfbc",
-                  background: "#fcfaf6",
-                  padding: "0 12px",
-                  fontSize: 14,
-                  outline: "none",
-                  color: "#241b11",
-                  width: "100%",
-                }}
-              >
-                <option value="">전체 카테고리</option>
-                {Object.entries(CATEGORY_LABEL).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="submit"
-                style={{
-                  height: 44,
-                  borderRadius: 14,
-                  border: "1px solid #decfbc",
-                  background: "#eadfcf",
-                  color: "#2f2417",
-                  padding: "0 16px",
-                  fontSize: 14,
+                  color: '#2f2417',
+                  fontSize: 30,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.04em',
                   fontWeight: 800,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
                 }}
               >
-                검색
-              </button>
-            </form>
+                거래 가능한 디지털 자산 목록
+              </h1>
+
+              <p
+                style={{
+                  margin: '10px 0 0',
+                  color: '#6b5a47',
+                  fontSize: 15,
+                  lineHeight: 1.6,
+                }}
+              >
+                카테고리, 가격, 상태를 한눈에 보고 빠르게 문의를 시작할 수 있도록 정리했다.
+              </p>
+            </div>
 
             <Link
               href="/listings/create"
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: 44,
-                padding: "0 18px",
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 48,
+                padding: '0 18px',
                 borderRadius: 14,
-                background: "#2f2417",
-                color: "#fff",
-                textDecoration: "none",
-                fontSize: 14,
+                background: '#2f2417',
+                color: '#fff',
+                textDecoration: 'none',
                 fontWeight: 800,
-                whiteSpace: "nowrap",
-                boxShadow: "0 10px 20px rgba(47,36,23,0.12)",
+                fontSize: 14,
+                boxShadow: '0 10px 24px rgba(47,36,23,0.16)',
               }}
             >
-              등록하기
+              자산 등록하기
             </Link>
           </div>
         </section>
 
-        {error ? (
-          <section
-            style={{
-              background: "#fff",
-              border: "1px solid #eadfcf",
-              borderRadius: 20,
-              padding: 18,
-              color: "#9a3412",
-            }}
-          >
-            목록을 불러오지 못했습니다.
-          </section>
-        ) : listings.length === 0 ? (
-          <section
-            style={{
-              background: "#fff",
-              border: "1px solid #eadfcf",
-              borderRadius: 22,
-              padding: 28,
-              textAlign: "center",
-              color: "#6e5a43",
-              boxShadow: "0 8px 22px rgba(47,36,23,0.04)",
-            }}
-          >
-            등록된 자산이 없습니다.
-          </section>
-        ) : (
-          <div className="msell-listings-grid">
-            {listings.map((item) => {
-              const image = getImage(item);
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+            gap: 14,
+          }}
+        >
+          {rows.map((item) => {
+            const statusStyle = getStatusStyle(item.status)
 
-              return (
-                <Link
-                  key={item.id}
-                  href={`/listings/${item.id}`}
+            return (
+              <Link
+                key={item.id}
+                href={`/listings/${item.id}`}
+                style={{
+                  display: 'block',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                }}
+              >
+                <article
                   style={{
-                    display: "block",
-                    background: "#ffffff",
-                    border: "1px solid #eadfcf",
-                    borderRadius: 20,
-                    overflow: "hidden",
-                    textDecoration: "none",
-                    color: "inherit",
-                    boxShadow: "0 8px 22px rgba(47,36,23,0.05)",
-                    transition:
-                      "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+                    height: '100%',
+                    borderRadius: 24,
+                    background: '#ffffff',
+                    border: '1px solid rgba(47,36,23,0.08)',
+                    boxShadow: '0 10px 28px rgba(47,36,23,0.05)',
+                    padding: 16,
+                    transition: 'transform 0.16s ease, box-shadow 0.16s ease',
                   }}
                 >
                   <div
                     style={{
-                      aspectRatio: "1 / 0.72",
-                      background: image
-                        ? `url(${image}) center/cover no-repeat`
-                        : "linear-gradient(135deg, #f4ece0 0%, #efe4d3 100%)",
-                      borderBottom: "1px solid #f0e5d6",
-                      position: "relative",
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                      marginBottom: 12,
                     }}
                   >
-                    <div
+                    <CategoryVisual category={item.category} size="sm" showLabel />
+
+                    <span
                       style={{
-                        position: "absolute",
-                        top: 10,
-                        left: 10,
+                        ...statusStyle,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 999,
+                        minHeight: 28,
+                        padding: '0 10px',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      <CategoryBadge
-                        category={item.category}
-                        label={getCategoryLabel(item.category)}
-                        mode="ghost"
-                        size="sm"
-                      />
-                    </div>
+                      {getStatusLabel(item.status)}
+                    </span>
                   </div>
+
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontSize: 17,
+                      lineHeight: 1.35,
+                      fontWeight: 800,
+                      color: '#2f2417',
+                      letterSpacing: '-0.03em',
+                      minHeight: 46,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {item.title || '제목 없음'}
+                  </h2>
 
                   <div
                     style={{
-                      padding: 13,
+                      marginTop: 12,
+                      padding: '14px 14px 12px',
+                      borderRadius: 18,
+                      background: '#fbf8f2',
+                      border: '1px solid rgba(47,36,23,0.05)',
                     }}
                   >
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 8,
-                        marginBottom: 9,
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          height: 22,
-                          padding: "0 8px",
-                          borderRadius: 999,
-                          background: "#f5eee3",
-                          color: "#6b543c",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {getStatusLabel(item.status)}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: "#8a7357",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {formatDate(item.created_at)}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        minHeight: 40,
-                        fontSize: 14,
-                        lineHeight: 1.42,
-                        fontWeight: 800,
-                        color: "#241b11",
-                        marginBottom: 8,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      {item.title || "제목 없음"}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 900,
-                        color: "#2f2417",
+                        fontSize: 12,
+                        color: '#8a755f',
+                        fontWeight: 700,
                         marginBottom: 6,
-                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      희망 가격
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 22,
+                        lineHeight: 1.1,
+                        fontWeight: 900,
+                        color: '#2f2417',
+                        letterSpacing: '-0.04em',
                       }}
                     >
                       {formatPrice(item.price)}
                     </div>
+                  </div>
+
+                  <p
+                    style={{
+                      margin: '12px 0 0',
+                      color: '#7a6753',
+                      fontSize: 13,
+                      lineHeight: 1.55,
+                      minHeight: 42,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {item.description?.trim() || '등록된 설명이 아직 없습니다.'}
+                  </p>
+
+                  <div
+                    style={{
+                      marginTop: 14,
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                      gap: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        borderRadius: 14,
+                        background: '#f8f3eb',
+                        padding: '10px 8px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: '#8d7760',
+                          fontWeight: 700,
+                          marginBottom: 4,
+                        }}
+                      >
+                        조회
+                      </div>
+                      <div
+                        style={{
+                          color: '#2f2417',
+                          fontSize: 14,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {(item.view_count || 0).toLocaleString('ko-KR')}
+                      </div>
+                    </div>
 
                     <div
                       style={{
-                        minHeight: 32,
-                        fontSize: 12,
-                        lineHeight: 1.45,
-                        color: "#7a654d",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
+                        borderRadius: 14,
+                        background: '#f8f3eb',
+                        padding: '10px 8px',
+                        textAlign: 'center',
                       }}
                     >
-                      {item.description || ""}
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: '#8d7760',
+                          fontWeight: 700,
+                          marginBottom: 4,
+                        }}
+                      >
+                        문의
+                      </div>
+                      <div
+                        style={{
+                          color: '#2f2417',
+                          fontSize: 14,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {(item.inquiry_count || 0).toLocaleString('ko-KR')}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        borderRadius: 14,
+                        background: '#f8f3eb',
+                        padding: '10px 8px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: '#8d7760',
+                          fontWeight: 700,
+                          marginBottom: 4,
+                        }}
+                      >
+                        등록
+                      </div>
+                      <div
+                        style={{
+                          color: '#2f2417',
+                          fontSize: 14,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {formatDate(item.created_at)}
+                      </div>
                     </div>
                   </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+                </article>
+              </Link>
+            )
+          })}
+        </section>
 
-        <style>{`
-          .msell-listings-grid {
-            display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 12px;
-          }
+        {rows.length === 0 ? (
+          <section
+            style={{
+              marginTop: 18,
+              borderRadius: 24,
+              background: '#fff',
+              border: '1px solid rgba(47,36,23,0.08)',
+              padding: '38px 20px',
+              textAlign: 'center',
+              color: '#6f5d49',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 17,
+                fontWeight: 800,
+                color: '#2f2417',
+                marginBottom: 8,
+              }}
+            >
+              아직 표시할 자산이 없습니다.
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                lineHeight: 1.6,
+              }}
+            >
+              첫 번째 등록을 올리고 거래 흐름을 시작해보세요.
+            </div>
+          </section>
+        ) : null}
 
-          @media (max-width: 1540px) {
-            .msell-listings-grid {
-              grid-template-columns: repeat(4, minmax(0, 1fr));
-            }
-          }
-
-          @media (max-width: 1240px) {
-            .msell-listings-grid {
-              grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .msell-listings-toolbar {
-              grid-template-columns: 1fr !important;
-              align-items: stretch !important;
-            }
-          }
-
-          @media (max-width: 900px) {
-            .msell-listings-search {
-              grid-template-columns: 1fr 1fr auto !important;
-            }
-          }
-
-          @media (max-width: 760px) {
-            .msell-listings-grid {
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 10px;
-            }
-
-            .msell-listings-search {
-              grid-template-columns: 1fr !important;
-            }
-          }
-
-          @media (max-width: 520px) {
-            .msell-listings-grid {
-              grid-template-columns: 1fr;
-            }
-          }
-
-          .msell-listings-grid > a:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 14px 28px rgba(47, 36, 23, 0.09);
-            border-color: #d8c4aa;
-          }
-        `}</style>
+        {error ? (
+          <section
+            style={{
+              marginTop: 16,
+              borderRadius: 18,
+              background: '#fff1f2',
+              border: '1px solid rgba(190,24,93,0.12)',
+              color: '#9f1239',
+              padding: '14px 16px',
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            목록을 불러오는 중 문제가 발생했습니다.
+          </section>
+        ) : null}
       </div>
     </main>
-  );
+  )
 }

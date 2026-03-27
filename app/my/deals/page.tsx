@@ -1,280 +1,294 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { supabaseServer } from "@/lib/supabase/server";
-import {
-  CategoryBadge,
-  getCategoryLabel,
-} from "@/components/listings/CategoryVisual";
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { supabaseServer } from '@/lib/supabase/server'
+import CategoryVisual from '@/components/listings/CategoryVisual'
 
 type DealRow = {
-  id: string;
-  listing_id: string | null;
-  buyer_id?: string | null;
-  seller_id?: string | null;
-  status?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-};
+  id: string
+  listing_id: string | null
+  buyer_id: string | null
+  seller_id: string | null
+  status: string | null
+  created_at: string | null
+  updated_at?: string | null
+}
 
 type ListingRow = {
-  id: string;
-  title?: string | null;
-  category?: string | null;
-  price?: number | string | null;
-  status?: string | null;
-  thumbnail_url?: string | null;
-  image_url?: string | null;
-  cover_image_url?: string | null;
-};
+  id: string
+  title: string | null
+  category: string | null
+  price: number | null
+  status: string | null
+  created_at: string | null
+}
 
 type NotificationRow = {
-  id: string;
-  deal_id?: string | null;
-  is_read?: boolean | null;
-};
+  id: string
+  deal_id: string | null
+  is_read: boolean | null
+}
 
-const DEAL_STATUS_LABEL: Record<string, string> = {
-  open: "진행중",
-  active: "진행중",
-  pending: "대기중",
-  reserved: "예약중",
-  completed: "완료",
-  closed: "종료",
-  cancelled: "취소",
-};
-
-function formatPrice(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === "") return "가격협의";
-  const num = Number(value);
-  if (Number.isNaN(num)) return "가격협의";
-  return `${num.toLocaleString("ko-KR")}원`;
+function formatPrice(price: number | null | undefined) {
+  if (!price || Number.isNaN(price)) return '가격 협의'
+  return `${price.toLocaleString('ko-KR')}원`
 }
 
 function formatDate(value: string | null | undefined) {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "-";
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).format(date)
 }
 
-function getDealStatusLabel(status: string | null | undefined) {
-  if (!status) return "진행중";
-  return DEAL_STATUS_LABEL[status] || status;
+function getDealStatusLabel(status?: string | null) {
+  switch (status) {
+    case 'open':
+      return '진행중'
+    case 'pending':
+      return '대기중'
+    case 'completed':
+      return '거래완료'
+    case 'cancelled':
+      return '취소됨'
+    case 'closed':
+      return '종료됨'
+    default:
+      return status || '상태확인'
+  }
 }
 
-function getImage(row?: ListingRow | null) {
-  if (!row) return null;
-  return row.thumbnail_url || row.image_url || row.cover_image_url || null;
+function getDealStatusStyle(status?: string | null) {
+  switch (status) {
+    case 'open':
+      return {
+        background: '#ecfdf5',
+        color: '#166534',
+        border: '1px solid rgba(22,101,52,0.12)',
+      }
+    case 'pending':
+      return {
+        background: '#fff7ed',
+        color: '#9a3412',
+        border: '1px solid rgba(154,52,18,0.12)',
+      }
+    case 'completed':
+      return {
+        background: '#eff6ff',
+        color: '#1d4ed8',
+        border: '1px solid rgba(29,78,216,0.12)',
+      }
+    case 'cancelled':
+    case 'closed':
+      return {
+        background: '#f3f4f6',
+        color: '#374151',
+        border: '1px solid rgba(55,65,81,0.10)',
+      }
+    default:
+      return {
+        background: '#f6f1e7',
+        color: '#5c4731',
+        border: '1px solid rgba(47,36,23,0.08)',
+      }
+  }
+}
+
+function getRoleLabel(isBuyer: boolean, isSeller: boolean) {
+  if (isBuyer) return '구매자'
+  if (isSeller) return '판매자'
+  return '참여자'
 }
 
 export default async function MyDealsPage() {
-  const supabase = await supabaseServer();
+  const supabase = await supabaseServer()
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/auth/login?next=/my/deals");
+    redirect('/auth/login?next=/my/deals')
   }
 
   const { data: dealsData, error: dealsError } = await supabase
-    .from("deals")
-    .select("*")
+    .from('deals')
+    .select('*')
     .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-    .order("updated_at", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order('created_at', { ascending: false })
 
-  const deals: DealRow[] = Array.isArray(dealsData) ? (dealsData as DealRow[]) : [];
+  const deals = (dealsData as DealRow[] | null) || []
+  const listingIds = Array.from(new Set(deals.map((deal) => deal.listing_id).filter(Boolean))) as string[]
+  const dealIds = Array.from(new Set(deals.map((deal) => deal.id)))
 
-  const listingIds = Array.from(
-    new Set(deals.map((deal) => deal.listing_id).filter(Boolean))
-  ) as string[];
+  let listingsMap = new Map<string, ListingRow>()
+  if (listingIds.length > 0) {
+    const { data: listingsData } = await supabase
+      .from('listings')
+      .select('*')
+      .in('id', listingIds)
 
-  const { data: listingsData } =
-    listingIds.length > 0
-      ? await supabase.from("listings").select("*").in("id", listingIds)
-      : { data: [] as ListingRow[] };
-
-  const listingsMap = new Map<string, ListingRow>(
-    ((listingsData || []) as ListingRow[]).map((item) => [item.id, item])
-  );
-
-  const dealIds = deals.map((deal) => deal.id);
-
-  const { data: notificationsData } =
-    dealIds.length > 0
-      ? await supabase
-          .from("notifications")
-          .select("id, deal_id, is_read")
-          .eq("user_id", user.id)
-          .in("deal_id", dealIds)
-      : { data: [] as NotificationRow[] };
-
-  const unreadCountByDeal = new Map<string, number>();
-
-  for (const row of (notificationsData || []) as NotificationRow[]) {
-    if (!row.deal_id || row.is_read) continue;
-    unreadCountByDeal.set(row.deal_id, (unreadCountByDeal.get(row.deal_id) || 0) + 1);
+    listingsMap = new Map(
+      (((listingsData as ListingRow[] | null) || []).map((listing) => [listing.id, listing]))
+    )
   }
 
-  const totalCount = deals.length;
-  const activeCount = deals.filter((deal) =>
-    ["open", "active", "pending", null, undefined].includes(
-      deal.status as string | null | undefined
-    )
-  ).length;
-  const reservedCount = deals.filter((deal) => deal.status === "reserved").length;
-  const completedCount = deals.filter((deal) =>
-    ["completed", "closed"].includes(deal.status || "")
-  ).length;
+  let unreadMap = new Map<string, number>()
+  if (dealIds.length > 0) {
+    const { data: notificationsData } = await supabase
+      .from('notifications')
+      .select('id, deal_id, is_read')
+      .in('deal_id', dealIds)
+      .eq('is_read', false)
+
+    const notifications = (notificationsData as NotificationRow[] | null) || []
+    unreadMap = notifications.reduce((map, item) => {
+      if (!item.deal_id) return map
+      map.set(item.deal_id, (map.get(item.deal_id) || 0) + 1)
+      return map
+    }, new Map<string, number>())
+  }
+
+  const totalCount = deals.length
+  const openCount = deals.filter((deal) => deal.status === 'open').length
+  const pendingCount = deals.filter((deal) => deal.status === 'pending').length
+  const completedCount = deals.filter((deal) => deal.status === 'completed').length
+  const unreadCount = Array.from(unreadMap.values()).reduce((acc, cur) => acc + cur, 0)
 
   return (
     <main
       style={{
-        minHeight: "100vh",
-        background: "#f6f1e7",
+        minHeight: '100vh',
+        background: '#f6f1e7',
       }}
     >
       <div
         style={{
-          maxWidth: 1680,
-          margin: "0 auto",
-          padding: "20px 16px 56px",
+          maxWidth: 1380,
+          margin: '0 auto',
+          padding: '28px 20px 60px',
         }}
       >
         <section
           style={{
-            background: "rgba(255,255,255,0.82)",
-            border: "1px solid #e6dac8",
-            borderRadius: 24,
-            padding: 16,
-            boxShadow: "0 10px 28px rgba(47,36,23,0.05)",
-            backdropFilter: "blur(10px)",
-            marginBottom: 14,
+            borderRadius: 28,
+            background:
+              'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(246,241,231,0.92) 100%)',
+            border: '1px solid rgba(47,36,23,0.08)',
+            boxShadow: '0 18px 50px rgba(47,36,23,0.06)',
+            padding: '24px 22px',
+            marginBottom: 20,
           }}
         >
           <div
-            className="msell-mydeals-top"
             style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1fr) auto",
-              gap: 12,
-              alignItems: "center",
+              display: 'flex',
+              gap: 16,
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
             }}
           >
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 11,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  borderRadius: 999,
+                  background: '#efe7da',
+                  color: '#6b5338',
+                  padding: '7px 12px',
+                  fontSize: 12,
                   fontWeight: 800,
-                  letterSpacing: "0.1em",
-                  color: "#8a7357",
-                  marginBottom: 4,
+                  letterSpacing: '-0.02em',
+                  marginBottom: 12,
                 }}
               >
-                MY DEALS
+                거래 관리
               </div>
+
               <h1
                 style={{
                   margin: 0,
-                  fontSize: 24,
-                  lineHeight: 1.08,
-                  color: "#241b11",
-                  fontWeight: 900,
-                  letterSpacing: "-0.03em",
+                  color: '#2f2417',
+                  fontSize: 30,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.04em',
+                  fontWeight: 800,
                 }}
               >
-                내 거래
+                내 거래 현황
               </h1>
+
+              <p
+                style={{
+                  margin: '10px 0 0',
+                  color: '#6b5a47',
+                  fontSize: 15,
+                  lineHeight: 1.6,
+                }}
+              >
+                진행중인 문의, 완료 거래, 읽지 않은 알림까지 한 번에 볼 수 있게 구성했다.
+              </p>
             </div>
 
-            <div
+            <Link
+              href="/listings"
               style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                justifyContent: "flex-end",
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 48,
+                padding: '0 18px',
+                borderRadius: 14,
+                background: '#2f2417',
+                color: '#fff',
+                textDecoration: 'none',
+                fontWeight: 800,
+                fontSize: 14,
+                boxShadow: '0 10px 24px rgba(47,36,23,0.16)',
               }}
             >
-              <Link
-                href="/listings"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: 42,
-                  padding: "0 16px",
-                  borderRadius: 14,
-                  background: "#fff",
-                  border: "1px solid #eadfcf",
-                  color: "#2f2417",
-                  textDecoration: "none",
-                  fontSize: 14,
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                거래목록
-              </Link>
-
-              <Link
-                href="/listings/create"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: 42,
-                  padding: "0 16px",
-                  borderRadius: 14,
-                  background: "#2f2417",
-                  color: "#fff",
-                  textDecoration: "none",
-                  fontSize: 14,
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                  boxShadow: "0 10px 20px rgba(47,36,23,0.12)",
-                }}
-              >
-                새 자산 등록
-              </Link>
-            </div>
+              자산 목록 보기
+            </Link>
           </div>
         </section>
 
         <section
-          className="msell-mydeals-kpis"
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
             gap: 12,
-            marginBottom: 14,
+            marginBottom: 20,
           }}
         >
           {[
-            { label: "전체", value: totalCount },
-            { label: "진행중", value: activeCount },
-            { label: "예약중", value: reservedCount },
-            { label: "완료", value: completedCount },
+            { label: '전체 거래', value: totalCount.toLocaleString('ko-KR') },
+            { label: '진행중', value: openCount.toLocaleString('ko-KR') },
+            { label: '대기중', value: pendingCount.toLocaleString('ko-KR') },
+            { label: '거래완료', value: completedCount.toLocaleString('ko-KR') },
+            { label: '안 읽은 알림', value: unreadCount.toLocaleString('ko-KR') },
           ].map((item) => (
             <div
               key={item.label}
               style={{
-                background: "#fff",
-                border: "1px solid #eadfcf",
-                borderRadius: 20,
-                padding: "18px 18px 16px",
-                boxShadow: "0 8px 22px rgba(47,36,23,0.04)",
+                borderRadius: 22,
+                background: '#fff',
+                border: '1px solid rgba(47,36,23,0.08)',
+                boxShadow: '0 10px 24px rgba(47,36,23,0.05)',
+                padding: '16px 16px',
               }}
             >
               <div
                 style={{
+                  color: '#8b7762',
                   fontSize: 12,
-                  fontWeight: 800,
-                  color: "#8a7357",
-                  letterSpacing: "0.08em",
+                  fontWeight: 700,
                   marginBottom: 8,
                 }}
               >
@@ -282,11 +296,11 @@ export default async function MyDealsPage() {
               </div>
               <div
                 style={{
-                  fontSize: 28,
-                  lineHeight: 1,
+                  color: '#2f2417',
+                  fontSize: 24,
+                  lineHeight: 1.1,
                   fontWeight: 900,
-                  color: "#241b11",
-                  letterSpacing: "-0.04em",
+                  letterSpacing: '-0.04em',
                 }}
               >
                 {item.value}
@@ -295,296 +309,385 @@ export default async function MyDealsPage() {
           ))}
         </section>
 
-        {dealsError ? (
+        {deals.length > 0 ? (
           <section
             style={{
-              background: "#fff",
-              border: "1px solid #eadfcf",
-              borderRadius: 20,
-              padding: 18,
-              color: "#9a3412",
+              display: 'grid',
+              gap: 14,
             }}
           >
-            거래 목록을 불러오지 못했습니다.
-          </section>
-        ) : deals.length === 0 ? (
-          <section
-            style={{
-              background: "#fff",
-              border: "1px solid #eadfcf",
-              borderRadius: 22,
-              padding: 28,
-              textAlign: "center",
-              color: "#6e5a43",
-              boxShadow: "0 8px 22px rgba(47,36,23,0.04)",
-            }}
-          >
-            진행 중인 거래가 없습니다.
-          </section>
-        ) : (
-          <div className="msell-mydeals-grid">
             {deals.map((deal) => {
-              const listing = deal.listing_id
-                ? listingsMap.get(deal.listing_id) || null
-                : null;
-              const unread = unreadCountByDeal.get(deal.id) || 0;
-              const image = getImage(listing);
-              const isBuyer = !!deal.buyer_id && deal.buyer_id === user.id;
-              const roleLabel = isBuyer ? "구매자" : "판매자";
+              const listing = deal.listing_id ? listingsMap.get(deal.listing_id) : undefined
+              const isBuyer = deal.buyer_id === user.id
+              const isSeller = deal.seller_id === user.id
+              const unread = unreadMap.get(deal.id) || 0
+              const statusStyle = getDealStatusStyle(deal.status)
 
               return (
-                <Link
+                <article
                   key={deal.id}
-                  href={`/deal/${deal.id}`}
                   style={{
-                    display: "block",
-                    background: "#ffffff",
-                    border: "1px solid #eadfcf",
-                    borderRadius: 20,
-                    overflow: "hidden",
-                    textDecoration: "none",
-                    color: "inherit",
-                    boxShadow: "0 8px 22px rgba(47,36,23,0.05)",
-                    transition:
-                      "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+                    borderRadius: 24,
+                    background: '#fff',
+                    border: '1px solid rgba(47,36,23,0.08)',
+                    boxShadow: '0 10px 28px rgba(47,36,23,0.05)',
+                    padding: 18,
                   }}
                 >
                   <div
                     style={{
-                      aspectRatio: "1 / 0.62",
-                      background: image
-                        ? `url(${image}) center/cover no-repeat`
-                        : "linear-gradient(135deg, #f4ece0 0%, #efe4d3 100%)",
-                      borderBottom: "1px solid #f0e5d6",
-                      position: "relative",
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(0, 1.5fr) minmax(240px, 0.8fr)',
+                      gap: 18,
+                      alignItems: 'center',
                     }}
                   >
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 10,
-                        left: 10,
-                      }}
-                    >
-                      <CategoryBadge
-                        category={listing?.category}
-                        label={getCategoryLabel(listing?.category)}
-                        mode="ghost"
-                        size="sm"
-                      />
-                    </div>
-
-                    {unread > 0 ? (
+                    <div style={{ minWidth: 0 }}>
                       <div
                         style={{
-                          position: "absolute",
-                          top: 10,
-                          right: 10,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          minWidth: 26,
-                          height: 26,
-                          padding: "0 8px",
-                          borderRadius: 999,
-                          background: "#2f2417",
-                          color: "#fff",
-                          fontSize: 11,
-                          fontWeight: 900,
-                          boxShadow: "0 8px 18px rgba(47,36,23,0.16)",
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          flexWrap: 'wrap',
+                          marginBottom: 12,
                         }}
                       >
-                        {unread}
-                      </div>
-                    ) : null}
-                  </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <CategoryVisual category={listing?.category} size="sm" showLabel />
 
-                  <div
-                    style={{
-                      padding: 14,
-                    }}
-                  >
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minHeight: 28,
+                              padding: '0 10px',
+                              borderRadius: 999,
+                              background: '#f8f3eb',
+                              color: '#6f5d49',
+                              border: '1px solid rgba(47,36,23,0.08)',
+                              fontSize: 12,
+                              fontWeight: 800,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {getRoleLabel(isBuyer, isSeller)}
+                          </span>
+
+                          {unread > 0 ? (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minHeight: 28,
+                                padding: '0 10px',
+                                borderRadius: 999,
+                                background: '#fff1f2',
+                                color: '#be123c',
+                                border: '1px solid rgba(190,24,93,0.12)',
+                                fontSize: 12,
+                                fontWeight: 900,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              새 알림 {unread}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <span
+                          style={{
+                            ...statusStyle,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minHeight: 30,
+                            padding: '0 10px',
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {getDealStatusLabel(deal.status)}
+                        </span>
+                      </div>
+
+                      <Link
+                        href={`/deal/${deal.id}`}
+                        style={{
+                          textDecoration: 'none',
+                          color: 'inherit',
+                        }}
+                      >
+                        <h2
+                          style={{
+                            margin: 0,
+                            color: '#2f2417',
+                            fontSize: 22,
+                            lineHeight: 1.3,
+                            letterSpacing: '-0.03em',
+                            fontWeight: 900,
+                          }}
+                        >
+                          {listing?.title || '연결된 자산 정보 없음'}
+                        </h2>
+                      </Link>
+
+                      <div
+                        style={{
+                          marginTop: 14,
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                          gap: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            borderRadius: 16,
+                            background: '#fbf8f2',
+                            padding: '12px 10px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              color: '#8d7760',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              marginBottom: 6,
+                            }}
+                          >
+                            희망 가격
+                          </div>
+                          <div
+                            style={{
+                              color: '#2f2417',
+                              fontSize: 15,
+                              fontWeight: 900,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {formatPrice(listing?.price)}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            borderRadius: 16,
+                            background: '#fbf8f2',
+                            padding: '12px 10px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              color: '#8d7760',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              marginBottom: 6,
+                            }}
+                          >
+                            자산 상태
+                          </div>
+                          <div
+                            style={{
+                              color: '#2f2417',
+                              fontSize: 15,
+                              fontWeight: 900,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {listing?.status || '-'}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            borderRadius: 16,
+                            background: '#fbf8f2',
+                            padding: '12px 10px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              color: '#8d7760',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              marginBottom: 6,
+                            }}
+                          >
+                            거래 생성일
+                          </div>
+                          <div
+                            style={{
+                              color: '#2f2417',
+                              fontSize: 15,
+                              fontWeight: 900,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {formatDate(deal.created_at)}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            borderRadius: 16,
+                            background: '#fbf8f2',
+                            padding: '12px 10px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              color: '#8d7760',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              marginBottom: 6,
+                            }}
+                          >
+                            최근 갱신
+                          </div>
+                          <div
+                            style={{
+                              color: '#2f2417',
+                              fontSize: 15,
+                              fontWeight: 900,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {formatDate(deal.updated_at || deal.created_at)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 8,
-                        marginBottom: 9,
+                        display: 'grid',
+                        gap: 10,
                       }}
                     >
-                      <span
+                      <Link
+                        href={`/deal/${deal.id}`}
                         style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          height: 22,
-                          padding: "0 8px",
-                          borderRadius: 999,
-                          background: "#f5eee3",
-                          color: "#6b543c",
-                          fontSize: 11,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '100%',
+                          height: 46,
+                          borderRadius: 14,
+                          background: '#2f2417',
+                          color: '#fff',
+                          textDecoration: 'none',
+                          fontSize: 14,
                           fontWeight: 800,
-                          flexShrink: 0,
                         }}
                       >
-                        {getDealStatusLabel(deal.status)}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: "#8a7357",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {formatDate(deal.updated_at || deal.created_at)}
-                      </span>
-                    </div>
+                        거래방 열기
+                      </Link>
 
-                    <div
-                      style={{
-                        minHeight: 40,
-                        fontSize: 14,
-                        lineHeight: 1.42,
-                        fontWeight: 800,
-                        color: "#241b11",
-                        marginBottom: 8,
-                        letterSpacing: "-0.02em",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {listing?.title || "연결된 자산 없음"}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 900,
-                        color: "#2f2417",
-                        marginBottom: 10,
-                        letterSpacing: "-0.03em",
-                      }}
-                    >
-                      {formatPrice(listing?.price)}
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: 8,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr auto",
-                          gap: 8,
-                          alignItems: "center",
-                          fontSize: 12,
-                        }}
-                      >
-                        <span style={{ color: "#8a7357", fontWeight: 700 }}>역할</span>
-                        <span style={{ color: "#241b11", fontWeight: 800 }}>
-                          {roleLabel}
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr auto",
-                          gap: 8,
-                          alignItems: "center",
-                          fontSize: 12,
-                        }}
-                      >
-                        <span style={{ color: "#8a7357", fontWeight: 700 }}>카테고리</span>
-                        <CategoryBadge
-                          category={listing?.category}
-                          label={getCategoryLabel(listing?.category)}
-                          mode="light"
-                          size="sm"
-                        />
-                      </div>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr auto",
-                          gap: 8,
-                          alignItems: "center",
-                          fontSize: 12,
-                        }}
-                      >
-                        <span style={{ color: "#8a7357", fontWeight: 700 }}>메시지</span>
-                        <span style={{ color: "#241b11", fontWeight: 800 }}>
-                          {unread > 0 ? `${unread}건 미확인` : "확인됨"}
-                        </span>
-                      </div>
+                      {listing?.id ? (
+                        <Link
+                          href={`/listings/${listing.id}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '100%',
+                            height: 46,
+                            borderRadius: 14,
+                            background: '#eadfcf',
+                            color: '#2f2417',
+                            textDecoration: 'none',
+                            fontSize: 14,
+                            fontWeight: 800,
+                          }}
+                        >
+                          자산 상세 보기
+                        </Link>
+                      ) : null}
                     </div>
                   </div>
-                </Link>
-              );
+                </article>
+              )
             })}
-          </div>
+          </section>
+        ) : (
+          <section
+            style={{
+              borderRadius: 24,
+              background: '#fff',
+              border: '1px solid rgba(47,36,23,0.08)',
+              padding: '40px 22px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                color: '#2f2417',
+                fontSize: 18,
+                fontWeight: 900,
+                marginBottom: 8,
+              }}
+            >
+              아직 진행 중인 거래가 없습니다.
+            </div>
+            <div
+              style={{
+                color: '#6f5d49',
+                fontSize: 14,
+                lineHeight: 1.6,
+                marginBottom: 16,
+              }}
+            >
+              자산 목록에서 관심 있는 항목에 문의를 시작하면 이곳에 거래가 쌓입니다.
+            </div>
+            <Link
+              href="/listings"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 46,
+                padding: '0 18px',
+                borderRadius: 14,
+                background: '#2f2417',
+                color: '#fff',
+                textDecoration: 'none',
+                fontWeight: 800,
+                fontSize: 14,
+              }}
+            >
+              자산 보러 가기
+            </Link>
+          </section>
         )}
 
-        <style>{`
-          .msell-mydeals-grid {
-            display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 12px;
-          }
-
-          .msell-mydeals-grid > a:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 14px 28px rgba(47, 36, 23, 0.09);
-            border-color: #d8c4aa;
-          }
-
-          @media (max-width: 1540px) {
-            .msell-mydeals-grid {
-              grid-template-columns: repeat(4, minmax(0, 1fr));
-            }
-          }
-
-          @media (max-width: 1240px) {
-            .msell-mydeals-grid {
-              grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .msell-mydeals-kpis {
-              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            }
-          }
-
-          @media (max-width: 820px) {
-            .msell-mydeals-top {
-              grid-template-columns: 1fr !important;
-              align-items: stretch !important;
-            }
-          }
-
-          @media (max-width: 760px) {
-            .msell-mydeals-grid {
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 10px;
-            }
-          }
-
-          @media (max-width: 560px) {
-            .msell-mydeals-grid {
-              grid-template-columns: 1fr;
-            }
-
-            .msell-mydeals-kpis {
-              grid-template-columns: 1fr !important;
-            }
-          }
-        `}</style>
+        {dealsError ? (
+          <section
+            style={{
+              marginTop: 16,
+              borderRadius: 18,
+              background: '#fff1f2',
+              border: '1px solid rgba(190,24,93,0.12)',
+              color: '#9f1239',
+              padding: '14px 16px',
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            내 거래 목록을 불러오는 중 문제가 발생했습니다.
+          </section>
+        ) : null}
       </div>
     </main>
-  );
+  )
 }
