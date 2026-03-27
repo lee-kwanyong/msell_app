@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
+import { saveAccountAction } from './actions'
 
 function firstString(...values: Array<string | null | undefined>) {
   return values.find((value) => typeof value === 'string' && value.trim().length > 0) || ''
@@ -10,7 +11,18 @@ function getInitial(value: string) {
   return value.trim().charAt(0).toUpperCase() || 'U'
 }
 
-export default async function AccountPage() {
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string
+    saved?: string
+  }>
+}
+
+export default async function AccountPage({ searchParams }: PageProps) {
+  const params = (await searchParams) || {}
+  const error = params.error || ''
+  const saved = params.saved === '1'
+
   const supabase = await supabaseServer()
 
   const {
@@ -37,10 +49,10 @@ export default async function AccountPage() {
     '사용자'
   )
 
-  const email = firstString(profile?.email, user.email, '-')
-  const phone = firstString(profile?.phone_number, '-')
-  const username = firstString(profile?.username, '-')
-  const gender = firstString(profile?.gender, '-')
+  const email = firstString(profile?.email, user.email, '')
+  const phone = firstString(profile?.phone_number, '')
+  const username = firstString(profile?.username, '')
+  const gender = firstString(profile?.gender, '')
   const role = firstString(profile?.role, 'user')
   const avatarUrl = firstString(profile?.avatar_url, user.user_metadata?.avatar_url)
 
@@ -54,7 +66,7 @@ export default async function AccountPage() {
     >
       <div
         style={{
-          maxWidth: 1080,
+          maxWidth: 1120,
           margin: '0 auto',
           display: 'grid',
           gap: 18,
@@ -168,7 +180,7 @@ export default async function AccountPage() {
                     wordBreak: 'break-all',
                   }}
                 >
-                  {email}
+                  {email || '-'}
                 </div>
               </div>
             </div>
@@ -193,6 +205,40 @@ export default async function AccountPage() {
           </div>
         </section>
 
+        {error ? (
+          <div
+            style={{
+              maxWidth: 1120,
+              borderRadius: 18,
+              border: '1px solid rgba(166, 64, 64, 0.18)',
+              background: 'rgba(255, 243, 243, 0.92)',
+              color: '#8f2f2f',
+              fontSize: 14,
+              lineHeight: 1.6,
+              padding: '14px 16px',
+            }}
+          >
+            {error}
+          </div>
+        ) : null}
+
+        {saved ? (
+          <div
+            style={{
+              maxWidth: 1120,
+              borderRadius: 18,
+              border: '1px solid rgba(61, 122, 72, 0.16)',
+              background: 'rgba(240, 251, 242, 0.92)',
+              color: '#24613a',
+              fontSize: 14,
+              lineHeight: 1.6,
+              padding: '14px 16px',
+            }}
+          >
+            저장되었습니다.
+          </div>
+        ) : null}
+
         <section
           style={{
             display: 'grid',
@@ -200,7 +246,8 @@ export default async function AccountPage() {
             gap: 16,
           }}
         >
-          <div
+          <form
+            action={saveAccountAction}
             style={{
               background: 'linear-gradient(180deg, #fffdfa 0%, #f8f5ef 100%)',
               border: '1px solid rgba(60,42,23,0.08)',
@@ -208,16 +255,74 @@ export default async function AccountPage() {
               padding: 18,
               boxShadow: '0 16px 36px rgba(34,24,16,0.05)',
               display: 'grid',
-              gap: 10,
+              gap: 12,
             }}
           >
-            <InfoRow label="이름" value={displayName} />
-            <InfoRow label="이메일" value={email} />
-            <InfoRow label="연락처" value={phone} />
-            <InfoRow label="아이디" value={username} />
-            <InfoRow label="성별" value={gender} />
-            <InfoRow label="권한" value={role} />
-          </div>
+            <input type="hidden" name="next" value="/account" />
+
+            <Field
+              label="이름"
+              name="full_name"
+              defaultValue={displayName}
+              placeholder="이름 입력"
+            />
+
+            <Field
+              label="이메일"
+              name="email_preview"
+              defaultValue={email}
+              placeholder="-"
+              readOnly
+            />
+
+            <Field
+              label="연락처"
+              name="phone_number"
+              defaultValue={phone}
+              placeholder="연락처 입력"
+            />
+
+            <Field
+              label="아이디"
+              name="username"
+              defaultValue={username}
+              placeholder="아이디 입력"
+            />
+
+            <Field
+              label="성별"
+              name="gender"
+              defaultValue={gender}
+              placeholder="성별 입력"
+            />
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 10,
+                paddingTop: 4,
+              }}
+            >
+              <button
+                type="submit"
+                style={{
+                  minHeight: 50,
+                  padding: '0 20px',
+                  borderRadius: 16,
+                  border: 0,
+                  background: '#2f2417',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  boxShadow: '0 14px 30px rgba(47, 36, 23, 0.14)',
+                }}
+              >
+                저장하기
+              </button>
+            </div>
+          </form>
 
           <div
             style={{
@@ -254,9 +359,21 @@ export default async function AccountPage() {
   )
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function Field({
+  label,
+  name,
+  defaultValue,
+  placeholder,
+  readOnly = false,
+}: {
+  label: string
+  name: string
+  defaultValue?: string
+  placeholder?: string
+  readOnly?: boolean
+}) {
   return (
-    <div
+    <label
       style={{
         display: 'grid',
         gap: 6,
@@ -266,7 +383,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
         border: '1px solid rgba(60,42,23,0.06)',
       }}
     >
-      <div
+      <span
         style={{
           fontSize: 12,
           fontWeight: 800,
@@ -275,19 +392,26 @@ function InfoRow({ label, value }: { label: string; value: string }) {
         }}
       >
         {label}
-      </div>
-      <div
+      </span>
+
+      <input
+        name={name}
+        defaultValue={defaultValue || ''}
+        placeholder={placeholder}
+        readOnly={readOnly}
         style={{
-          fontSize: 15,
-          fontWeight: 800,
+          width: '100%',
+          minHeight: 42,
+          border: 0,
+          outline: 'none',
+          background: 'transparent',
           color: '#241b11',
+          fontSize: 15,
           lineHeight: 1.6,
-          wordBreak: 'break-all',
+          fontWeight: 800,
         }}
-      >
-        {value}
-      </div>
-    </div>
+      />
+    </label>
   )
 }
 

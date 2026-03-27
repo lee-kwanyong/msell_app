@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --msell-bg: #f5f3ee;
+  --msell-bg: #f6f4ef;
+  --msell-bg-2: #f1eee8;
   --msell-surface: rgba(255, 252, 247, 0.86);
   --msell-surface-strong: #fffdf9;
   --msell-line: rgba(63, 45, 26, 0.08);
@@ -29,7 +30,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--msell-bg);
+  background: linear-gradient(180deg, var(--msell-bg) 0%, var(--msell-bg-2) 100%);
   color: var(--msell-text);
 }
 
@@ -42,6 +43,7 @@ body {
     Roboto,
     'Noto Sans KR',
     sans-serif;
+  min-height: 100vh;
 }
 
 a {
@@ -63,9 +65,9 @@ select {
   padding: 18px 20px 0;
   background: linear-gradient(
     180deg,
-    rgba(245, 243, 238, 0.92) 0%,
-    rgba(245, 243, 238, 0.72) 72%,
-    rgba(245, 243, 238, 0) 100%
+    rgba(246, 244, 239, 0.92) 0%,
+    rgba(246, 244, 239, 0.72) 72%,
+    rgba(246, 244, 239, 0) 100%
   );
   backdrop-filter: blur(14px);
 }

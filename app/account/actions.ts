@@ -1,14 +1,20 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 
-function normalizePhone(value: string) {
-  return value.replace(/[^\d+]/g, '').slice(0, 20)
+function clean(value: FormDataEntryValue | null) {
+  return String(value || '').trim()
 }
 
-export async function updateAccountAction(formData: FormData): Promise<void> {
+function safeNext(next?: string) {
+  const value = String(next || '').trim()
+  if (!value.startsWith('/')) return '/account'
+  if (value.startsWith('//')) return '/account'
+  return value || '/account'
+}
+
+export async function saveAccountAction(formData: FormData) {
   const supabase = await supabaseServer()
 
   const {
@@ -19,45 +25,31 @@ export async function updateAccountAction(formData: FormData): Promise<void> {
     redirect('/auth/login?next=/account')
   }
 
-  const fullName = String(formData.get('full_name') ?? '')
-    .trim()
-    .slice(0, 50)
+  const next = safeNext(formData.get('next'))
+  const full_name = clean(formData.get('full_name'))
+  const username = clean(formData.get('username'))
+  const phone_number = clean(formData.get('phone_number'))
+  const gender = clean(formData.get('gender'))
 
-  const username = String(formData.get('username') ?? '')
-    .trim()
-    .slice(0, 30)
+  if (!full_name) {
+    redirect(`${next}?error=${encodeURIComponent('이름을 입력해 주세요.')}`)
+  }
 
-  const phoneNumber = normalizePhone(String(formData.get('phone_number') ?? ''))
-
-  const profilePayload = {
+  const payload = {
     id: user.id,
-    full_name: fullName || null,
+    full_name,
     username: username || null,
-    phone_number: phoneNumber || null,
+    phone_number: phone_number || null,
+    gender: gender || null,
+    email: user.email || null,
     updated_at: new Date().toISOString(),
   }
 
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .upsert(profilePayload, { onConflict: 'id' })
+  const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
 
-  if (profileError) {
-    redirect(`/account?error=${encodeURIComponent(profileError.message)}`)
+  if (error) {
+    redirect(`${next}?error=${encodeURIComponent(error.message)}`)
   }
 
-  const { error: authError } = await supabase.auth.updateUser({
-    data: {
-      full_name: fullName || null,
-      username: username || null,
-      phone_number: phoneNumber || null,
-    },
-  })
-
-  if (authError) {
-    redirect(`/account?error=${encodeURIComponent(authError.message)}`)
-  }
-
-  revalidatePath('/account')
-  revalidatePath('/')
-  redirect('/')
+  redirect(`${next}?saved=1`)
 }
