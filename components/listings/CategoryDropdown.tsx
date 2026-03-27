@@ -6,6 +6,7 @@ type CategoryDropdownProps = {
   name: string;
   defaultValue?: string;
   categories?: string[];
+  required?: boolean;
 };
 
 const DEFAULT_CATEGORIES = [
@@ -65,6 +66,7 @@ export default function CategoryDropdown({
   name,
   defaultValue = "",
   categories = DEFAULT_CATEGORIES,
+  required = false,
 }: CategoryDropdownProps) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(defaultValue);
@@ -101,13 +103,19 @@ export default function CategoryDropdown({
 
   return (
     <div ref={rootRef} style={{ position: "relative" }}>
-      <input type="hidden" name={name} value={selected} />
+      <input
+        type="hidden"
+        name={name}
+        value={selected}
+        data-required={required ? "true" : "false"}
+      />
 
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-required={required}
         style={{
           width: "100%",
           height: 60,
