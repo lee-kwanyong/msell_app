@@ -8,6 +8,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 type AuthGatewayProps = {
   mode: 'login' | 'signup';
   mobile?: boolean;
+  next?: string;
 };
 
 const NAVER_PROVIDER =
@@ -16,34 +17,38 @@ const NAVER_PROVIDER =
 export default function AuthGateway({
   mode,
   mobile = false,
+  next: nextProp,
 }: AuthGatewayProps) {
   const supabase = supabaseBrowser();
   const searchParams = useSearchParams();
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState('');
 
   const next = useMemo(() => {
+    if (nextProp && typeof nextProp === 'string') return nextProp;
+
     const value = searchParams.get('next');
     if (!value || typeof value !== 'string') {
       return mobile ? '/m' : '/';
     }
+
     return value;
-  }, [searchParams, mobile]);
+  }, [mobile, nextProp, searchParams]);
 
   const callbackUrl = useMemo(() => {
-    if (typeof window === 'undefined') return undefined;
+    if (typeof window === 'undefined') return '';
     const url = new URL('/auth/callback', window.location.origin);
     url.searchParams.set('next', next);
     return url.toString();
   }, [next]);
 
-  async function handleOAuth(provider: 'google' | string) {
+  async function handleOAuth(provider: string) {
     try {
       setError('');
       setLoadingProvider(provider);
 
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: provider as never,
         options: {
           redirectTo: callbackUrl,
         },
@@ -99,6 +104,7 @@ export default function AuthGateway({
         >
           {title}
         </h1>
+
         <p
           style={{
             margin: 0,
