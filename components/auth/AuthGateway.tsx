@@ -8,9 +8,14 @@ import { supabaseBrowser } from '@/lib/supabase/client'
 type Props = {
   mode?: 'login' | 'signup'
   next?: string
+  mobile?: boolean
 }
 
-export default function AuthGateway({ mode = 'login', next: nextProp }: Props) {
+export default function AuthGateway({
+  mode = 'login',
+  next: nextProp,
+  mobile = false,
+}: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = useMemo(() => supabaseBrowser(), [])
@@ -79,19 +84,23 @@ export default function AuthGateway({ mode = 'login', next: nextProp }: Props) {
     }
   }
 
+  const cardRadius = mobile ? 24 : 30
+  const sectionPadding = mobile ? 20 : 24
+  const titleSize = mobile ? 20 : 22
+
   return (
     <div
       style={{
         border: '1px solid #e5d9ca',
         background: '#fff',
-        borderRadius: 30,
+        borderRadius: cardRadius,
         overflow: 'hidden',
         boxShadow: '0 18px 50px rgba(47,36,23,0.05)',
       }}
     >
       <div
         style={{
-          padding: '22px 24px',
+          padding: mobile ? '20px 20px' : '22px 24px',
           borderBottom: '1px solid #ece0d2',
           background: 'linear-gradient(180deg, #fcfaf6 0%, #f7f1e8 100%)',
         }}
@@ -115,7 +124,7 @@ export default function AuthGateway({ mode = 'login', next: nextProp }: Props) {
         <h2
           style={{
             margin: '14px 0 0',
-            fontSize: 18,
+            fontSize: mobile ? 17 : 18,
             lineHeight: 1.2,
             color: '#1f1710',
             fontWeight: 900,
@@ -126,12 +135,12 @@ export default function AuthGateway({ mode = 'login', next: nextProp }: Props) {
         </h2>
       </div>
 
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: sectionPadding }}>
         <div style={{ marginBottom: 18 }}>
           <h3
             style={{
               margin: 0,
-              fontSize: 22,
+              fontSize: titleSize,
               lineHeight: 1.1,
               color: '#1f1710',
               fontWeight: 900,
