@@ -21,73 +21,192 @@ export default async function LoginPage({ searchParams }: PageProps) {
   const error = params.error || ''
 
   return (
-    <main className="min-h-screen bg-[#f6f1e7] px-4 py-10 text-[#20170f]">
-      <div className="mx-auto w-full max-w-md">
-        <div className="rounded-[28px] border border-[#e8dcc8] bg-white p-7 shadow-[0_20px_60px_rgba(47,36,23,0.08)]">
-          <div className="mb-6">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#8a7357]">
-              MSELL
-            </p>
-            <h1 className="mt-2 text-[28px] font-semibold leading-tight text-[#1f160f]">
-              로그인
-            </h1>
-            <p className="mt-2 text-[14px] leading-6 text-[#6e5c4b]">
-              계정에 로그인하고 자산 등록, 거래 문의, 내 거래 관리 기능을 이용하세요.
-            </p>
+    <main
+      style={{
+        minHeight: 'calc(100vh - 120px)',
+        background: 'linear-gradient(180deg, #f6f4ef 0%, #f1eee8 100%)',
+        padding: '36px 24px 80px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 560,
+            margin: '0 auto',
+            borderRadius: 34,
+            background:
+              'radial-gradient(circle at top right, rgba(110,84,49,0.08), transparent 28%), linear-gradient(180deg, #fffdfa 0%, #f7f3ec 100%)',
+            border: '1px solid rgba(60,42,23,0.08)',
+            boxShadow: '0 20px 50px rgba(34,24,16,0.06)',
+            padding: 34,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              letterSpacing: '0.18em',
+              color: 'rgba(58,40,22,0.48)',
+              fontWeight: 700,
+            }}
+          >
+            MSELL
+          </div>
+
+          <h1
+            style={{
+              margin: '16px 0 0',
+              fontSize: 44,
+              lineHeight: 0.98,
+              letterSpacing: '-0.05em',
+              fontWeight: 700,
+              color: '#18130f',
+            }}
+          >
+            로그인
+          </h1>
+
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 14,
+              lineHeight: 1.7,
+              color: 'rgba(52,38,24,0.64)',
+            }}
+          >
+            계정에 로그인
           </div>
 
           {error ? (
-            <div className="mb-4 rounded-2xl border border-[#efc9c9] bg-[#fff5f5] px-4 py-3 text-[14px] text-[#9d2f2f]">
+            <div
+              style={{
+                marginTop: 18,
+                borderRadius: 18,
+                border: '1px solid rgba(166, 64, 64, 0.18)',
+                background: 'rgba(255, 243, 243, 0.9)',
+                color: '#8f2f2f',
+                fontSize: 14,
+                lineHeight: 1.6,
+                padding: '14px 16px',
+              }}
+            >
               {error}
             </div>
           ) : null}
 
-          <form action={loginAction} className="space-y-3">
+          <form action={loginAction} style={{ marginTop: 22 }}>
             <input type="hidden" name="next" value={next} />
 
-            <div>
-              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
-                이메일
-              </label>
-              <input
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
-                required
-              />
-            </div>
+            <div style={{ display: 'grid', gap: 14 }}>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: 'rgba(52,38,24,0.70)',
+                  }}
+                >
+                  이메일
+                </label>
+                <input
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  required
+                  style={{
+                    width: '100%',
+                    height: 52,
+                    borderRadius: 18,
+                    border: '1px solid rgba(60,42,23,0.10)',
+                    background: 'rgba(255,255,255,0.82)',
+                    padding: '0 16px',
+                    fontSize: 15,
+                    color: '#18130f',
+                    outline: 'none',
+                  }}
+                />
+              </div>
 
-            <div>
-              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
-                비밀번호
-              </label>
-              <input
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="비밀번호 입력"
-                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
-                required
-              />
-            </div>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: 'rgba(52,38,24,0.70)',
+                  }}
+                >
+                  비밀번호
+                </label>
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="비밀번호 입력"
+                  required
+                  style={{
+                    width: '100%',
+                    height: 52,
+                    borderRadius: 18,
+                    border: '1px solid rgba(60,42,23,0.10)',
+                    background: 'rgba(255,255,255,0.82)',
+                    padding: '0 16px',
+                    fontSize: 15,
+                    color: '#18130f',
+                    outline: 'none',
+                  }}
+                />
+              </div>
 
-            <button
-              type="submit"
-              className="mt-2 flex h-12 w-full items-center justify-center rounded-2xl bg-[#2f2417] text-[15px] font-semibold text-white transition hover:bg-[#241b11]"
-            >
-              이메일로 로그인
-            </button>
+              <button
+                type="submit"
+                style={{
+                  height: 52,
+                  border: 'none',
+                  borderRadius: 999,
+                  background: '#24180f',
+                  color: '#ffffff',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 10px 24px rgba(36,24,15,0.16)',
+                }}
+              >
+                이메일로 로그인
+              </button>
+            </div>
           </form>
 
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-[#ece2d4]" />
-            <span className="text-[12px] text-[#8d785f]">또는</span>
-            <div className="h-px flex-1 bg-[#ece2d4]" />
+          <div
+            style={{
+              margin: '22px 0 18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <div style={{ flex: 1, height: 1, background: 'rgba(60,42,23,0.08)' }} />
+            <div
+              style={{
+                fontSize: 12,
+                color: 'rgba(52,38,24,0.48)',
+                fontWeight: 600,
+              }}
+            >
+              또는
+            </div>
+            <div style={{ flex: 1, height: 1, background: 'rgba(60,42,23,0.08)' }} />
           </div>
 
-          <div className="space-y-3">
+          <div style={{ display: 'grid', gap: 10 }}>
             <form
               action={async () => {
                 'use server'
@@ -96,7 +215,17 @@ export default async function LoginPage({ searchParams }: PageProps) {
             >
               <button
                 type="submit"
-                className="flex h-12 w-full items-center justify-center rounded-2xl border border-[#ddd2c2] bg-white text-[15px] font-semibold text-[#20170f] transition hover:bg-[#faf6ef]"
+                style={{
+                  width: '100%',
+                  height: 50,
+                  borderRadius: 18,
+                  border: '1px solid rgba(60,42,23,0.10)',
+                  background: 'rgba(255,255,255,0.82)',
+                  color: '#24180f',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
               >
                 구글로 계속하기
               </button>
@@ -110,18 +239,39 @@ export default async function LoginPage({ searchParams }: PageProps) {
             >
               <button
                 type="submit"
-                className="flex h-12 w-full items-center justify-center rounded-2xl border border-[#ddd2c2] bg-white text-[15px] font-semibold text-[#20170f] transition hover:bg-[#faf6ef]"
+                style={{
+                  width: '100%',
+                  height: 50,
+                  borderRadius: 18,
+                  border: '1px solid rgba(60,42,23,0.10)',
+                  background: 'rgba(255,255,255,0.82)',
+                  color: '#24180f',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
               >
                 네이버로 계속하기
               </button>
             </form>
           </div>
 
-          <div className="mt-6 text-center text-[14px] text-[#6e5c4b]">
+          <div
+            style={{
+              marginTop: 20,
+              textAlign: 'center',
+              fontSize: 14,
+              color: 'rgba(52,38,24,0.62)',
+            }}
+          >
             계정이 없으면{' '}
             <Link
               href={`/auth/signup?next=${encodeURIComponent(next)}`}
-              className="font-semibold text-[#2f2417] underline underline-offset-4"
+              style={{
+                color: '#24180f',
+                fontWeight: 700,
+                textDecoration: 'none',
+              }}
             >
               회원가입
             </Link>
