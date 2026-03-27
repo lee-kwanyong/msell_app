@@ -8,11 +8,6 @@ function normalizePhone(value: string) {
   return value.replace(/[^\d+]/g, '').slice(0, 20)
 }
 
-function normalizeGender(value: string) {
-  if (value === 'male' || value === 'female' || value === 'other') return value
-  return null
-}
-
 export async function updateAccountAction(formData: FormData): Promise<void> {
   const supabase = await supabaseServer()
 
@@ -33,14 +28,12 @@ export async function updateAccountAction(formData: FormData): Promise<void> {
     .slice(0, 30)
 
   const phoneNumber = normalizePhone(String(formData.get('phone_number') ?? ''))
-  const gender = normalizeGender(String(formData.get('gender') ?? ''))
 
   const profilePayload = {
     id: user.id,
     full_name: fullName || null,
     username: username || null,
     phone_number: phoneNumber || null,
-    gender,
     updated_at: new Date().toISOString(),
   }
 
@@ -57,7 +50,6 @@ export async function updateAccountAction(formData: FormData): Promise<void> {
       full_name: fullName || null,
       username: username || null,
       phone_number: phoneNumber || null,
-      gender,
     },
   })
 
@@ -66,5 +58,6 @@ export async function updateAccountAction(formData: FormData): Promise<void> {
   }
 
   revalidatePath('/account')
-  redirect('/account?saved=1')
+  revalidatePath('/')
+  redirect('/')
 }
