@@ -1,11 +1,11 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
 
-function normalizePhone(value: string) {
-  return value.replace(/[^\d+]/g, '').trim();
+function normalize(value: FormDataEntryValue | null) {
+  if (typeof value !== 'string') return '';
+  return value.trim();
 }
 
 export async function updateAccountAction(formData: FormData) {
@@ -13,54 +13,58 @@ export async function updateAccountAction(formData: FormData) {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect('/auth/login?next=/account');
   }
 
-  const full_name = String(formData.get('full_name') ?? '').trim();
-  const username = String(formData.get('username') ?? '').trim();
-  const phone_number = normalizePhone(String(formData.get('phone_number') ?? ''));
-  const avatar_url = String(formData.get('avatar_url') ?? '').trim();
+  const full_name = normalize(formData.get('full_name'));
+  const username = normalize(formData.get('username'));
+  const phone_number = normalize(formData.get('phone_number'));
+  const gender = normalize(formData.get('gender'));
 
   if (!full_name) {
-    redirect('/account?error=' + encodeURIComponent('이름을 입력해 주세요.'));
+    redirect('/account?error=' + encodeURIComponent('이름을 입력해주세요.'));
   }
 
-  if (!username) {
-    redirect('/account?error=' + encodeURIComponent('아이디를 입력해 주세요.'));
-  }
-
-  const payload = {
+  const profilePayload = {
     id: user.id,
-    email: user.email ?? '',
+    email: user.email ?? null,
     full_name,
-    username,
+    username: username || null,
     phone_number: phone_number || null,
-    avatar_url: avatar_url || null,
+    gender: gender || null,
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
+  const { error: profileError } = await supabase.from('profiles').upsert(profilePayload, {
+    onConflict: 'id',
+  });
 
-  if (error) {
-    redirect('/account?error=' + encodeURIComponent(error.message));
+  if (profileError) {
+    redirect(
+      '/account?error=' +
+        encodeURIComponent(profileError.message || '프로필 저장 중 오류가 발생했습니다.'),
+    );
   }
 
-  const { error: authError } = await supabase.auth.updateUser({
+  const { error: authUpdateError } = await supabase.auth.updateUser({
     data: {
       full_name,
-      username,
+      username: username || null,
       phone_number: phone_number || null,
-      avatar_url: avatar_url || null,
+      gender: gender || null,
     },
   });
 
-  if (authError) {
-    redirect('/account?error=' + encodeURIComponent(authError.message));
+  if (authUpdateError) {
+    redirect(
+      '/account?error=' +
+        encodeURIComponent(authUpdateError.message || '계정 정보 저장 중 오류가 발생했습니다.'),
+    );
   }
 
-  revalidatePath('/account');
-  redirect('/account?success=' + encodeURIComponent('계정 정보가 저장되었습니다.'));
+  redirect('/account?updated=1');
 }
