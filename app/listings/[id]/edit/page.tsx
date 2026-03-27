@@ -1,248 +1,208 @@
-import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { supabaseServer } from "@/lib/supabase/server";
-import CategoryDropdown from "@/components/listings/CategoryDropdown";
+import Link from 'next/link'
+import { notFound, redirect } from 'next/navigation'
+import { supabaseServer } from '@/lib/supabase/server'
+import CategoryDropdown from '@/components/listings/CategoryDropdown'
 
 type PageProps = {
-  params: Promise<{ id: string }>;
-  searchParams?: Promise<{ error?: string }>;
-};
-
-type ListingRow = {
-  id: string;
-  user_id: string | null;
-  title: string | null;
-  category: string | null;
-  price: number | string | null;
-  description: string | null;
-  status: string | null;
-};
-
-type CategoryRow = {
-  id?: string | null;
-  slug?: string | null;
-  name?: string | null;
-  label?: string | null;
-  title?: string | null;
-  created_at?: string | null;
-};
-
-function getErrorMessage(error?: string) {
-  switch (error) {
-    case "unauthorized":
-      return "수정 권한이 없습니다.";
-    case "missing_required_fields":
-      return "필수 항목을 입력해 주세요.";
-    case "update_failed":
-      return "수정에 실패했습니다.";
-    case "not_found":
-      return "자산을 찾을 수 없습니다.";
-    default:
-      return "";
-  }
+  params: Promise<{
+    id: string
+  }>
+  searchParams?: Promise<{
+    error?: string
+  }>
 }
 
-function extractTransferMethod(description: string | null) {
-  if (!description) {
+function parseTransferMethod(description: string | null) {
+  const text = description || ''
+
+  if (!text.startsWith('[이전 방식] ')) {
     return {
-      transferMethod: "",
-      cleanDescription: "",
-    };
+      transferMethod: '',
+      plainDescription: text,
+    }
   }
 
-  const match = description.match(/^\[이전 방식\]\s*(.+?)\n\n/s);
-
-  if (!match) {
-    return {
-      transferMethod: "",
-      cleanDescription: description,
-    };
-  }
-
-  const transferMethod = match[1]?.trim() || "";
-  const cleanDescription = description
-    .replace(/^\[이전 방식\]\s*.+?\n\n/s, "")
-    .trim();
+  const withoutPrefix = text.replace('[이전 방식] ', '')
+  const [firstLine, ...rest] = withoutPrefix.split('\n')
+  const plainDescription = rest.join('\n').trim()
 
   return {
-    transferMethod,
-    cleanDescription,
-  };
+    transferMethod: firstLine.trim(),
+    plainDescription,
+  }
 }
 
-export default async function EditListingPage({
-  params,
-  searchParams,
-}: PageProps) {
-  const { id } = await params;
-  const query = (await searchParams) || {};
-  const supabase = await supabaseServer();
+export default async function ListingEditPage({ params, searchParams }: PageProps) {
+  const { id } = await params
+  const resolvedSearchParams = (await searchParams) || {}
+  const error = resolvedSearchParams.error || ''
+
+  const supabase = await supabaseServer()
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect(`/auth/login?next=/listings/${id}/edit`);
+    redirect(`/auth/login?next=/listings/${id}/edit`)
   }
 
-  const { data: listingData, error: listingError } = await supabase
-    .from("listings")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const { data: listing, error: listingError } = await supabase
+    .from('listings')
+    .select('id, user_id, title, category, price, description, status')
+    .eq('id', id)
+    .single()
 
-  if (listingError || !listingData) {
-    notFound();
+  if (listingError || !listing) {
+    notFound()
   }
 
-  const listing = listingData as ListingRow;
-
-  if (listing.user_id && listing.user_id !== user.id) {
-    redirect(`/listings/${id}?error=unauthorized`);
+  if (listing.user_id !== user.id) {
+    redirect(`/listings/${id}`)
   }
 
-  const { data: categoriesData } = await supabase
-    .from("categories")
-    .select("*")
-    .order("created_at", { ascending: true });
-
-  const categories = ((categoriesData || []) as CategoryRow[])
-    .map((item) => ({
-      value: item.slug || item.name || item.label || item.title || "",
-      label: item.label || item.name || item.title || item.slug || "",
-    }))
-    .filter((item) => item.value && item.label);
-
-  const { transferMethod, cleanDescription } = extractTransferMethod(
-    listing.description || ""
-  );
-
-  const errorMessage = getErrorMessage(query.error);
+  const { transferMethod, plainDescription } = parseTransferMethod(listing.description)
 
   return (
-    <main className="ms-page ms-page--narrow">
-      <section className="ms-form-shell">
-        <div className="ms-form-shell__head">
+    <main className="min-h-screen bg-[#f6f1e7] px-4 py-8 text-[#20170f]">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="mb-6 flex items-center justify-between gap-3">
           <div>
-            <p className="ms-eyebrow">EDIT LISTING</p>
-            <h1 className="ms-form-shell__title">자산 수정</h1>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#8a7357]">
+              MSELL
+            </p>
+            <h1 className="mt-2 text-[30px] font-semibold leading-tight text-[#1f160f]">
+              자산 수정
+            </h1>
+            <p className="mt-2 text-[14px] leading-6 text-[#6e5c4b]">
+              등록한 자산 정보를 현재 상태에 맞게 수정하세요.
+            </p>
           </div>
 
-          <Link href={`/listings/${id}`} className="ms-text-link">
-            상세보기
+          <Link
+            href={`/listings/${id}`}
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-[#d9ccb8] bg-white px-4 text-[14px] font-semibold text-[#2f2417] transition hover:bg-[#f8f3eb]"
+          >
+            상세로
           </Link>
         </div>
 
-        {errorMessage ? <div className="ms-alert">{errorMessage}</div> : null}
+        {error ? (
+          <div className="mb-5 rounded-2xl border border-[#efc9c9] bg-[#fff5f5] px-4 py-3 text-[14px] text-[#9d2f2f]">
+            {error}
+          </div>
+        ) : null}
 
-        <form action="/api/listings/update" method="post" className="ms-form">
+        <form
+          action={`/api/listings/update`}
+          method="post"
+          className="rounded-[30px] border border-[#e6dbc8] bg-white p-5 shadow-[0_20px_60px_rgba(47,36,23,0.08)] md:p-7"
+        >
           <input type="hidden" name="id" value={listing.id} />
 
-          <div className="ms-field">
-            <label htmlFor="title" className="ms-label">
-              제목
-            </label>
-            <input
-              id="title"
-              name="title"
-              type="text"
-              required
-              className="ms-input"
-              defaultValue={listing.title || ""}
-              placeholder="예: 유튜브 채널 매각"
-            />
-          </div>
-
-          <div className="ms-field">
-            <label htmlFor="category" className="ms-label">
-              카테고리
-            </label>
-            <CategoryDropdown
-              name="category"
-              defaultValue={listing.category || ""}
-              categories={categories}
-              required
-            />
-          </div>
-
-          <div className="ms-form__row">
-            <div className="ms-field">
-              <label htmlFor="price" className="ms-label">
-                희망 가격
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                제목
               </label>
               <input
-                id="price"
-                name="price"
-                type="number"
-                min="0"
-                className="ms-input"
-                defaultValue={
-                  listing.price === null || listing.price === undefined
-                    ? ""
-                    : String(listing.price)
-                }
-                placeholder="예: 5000000"
+                name="title"
+                type="text"
+                defaultValue={listing.title || ''}
+                placeholder="예: 수익화 완료 유튜브 채널"
+                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
+                required
               />
             </div>
 
-            <div className="ms-field">
-              <label htmlFor="status" className="ms-label">
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                카테고리
+              </label>
+              <CategoryDropdown
+                name="category"
+                defaultValue={typeof listing.category === 'string' ? listing.category : ''}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                희망 가격
+              </label>
+              <input
+                name="price"
+                type="number"
+                inputMode="numeric"
+                defaultValue={listing.price ?? ''}
+                placeholder="예: 1500000"
+                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                이전 방식
+              </label>
+              <input
+                name="transfer_method"
+                type="text"
+                defaultValue={transferMethod}
+                placeholder="예: 계정 이메일 양도 / 관리자 권한 이전 / 도메인 이전"
+                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
+                설명
+              </label>
+              <textarea
+                name="description"
+                rows={8}
+                defaultValue={plainDescription}
+                placeholder="운영 기간, 수익 구조, 팔로워/구독자 상태, 인수인계 범위를 구체적으로 적어 주세요."
+                className="w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 py-3 text-[15px] outline-none transition focus:border-[#8f7556]"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-[#4c3a2b]">
                 상태
               </label>
               <select
-                id="status"
                 name="status"
-                defaultValue={listing.status || "active"}
-                className="ms-input"
+                defaultValue={listing.status || 'active'}
+                className="h-12 w-full rounded-2xl border border-[#dbcdb7] bg-[#fffdf9] px-4 text-[15px] outline-none transition focus:border-[#8f7556]"
               >
                 <option value="active">거래가능</option>
                 <option value="draft">임시저장</option>
                 <option value="hidden">숨김</option>
-                <option value="reserved">예약중</option>
                 <option value="sold">거래종료</option>
               </select>
             </div>
           </div>
 
-          <div className="ms-field">
-            <label htmlFor="transfer_method" className="ms-label">
-              이전 방식
-            </label>
-            <input
-              id="transfer_method"
-              name="transfer_method"
-              type="text"
-              className="ms-input"
-              defaultValue={transferMethod}
-              placeholder="예: 계정 전체 이전 / 관리자 권한 이전"
-            />
-          </div>
-
-          <div className="ms-field">
-            <label htmlFor="description" className="ms-label">
-              설명
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              rows={8}
-              className="ms-textarea"
-              defaultValue={cleanDescription}
-              placeholder="핵심 정보만 입력하세요."
-            />
-          </div>
-
-          <div className="ms-form__actions">
-            <Link href={`/listings/${id}`} className="ms-btn ms-btn--secondary">
-              취소
-            </Link>
-            <button type="submit" className="ms-btn ms-btn--primary">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="submit"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#2f2417] px-5 text-[15px] font-semibold text-white transition hover:bg-[#241b11]"
+            >
               수정 저장
             </button>
+
+            <Link
+              href={`/listings/${id}`}
+              className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#d9ccb8] bg-[#f8f3eb] px-5 text-[15px] font-semibold text-[#2f2417] transition hover:bg-[#efe6d8]"
+            >
+              취소
+            </Link>
           </div>
         </form>
-      </section>
+      </div>
     </main>
-  );
+  )
 }
