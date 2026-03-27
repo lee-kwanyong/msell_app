@@ -48,15 +48,15 @@ export default function AuthGateway({
       });
 
       if (error) {
-        const loginPath = mode === 'signup' ? '/auth/signup' : '/auth/login';
-        window.location.href = `${loginPath}?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(nextPath)}`;
+        const path = mode === 'signup' ? '/auth/signup' : '/auth/login';
+        window.location.href = `${path}?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(nextPath)}`;
         return;
       }
     } catch (e) {
       const message =
         e instanceof Error ? e.message : '소셜 로그인 중 오류가 발생했습니다.';
-      const loginPath = mode === 'signup' ? '/auth/signup' : '/auth/login';
-      window.location.href = `${loginPath}?error=${encodeURIComponent(message)}&next=${encodeURIComponent(nextPath)}`;
+      const path = mode === 'signup' ? '/auth/signup' : '/auth/login';
+      window.location.href = `${path}?error=${encodeURIComponent(message)}&next=${encodeURIComponent(nextPath)}`;
     } finally {
       setLoadingProvider(null);
     }
