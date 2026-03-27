@@ -22,11 +22,11 @@ type PageProps = {
 function getErrorMessage(error?: string) {
   switch (error) {
     case "unauthorized":
-      return "·Î±×ÀÎ ÈÄ µî·ÏÇÒ ¼ö ÀÖ½À´Ï´Ù.";
+      return "ë¡œê·¸ì¸ í›„ ë“±ë¡í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.";
     case "missing_required_fields":
-      return "ÇÊ¼ö Ç×¸ñÀ» ÀÔ·ÂÇØ ÁÖ¼¼¿ä.";
+      return "í•„ìˆ˜ í•­ëª©ì„ ì…ë ¥í•´ ì£¼ì„¸ìš”.";
     case "insert_failed":
-      return "µî·Ï¿¡ ½ÇÆĞÇß½À´Ï´Ù.";
+      return "ë“±ë¡ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.";
     default:
       return "";
   }
@@ -65,11 +65,11 @@ export default async function CreateListingPage({ searchParams }: PageProps) {
         <div className="ms-form-shell__head">
           <div>
             <p className="ms-eyebrow">NEW LISTING</p>
-            <h1 className="ms-form-shell__title">ÀÚ»ê µî·Ï</h1>
+            <h1 className="ms-form-shell__title">ìì‚° ë“±ë¡</h1>
           </div>
 
           <Link href="/listings" className="ms-text-link">
-            °Å·¡¸ñ·Ï
+            ê±°ë˜ëª©ë¡
           </Link>
         </div>
 
@@ -78,7 +78,7 @@ export default async function CreateListingPage({ searchParams }: PageProps) {
         <form action="/api/listings/create" method="post" className="ms-form">
           <div className="ms-field">
             <label htmlFor="title" className="ms-label">
-              Á¦¸ñ
+              ì œëª©
             </label>
             <input
               id="title"
@@ -86,13 +86,13 @@ export default async function CreateListingPage({ searchParams }: PageProps) {
               type="text"
               required
               className="ms-input"
-              placeholder="¿¹: À¯Æ©ºê Ã¤³Î ¸Å°¢"
+              placeholder="ì˜ˆ: ìœ íŠœë¸Œ ì±„ë„ ë§¤ê°"
             />
           </div>
 
           <div className="ms-field">
             <label htmlFor="category" className="ms-label">
-              Ä«Å×°í¸®
+              ì¹´í…Œê³ ë¦¬
             </label>
             <CategoryDropdown
               name="category"
@@ -105,7 +105,7 @@ export default async function CreateListingPage({ searchParams }: PageProps) {
           <div className="ms-form__row">
             <div className="ms-field">
               <label htmlFor="price" className="ms-label">
-                Èñ¸Á °¡°İ
+                í¬ë§ ê°€ê²©
               </label>
               <input
                 id="price"
@@ -113,13 +113,13 @@ export default async function CreateListingPage({ searchParams }: PageProps) {
                 type="number"
                 min="0"
                 className="ms-input"
-                placeholder="¿¹: 5000000"
+                placeholder="ì˜ˆ: 5000000"
               />
             </div>
 
             <div className="ms-field">
               <label htmlFor="status" className="ms-label">
-                »óÅÂ
+                ìƒíƒœ
               </label>
               <select
                 id="status"
@@ -127,47 +127,47 @@ export default async function CreateListingPage({ searchParams }: PageProps) {
                 defaultValue="active"
                 className="ms-input"
               >
-                <option value="active">°Å·¡°¡´É</option>
-                <option value="draft">ÀÓ½ÃÀúÀå</option>
-                <option value="hidden">¼û±è</option>
-                <option value="reserved">¿¹¾àÁß</option>
-                <option value="sold">°Å·¡Á¾·á</option>
+                <option value="active">ê±°ë˜ê°€ëŠ¥</option>
+                <option value="draft">ì„ì‹œì €ì¥</option>
+                <option value="hidden">ìˆ¨ê¹€</option>
+                <option value="reserved">ì˜ˆì•½ì¤‘</option>
+                <option value="sold">ê±°ë˜ì¢…ë£Œ</option>
               </select>
             </div>
           </div>
 
           <div className="ms-field">
             <label htmlFor="transfer_method" className="ms-label">
-              ÀÌÀü ¹æ½Ä
+              ì´ì „ ë°©ì‹
             </label>
             <input
               id="transfer_method"
               name="transfer_method"
               type="text"
               className="ms-input"
-              placeholder="¿¹: °èÁ¤ ÀüÃ¼ ÀÌÀü / °ü¸®ÀÚ ±ÇÇÑ ÀÌÀü"
+              placeholder="ì˜ˆ: ê³„ì • ì „ì²´ ì´ì „ / ê´€ë¦¬ì ê¶Œí•œ ì´ì „"
             />
           </div>
 
           <div className="ms-field">
             <label htmlFor="description" className="ms-label">
-              ¼³¸í
+              ì„¤ëª…
             </label>
             <textarea
               id="description"
               name="description"
               rows={8}
               className="ms-textarea"
-              placeholder="ÇÙ½É Á¤º¸¸¸ ÀÔ·ÂÇÏ¼¼¿ä."
+              placeholder="í•µì‹¬ ì •ë³´ë§Œ ì…ë ¥í•˜ì„¸ìš”."
             />
           </div>
 
           <div className="ms-form__actions">
             <Link href="/listings" className="ms-btn ms-btn--secondary">
-              Ãë¼Ò
+              ì·¨ì†Œ
             </Link>
             <button type="submit" className="ms-btn ms-btn--primary">
-              ÀÚ»ê µî·ÏÇÏ±â
+              ìì‚° ë“±ë¡í•˜ê¸°
             </button>
           </div>
         </form>
