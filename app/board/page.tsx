@@ -13,7 +13,6 @@ type BoardPostRow = {
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
 
@@ -26,7 +25,7 @@ function formatDate(value?: string | null) {
 
 function maskAuthor(userId: string) {
   if (!userId) return "-";
-  return `${userId.slice(0, 8)}`;
+  return userId.slice(0, 8);
 }
 
 export default async function BoardPage() {
@@ -51,12 +50,7 @@ export default async function BoardPage() {
         padding: "32px 20px 96px",
       }}
     >
-      <div
-        style={{
-          maxWidth: 1180,
-          margin: "0 auto",
-        }}
-      >
+      <div style={{ maxWidth: 1180, margin: "0 auto" }}>
         <section
           style={{
             background:
@@ -114,45 +108,24 @@ export default async function BoardPage() {
               </p>
             </div>
 
-            {user ? (
-              <Link
-                href="/board/create"
-                style={{
-                  height: 46,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#f3e6d3",
-                  color: "#2f2417",
-                  fontSize: 14,
-                  fontWeight: 900,
-                }}
-              >
-                글쓰기
-              </Link>
-            ) : (
-              <Link
-                href="/auth/login?next=/board/create"
-                style={{
-                  height: 46,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#f3e6d3",
-                  color: "#2f2417",
-                  fontSize: 14,
-                  fontWeight: 900,
-                }}
-              >
-                로그인 후 글쓰기
-              </Link>
-            )}
+            <Link
+              href={user ? "/board/create" : "/auth/login?next=/board/create"}
+              style={{
+                height: 46,
+                padding: "0 18px",
+                borderRadius: 999,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textDecoration: "none",
+                background: "#f3e6d3",
+                color: "#2f2417",
+                fontSize: 14,
+                fontWeight: 900,
+              }}
+            >
+              글쓰기
+            </Link>
           </div>
         </section>
 

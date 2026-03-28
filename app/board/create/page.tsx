@@ -1,41 +1,36 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 
-type BoardPostRow = {
-  id: string;
-  user_id: string;
-  title: string;
-  content: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-};
+type SearchParams = Promise<{
+  error?: string;
+  title?: string;
+  content?: string;
+}>;
 
-function formatDate(value?: string | null) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
+function decodeValue(value?: string) {
+  return value ? decodeURIComponent(value) : "";
 }
 
-export default async function BoardPage() {
-  const supabase = await supabaseServer();
+export default async function BoardCreatePage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const query = await searchParams;
 
+  const supabase = await supabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: posts } = await supabase
-    .from("board_posts")
-    .select("*")
-    .order("created_at", { ascending: false });
+  if (!user) {
+    redirect("/auth/login?next=/board/create");
+  }
 
-  const rows = (posts ?? []) as BoardPostRow[];
+  const error = decodeValue(query?.error);
+  const title = decodeValue(query?.title);
+  const content = decodeValue(query?.content);
 
   return (
     <main
@@ -45,7 +40,12 @@ export default async function BoardPage() {
         padding: "32px 20px 96px",
       }}
     >
-      <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+      <div
+        style={{
+          maxWidth: 980,
+          margin: "0 auto",
+        }}
+      >
         <section
           style={{
             background:
@@ -66,83 +66,32 @@ export default async function BoardPage() {
               marginBottom: 14,
             }}
           >
-            BOARD
+            WRITE POST
           </div>
 
-          <div
+          <h1
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 20,
-              alignItems: "flex-end",
-              flexWrap: "wrap",
+              margin: 0,
+              fontSize: 48,
+              lineHeight: 1.02,
+              fontWeight: 900,
+              letterSpacing: "-0.04em",
             }}
           >
-            <div style={{ maxWidth: 760 }}>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 48,
-                  lineHeight: 1.02,
-                  fontWeight: 900,
-                  letterSpacing: "-0.04em",
-                }}
-              >
-                게시판
-              </h1>
-              <p
-                style={{
-                  margin: "14px 0 0",
-                  fontSize: 15,
-                  lineHeight: 1.75,
-                  color: "rgba(255,250,242,0.86)",
-                  fontWeight: 600,
-                }}
-              >
-                회원은 게시글을 작성할 수 있고, 답변은 관리자만 등록할 수 있습니다.
-              </p>
-            </div>
+            게시글 작성
+          </h1>
 
-            {user ? (
-              <Link
-                href="/board/create"
-                style={{
-                  height: 46,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#f3e6d3",
-                  color: "#2f2417",
-                  fontSize: 14,
-                  fontWeight: 900,
-                }}
-              >
-                글쓰기
-              </Link>
-            ) : (
-              <Link
-                href="/auth/login?next=/board/create"
-                style={{
-                  height: 46,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#f3e6d3",
-                  color: "#2f2417",
-                  fontSize: 14,
-                  fontWeight: 900,
-                }}
-              >
-                로그인 후 글쓰기
-              </Link>
-            )}
-          </div>
+          <p
+            style={{
+              margin: "14px 0 0",
+              fontSize: 15,
+              lineHeight: 1.75,
+              color: "rgba(255,250,242,0.86)",
+              fontWeight: 600,
+            }}
+          >
+            문의나 요청 사항을 등록하면 관리자가 답변할 수 있습니다.
+          </p>
         </section>
 
         <section
@@ -151,115 +100,141 @@ export default async function BoardPage() {
             background: "#fbf7f1",
             border: "1px solid #eadfce",
             borderRadius: 30,
+            padding: 24,
             boxShadow: "0 14px 34px rgba(61, 41, 22, 0.06)",
-            overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "120px minmax(0, 1fr) 120px 140px",
-              padding: "16px 20px",
-              background: "#f5ede2",
-              borderBottom: "1px solid #eadfce",
-              color: "#7f684f",
-              fontSize: 13,
-              fontWeight: 900,
-            }}
-          >
-            <div>상태</div>
-            <div>제목</div>
-            <div>작성자</div>
-            <div>작성일</div>
-          </div>
-
-          {rows.length === 0 ? (
+          {error ? (
             <div
               style={{
-                padding: "36px 20px",
-                color: "#7c6852",
-                fontSize: 15,
-                fontWeight: 600,
+                marginBottom: 16,
+                borderRadius: 18,
+                border: "1px solid #efc0c0",
+                background: "#fff4f4",
+                color: "#b42318",
+                padding: "14px 16px",
+                fontSize: 14,
+                fontWeight: 700,
+                lineHeight: 1.6,
               }}
             >
-              등록된 게시글이 없습니다.
+              {error}
             </div>
-          ) : (
-            rows.map((item, index) => (
-              <Link
-                key={item.id}
-                href={`/board/${item.id}`}
+          ) : null}
+
+          <form method="post" action="/api/board/create">
+            <div style={{ display: "grid", gap: 16 }}>
+              <label style={{ display: "block" }}>
+                <div
+                  style={{
+                    marginBottom: 8,
+                    fontSize: 13,
+                    fontWeight: 900,
+                    color: "#7f684f",
+                  }}
+                >
+                  제목
+                </div>
+                <input
+                  type="text"
+                  name="title"
+                  defaultValue={title}
+                  required
+                  placeholder="제목을 입력하세요"
+                  style={{
+                    width: "100%",
+                    height: 60,
+                    borderRadius: 18,
+                    border: "1px solid #eadfcf",
+                    background: "#fffdf9",
+                    padding: "0 18px",
+                    color: "#24190f",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    outline: "none",
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "block" }}>
+                <div
+                  style={{
+                    marginBottom: 8,
+                    fontSize: 13,
+                    fontWeight: 900,
+                    color: "#7f684f",
+                  }}
+                >
+                  내용
+                </div>
+                <textarea
+                  name="content"
+                  defaultValue={content}
+                  required
+                  rows={12}
+                  placeholder="내용을 입력하세요"
+                  style={{
+                    width: "100%",
+                    borderRadius: 20,
+                    border: "1px solid #eadfcf",
+                    background: "#fffdf9",
+                    padding: "16px 18px",
+                    color: "#24190f",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    outline: "none",
+                    resize: "vertical",
+                    lineHeight: 1.7,
+                  }}
+                />
+              </label>
+
+              <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "120px minmax(0, 1fr) 120px 140px",
-                  padding: "18px 20px",
-                  textDecoration: "none",
-                  color: "inherit",
-                  borderBottom:
-                    index === rows.length - 1 ? "none" : "1px solid #f0e6d9",
-                  background: index % 2 === 0 ? "#fbf7f1" : "#fffdf9",
-                  alignItems: "center",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 12,
                 }}
               >
-                <div>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minWidth: 68,
-                      height: 32,
-                      padding: "0 12px",
-                      borderRadius: 999,
-                      background:
-                        item.status === "answered" ? "#e8f6ea" : "#f2e8db",
-                      color:
-                        item.status === "answered" ? "#3f8a53" : "#7f684f",
-                      fontSize: 12,
-                      fontWeight: 900,
-                    }}
-                  >
-                    {item.status === "answered" ? "답변완료" : "접수"}
-                  </span>
-                </div>
-
-                <div
+                <Link
+                  href="/board"
                   style={{
-                    color: "#16110d",
-                    fontSize: 18,
+                    height: 54,
+                    padding: "0 18px",
+                    borderRadius: 18,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textDecoration: "none",
+                    background: "#fffdf9",
+                    border: "1px solid #eadfcf",
+                    color: "#2f2417",
+                    fontSize: 15,
+                    fontWeight: 800,
+                  }}
+                >
+                  취소
+                </Link>
+
+                <button
+                  type="submit"
+                  style={{
+                    minWidth: 180,
+                    height: 54,
+                    borderRadius: 18,
+                    border: 0,
+                    background: "#2f2417",
+                    color: "#fffaf2",
+                    fontSize: 15,
                     fontWeight: 900,
-                    letterSpacing: "-0.02em",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    paddingRight: 16,
+                    cursor: "pointer",
                   }}
                 >
-                  {item.title}
-                </div>
-
-                <div
-                  style={{
-                    color: "#6d5945",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  {item.user_id.slice(0, 8)}
-                </div>
-
-                <div
-                  style={{
-                    color: "#6d5945",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  {formatDate(item.created_at)}
-                </div>
-              </Link>
-            ))
-          )}
+                  등록하기
+                </button>
+              </div>
+            </div>
+          </form>
         </section>
       </div>
     </main>
