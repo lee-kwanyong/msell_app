@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
-
-export default function ListingsLayout({ children }: { children: ReactNode }) {
+export default function ListingsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return <>{children}</>;
 }
