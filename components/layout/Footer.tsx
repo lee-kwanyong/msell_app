@@ -17,6 +17,61 @@ export default function Footer() {
         background: "#f6f1e7",
       }}
     >
+      <style>{`
+        .msell-footer-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 24px;
+          flex-wrap: wrap;
+          align-items: flex-start;
+        }
+
+        .msell-footer-links {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          flex: 1;
+        }
+
+        .msell-footer-link {
+          height: 40px;
+          padding: 0 16px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          background: #fffdf9;
+          border: 1px solid #e3d5c3;
+          color: #5e4a38;
+          font-size: 13px;
+          font-weight: 800;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+          .msell-footer-top {
+            flex-direction: column;
+            gap: 24px;
+          }
+
+          .msell-footer-links {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          .msell-footer-link {
+            width: 100%;
+            min-height: 48px;
+            height: 48px;
+            font-size: 15px;
+          }
+        }
+      `}</style>
+
       <div
         style={{
           maxWidth: 1180,
@@ -24,14 +79,8 @@ export default function Footer() {
           padding: "28px 20px 34px",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 24,
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
+        <div className="msell-footer-top">
+          <div style={{ minWidth: 260 }}>
             <div
               style={{
                 display: "flex",
@@ -52,7 +101,6 @@ export default function Footer() {
                   color: "#fffaf2",
                   fontSize: 16,
                   fontWeight: 900,
-                  flexShrink: 0,
                 }}
               >
                 M
@@ -98,35 +146,9 @@ export default function Footer() {
             </p>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
+          <div className="msell-footer-links">
             {footerLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  minHeight: 48,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#fffdf9",
-                  border: "1px solid #e3d5c3",
-                  color: "#5e4a38",
-                  fontSize: 15,
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                  width: "100%",
-                  textAlign: "center",
-                }}
-              >
+              <Link key={item.href} href={item.href} className="msell-footer-link">
                 {item.label}
               </Link>
             ))}
