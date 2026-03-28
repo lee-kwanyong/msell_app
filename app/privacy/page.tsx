@@ -114,8 +114,8 @@ export default function PrivacyPage() {
 
           <Section title="10. 개인정보 보호책임자">
             <div style={infoBox}>
-              <div>이메일: privacy@msell.co.kr</div>
-              <div>문의처: 고객센터 또는 문의 페이지</div>
+              <div>이메일: mixer0326@gmail.com</div>
+              <div>문의처: 이메일 또는 게시판</div>
             </div>
           </Section>
 
