@@ -88,49 +88,29 @@ export async function POST(request: Request) {
       return redirectTo(request, `/deal/${existingDeal.id}`);
     }
 
-    const basePayload: Record<string, any> = {
+    const insertPayload = {
       listing_id: listingId,
       seller_id: sellerId,
       buyer_id: buyerId,
     };
 
-    const payloadCandidates: Record<string, any>[] = [
-      { ...basePayload },
-      { ...basePayload, status: "pending" },
-      { ...basePayload, status: "open" },
-      { ...basePayload, status: "requested" },
-      { ...basePayload, status: "waiting" },
-      { ...basePayload, status: "inquiry" },
-      { ...basePayload, status: "initiated" },
-    ];
+    const { data: createdDeal, error: createDealError } = await supabase
+      .from("deals")
+      .insert(insertPayload)
+      .select("id")
+      .single();
 
-    let createdDealId: string | null = null;
-    let lastErrorMessage = "failed_to_create_deal";
-
-    for (const payload of payloadCandidates) {
-      const { data: createdDeal, error: createDealError } = await supabase
-        .from("deals")
-        .insert(payload)
-        .select("id")
-        .single();
-
-      if (!createDealError && createdDeal?.id) {
-        createdDealId = createdDeal.id;
-        break;
-      }
-
-      lastErrorMessage =
-        createDealError?.message || createDealError?.code || "failed_to_create_deal";
-    }
-
-    if (!createdDealId) {
+    if (createDealError || !createdDeal?.id) {
       return redirectTo(
         request,
-        buildErrorPath(returnTo, `failed_to_create_deal:${lastErrorMessage}`)
+        buildErrorPath(
+          returnTo,
+          `failed_to_create_deal:${createDealError?.message || "unknown_error"}`
+        )
       );
     }
 
-    return redirectTo(request, `/deal/${createdDealId}`);
+    return redirectTo(request, `/deal/${createdDeal.id}`);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "unexpected_deal_create_error";
