@@ -3,65 +3,115 @@ import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
-  searchParams: Promise<{
-    error?: string;
-    success?: string;
-  }>;
+  params: Promise<{ id: string }>;
 };
 
-function decodeValue(value?: string) {
-  return value ? decodeURIComponent(value) : "";
-}
+type DealRow = {
+  id: string;
+  listing_id: string | null;
+  buyer_id: string | null;
+  seller_id: string | null;
+  status: string | null;
+  created_at: string | null;
+};
 
-function formatDateTime(value?: string | null) {
+type ListingRow = {
+  id: string;
+  title: string | null;
+  category: string | null;
+  price: number | string | null;
+  status: string | null;
+  user_id: string | null;
+};
+
+type DealMessageRow = {
+  id: string;
+  deal_id: string;
+  sender_id: string | null;
+  message: string | null;
+  created_at: string | null;
+};
+
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+};
+
+function formatDate(value: string | null) {
   if (!value) return "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return value;
 
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
   }).format(date);
 }
 
-function formatPrice(value: number | string | null | undefined) {
-  const price =
+function formatPrice(value: number | string | null) {
+  if (value === null || value === undefined || value === "") return "-";
+
+  const numeric =
     typeof value === "number"
       ? value
-      : typeof value === "string"
-      ? Number(value)
-      : NaN;
+      : Number(String(value).replace(/[^\d.-]/g, ""));
 
-  if (!Number.isFinite(price)) return "-";
-  return `${price.toLocaleString("ko-KR")}원`;
+  if (Number.isNaN(numeric)) return String(value);
+
+  return new Intl.NumberFormat("ko-KR").format(numeric) + "원";
 }
 
-function mapErrorMessage(error: string) {
-  if (error === "missing_deal_id") return "거래방 정보가 없습니다.";
-  if (error === "deal_not_found") return "거래방을 찾을 수 없습니다.";
-  if (error === "not_deal_participant") return "이 거래방에 접근할 수 없습니다.";
-  if (error.startsWith("failed_to_send_message:")) {
-    return `메시지 전송 실패: ${error.replace("failed_to_send_message:", "")}`;
+function statusLabel(status: string | null) {
+  switch (status) {
+    case "inquiry":
+      return "문의중";
+    case "negotiating":
+      return "협의중";
+    case "agreed":
+      return "협의완료";
+    case "closed":
+      return "종료";
+    case "cancelled":
+      return "취소";
+    default:
+      return status || "-";
   }
-  return error;
 }
 
-export default async function DealDetailPage({
-  params,
-  searchParams,
-}: PageProps) {
+function listingStatusLabel(status: string | null) {
+  switch (status) {
+    case "draft":
+      return "임시저장";
+    case "pending_review":
+      return "검수대기";
+    case "active":
+      return "거래가능";
+    case "reserved":
+      return "예약중";
+    case "sold":
+      return "거래종료";
+    case "hidden":
+      return "숨김";
+    case "rejected":
+      return "반려";
+    case "archived":
+      return "보관";
+    default:
+      return status || "-";
+  }
+}
+
+function displayName(profile: ProfileRow | null | undefined, fallback: string) {
+  if (!profile) return fallback;
+  return profile.full_name || profile.username || fallback;
+}
+
+export default async function DealDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const query = await searchParams;
-
-  const rawError = decodeValue(query?.error);
-  const success = decodeValue(query?.success);
-
   const supabase = await supabaseServer();
 
   const {
@@ -69,503 +119,622 @@ export default async function DealDetailPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/auth/login?next=/deal/${id}`);
+    redirect(`/auth/login?next=${encodeURIComponent(`/deal/${id}`)}`);
   }
 
-  const { data: deal, error: dealError } = await supabase
+  const { data: dealRaw, error: dealError } = await supabase
     .from("deals")
-    .select("*")
+    .select("id, listing_id, buyer_id, seller_id, status, created_at")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
-  if (dealError || !deal) {
+  if (dealError || !dealRaw) {
     redirect("/my/deals");
   }
 
+  const deal = dealRaw as DealRow;
   const isParticipant =
-    deal.seller_id === user.id || deal.buyer_id === user.id;
+    deal.buyer_id === user.id || deal.seller_id === user.id;
 
   if (!isParticipant) {
     redirect("/my/deals");
   }
 
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("*")
-    .eq("id", deal.listing_id)
-    .maybeSingle();
+  const [{ data: listingRaw }, { data: messagesRaw }, { data: profilesRaw }] =
+    await Promise.all([
+      deal.listing_id
+        ? supabase
+            .from("listings")
+            .select("id, title, category, price, status, user_id")
+            .eq("id", deal.listing_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("deal_messages")
+        .select("id, deal_id, sender_id, message, created_at")
+        .eq("deal_id", deal.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select("id, full_name, username")
+        .in(
+          "id",
+          [deal.buyer_id, deal.seller_id].filter(Boolean) as string[]
+        ),
+    ]);
 
-  const { data: messages } = await supabase
-    .from("deal_messages")
-    .select("*")
-    .eq("deal_id", id)
-    .order("created_at", { ascending: true });
+  const listing = (listingRaw as ListingRow | null) ?? null;
+  const messages = (messagesRaw as DealMessageRow[] | null) ?? [];
+  const profiles = (profilesRaw as ProfileRow[] | null) ?? [];
 
-  const messageRows = messages ?? [];
-  const listingTitle =
-    typeof listing?.title === "string" && listing.title.trim()
-      ? listing.title
-      : "연결된 리스팅";
-  const listingCategory =
-    typeof listing?.category === "string" ? listing.category : "-";
-  const listingStatus =
-    typeof listing?.status === "string" ? listing.status : "-";
+  const buyerProfile = profiles.find((p) => p.id === deal.buyer_id) ?? null;
+  const sellerProfile = profiles.find((p) => p.id === deal.seller_id) ?? null;
+
+  const myRole = user.id === deal.seller_id ? "판매자" : "구매자";
+  const counterpartName =
+    user.id === deal.seller_id
+      ? displayName(buyerProfile, "구매자")
+      : displayName(sellerProfile, "판매자");
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f6f1e7",
-        padding: "32px 20px 96px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1180,
-          margin: "0 auto",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 16,
-            flexWrap: "wrap",
-            marginBottom: 18,
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                margin: 0,
-                color: "#16110d",
-                fontSize: 40,
-                fontWeight: 900,
-                letterSpacing: "-0.04em",
-              }}
-            >
-              거래방
-            </h1>
-            <div
-              style={{
-                marginTop: 8,
-                color: "#8a7156",
-                fontSize: 14,
-                fontWeight: 600,
-              }}
-            >
+    <main className="deal-page">
+      <section className="deal-wrap">
+        <div className="deal-head">
+          <div className="deal-head-copy">
+            <p className="deal-eyebrow">DEAL ROOM</p>
+            <h1 className="deal-title">거래방</h1>
+            <p className="deal-subtitle">
               거래 메시지와 상태를 확인할 수 있습니다.
-            </div>
+            </p>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              flexWrap: "wrap",
-            }}
-          >
-            <Link
-              href="/my/deals"
-              style={{
-                height: 40,
-                padding: "0 16px",
-                borderRadius: 14,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textDecoration: "none",
-                background: "#f1e7d8",
-                color: "#2f2417",
-                fontSize: 14,
-                fontWeight: 900,
-              }}
-            >
+          <div className="deal-head-actions">
+            <Link href="/my/deals" className="deal-btn deal-btn-secondary">
               내 거래
             </Link>
-
             <Link
               href={listing ? `/listings/${listing.id}` : "/listings"}
-              style={{
-                height: 40,
-                padding: "0 16px",
-                borderRadius: 14,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textDecoration: "none",
-                background: "#2f2417",
-                color: "#fffaf2",
-                fontSize: 14,
-                fontWeight: 900,
-              }}
+              className="deal-btn deal-btn-primary"
             >
               원본 리스팅 보기
             </Link>
           </div>
         </div>
 
-        {rawError ? (
-          <div
-            style={{
-              marginBottom: 16,
-              borderRadius: 18,
-              border: "1px solid #efc0c0",
-              background: "#fff4f4",
-              color: "#b42318",
-              padding: "14px 16px",
-              fontSize: 14,
-              fontWeight: 700,
-              lineHeight: 1.6,
-              wordBreak: "break-word",
-            }}
-          >
-            {mapErrorMessage(rawError)}
-          </div>
-        ) : null}
-
-        {success ? (
-          <div
-            style={{
-              marginBottom: 16,
-              borderRadius: 18,
-              border: "1px solid #cfe3c7",
-              background: "#f5fbf2",
-              color: "#2f6b2f",
-              padding: "14px 16px",
-              fontSize: 14,
-              fontWeight: 700,
-              lineHeight: 1.6,
-            }}
-          >
-            {success}
-          </div>
-        ) : null}
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "320px minmax(0, 1fr)",
-            gap: 16,
-            alignItems: "start",
-          }}
-        >
-          <aside
-            style={{
-              background: "#fbf7f1",
-              border: "1px solid #eadfce",
-              borderRadius: 28,
-              padding: 16,
-              boxShadow: "0 14px 36px rgba(61, 41, 22, 0.06)",
-            }}
-          >
-            <div
-              style={{
-                color: "#16110d",
-                fontSize: 16,
-                fontWeight: 900,
-                marginBottom: 14,
-              }}
-            >
-              거래 정보
+        <div className="deal-layout">
+          <section className="deal-panel deal-info-panel">
+            <div className="deal-panel-head">
+              <h2>거래 정보</h2>
             </div>
 
-            <div style={{ display: "grid", gap: 10 }}>
-              <div
-                style={{
-                  borderRadius: 18,
-                  background: "#fffdf9",
-                  border: "1px solid #eadfcf",
-                  padding: "14px 14px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    color: "#8a7156",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    marginBottom: 8,
-                  }}
-                >
-                  거래 ID
-                </div>
-                <div
-                  style={{
-                    color: "#24190f",
-                    fontSize: 13,
-                    fontWeight: 800,
-                    wordBreak: "break-all",
-                  }}
-                >
+            <div className="deal-info-grid">
+              <article className="deal-info-card">
+                <span className="deal-info-label">거래 ID</span>
+                <strong className="deal-info-value deal-break-all">
                   {deal.id}
-                </div>
-              </div>
+                </strong>
+              </article>
 
-              <div
-                style={{
-                  borderRadius: 18,
-                  background: "#fffdf9",
-                  border: "1px solid #eadfcf",
-                  padding: "14px 14px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    color: "#8a7156",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    marginBottom: 8,
-                  }}
-                >
-                  상태
-                </div>
-                <div
-                  style={{
-                    color: "#24190f",
-                    fontSize: 13,
-                    fontWeight: 800,
-                  }}
-                >
-                  {deal.status || "-"}
-                </div>
-              </div>
+              <article className="deal-info-card">
+                <span className="deal-info-label">상태</span>
+                <strong className="deal-info-value">
+                  {statusLabel(deal.status)}
+                </strong>
+              </article>
 
-              <div
-                style={{
-                  borderRadius: 18,
-                  background: "#fffdf9",
-                  border: "1px solid #eadfcf",
-                  padding: "14px 14px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    color: "#8a7156",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    marginBottom: 8,
-                  }}
-                >
-                  생성일
-                </div>
-                <div
-                  style={{
-                    color: "#24190f",
-                    fontSize: 13,
-                    fontWeight: 800,
-                  }}
-                >
-                  {formatDateTime(deal.created_at)}
-                </div>
-              </div>
+              <article className="deal-info-card">
+                <span className="deal-info-label">생성일</span>
+                <strong className="deal-info-value">
+                  {formatDate(deal.created_at)}
+                </strong>
+              </article>
 
-              <div
-                style={{
-                  borderRadius: 18,
-                  background: "#fffdf9",
-                  border: "1px solid #eadfcf",
-                  padding: "14px 14px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    color: "#8a7156",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    marginBottom: 8,
-                  }}
-                >
-                  리스팅 ID
-                </div>
-                <div
-                  style={{
-                    color: "#24190f",
-                    fontSize: 13,
-                    fontWeight: 800,
-                    wordBreak: "break-all",
-                  }}
-                >
-                  {deal.listing_id}
-                </div>
-              </div>
+              <article className="deal-info-card">
+                <span className="deal-info-label">내 역할</span>
+                <strong className="deal-info-value">{myRole}</strong>
+              </article>
 
-              <div
-                style={{
-                  borderRadius: 18,
-                  background: "#fffdf9",
-                  border: "1px solid #eadfcf",
-                  padding: "14px 14px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    color: "#8a7156",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    marginBottom: 8,
-                  }}
-                >
-                  연결 리스팅
-                </div>
-                <div
-                  style={{
-                    color: "#24190f",
-                    fontSize: 14,
-                    fontWeight: 900,
-                    marginBottom: 8,
-                  }}
-                >
-                  {listingTitle}
-                </div>
-                <div
-                  style={{
-                    color: "#8a7156",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  카테고리: {listingCategory}
-                  <br />
-                  가격: {formatPrice(listing?.price)}
-                  <br />
-                  상태: {listingStatus}
-                </div>
-              </div>
+              <article className="deal-info-card">
+                <span className="deal-info-label">상대</span>
+                <strong className="deal-info-value">{counterpartName}</strong>
+              </article>
+
+              <article className="deal-info-card">
+                <span className="deal-info-label">리스팅 상태</span>
+                <strong className="deal-info-value">
+                  {listingStatusLabel(listing?.status ?? null)}
+                </strong>
+              </article>
+
+              <article className="deal-info-card deal-info-card-wide">
+                <span className="deal-info-label">리스팅 제목</span>
+                <strong className="deal-info-value">
+                  {listing?.title || "-"}
+                </strong>
+              </article>
+
+              <article className="deal-info-card">
+                <span className="deal-info-label">카테고리</span>
+                <strong className="deal-info-value">
+                  {listing?.category || "-"}
+                </strong>
+              </article>
+
+              <article className="deal-info-card">
+                <span className="deal-info-label">희망 가격</span>
+                <strong className="deal-info-value">
+                  {formatPrice(listing?.price ?? null)}
+                </strong>
+              </article>
+
+              <article className="deal-info-card deal-info-card-wide">
+                <span className="deal-info-label">리스팅 ID</span>
+                <strong className="deal-info-value deal-break-all">
+                  {listing?.id || "-"}
+                </strong>
+              </article>
             </div>
-          </aside>
+          </section>
 
-          <section
-            style={{
-              background: "#fbf7f1",
-              border: "1px solid #eadfce",
-              borderRadius: 28,
-              padding: 16,
-              boxShadow: "0 14px 36px rgba(61, 41, 22, 0.06)",
-            }}
-          >
-            <div
-              style={{
-                color: "#16110d",
-                fontSize: 16,
-                fontWeight: 900,
-                marginBottom: 14,
-              }}
-            >
-              메시지
+          <section className="deal-panel deal-message-panel">
+            <div className="deal-panel-head">
+              <h2>메시지</h2>
+              <span className="deal-panel-meta">{messages.length}개</span>
             </div>
 
-            <div
-              style={{
-                minHeight: 260,
-                borderRadius: 22,
-                background: "#fffdf9",
-                border: "1px solid #eadfcf",
-                padding: 14,
-                marginBottom: 14,
-              }}
-            >
-              {messageRows.length === 0 ? (
-                <div
-                  style={{
-                    color: "#8a7156",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    border: "1px dashed #eadfcf",
-                    borderRadius: 16,
-                    padding: "18px 14px",
-                  }}
-                >
+            <div className="deal-messages">
+              {messages.length === 0 ? (
+                <div className="deal-empty">
                   아직 메시지가 없습니다.
                 </div>
               ) : (
-                <div style={{ display: "grid", gap: 10 }}>
-                  {messageRows.map((item: any) => {
-                    const mine = item.sender_id === user.id;
+                messages.map((message) => {
+                  const mine = message.sender_id === user.id;
+                  const sender =
+                    message.sender_id === deal.seller_id
+                      ? displayName(sellerProfile, "판매자")
+                      : displayName(buyerProfile, "구매자");
 
-                    return (
-                      <div
-                        key={item.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: mine ? "flex-end" : "flex-start",
-                        }}
-                      >
-                        <div
-                          style={{
-                            maxWidth: "78%",
-                            borderRadius: 18,
-                            padding: "12px 14px",
-                            background: mine ? "#2f2417" : "#f4eadc",
-                            color: mine ? "#fffaf2" : "#24190f",
-                            fontSize: 14,
-                            lineHeight: 1.7,
-                            fontWeight: 600,
-                            whiteSpace: "pre-wrap",
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          <div>{item.message || "-"}</div>
-                          <div
-                            style={{
-                              marginTop: 6,
-                              fontSize: 11,
-                              opacity: 0.72,
-                              fontWeight: 700,
-                            }}
-                          >
-                            {formatDateTime(item.created_at)}
-                          </div>
-                        </div>
+                  return (
+                    <article
+                      key={message.id}
+                      className={`deal-message ${mine ? "is-mine" : "is-other"}`}
+                    >
+                      <div className="deal-message-meta">
+                        <span>{mine ? "나" : sender}</span>
+                        <time>{formatDate(message.created_at)}</time>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="deal-message-bubble">
+                        {message.message || ""}
+                      </div>
+                    </article>
+                  );
+                })
               )}
             </div>
 
-            <form method="post" action="/api/deal-messages/create">
-              <input type="hidden" name="deal_id" value={id} />
+            <form
+              action="/api/deal-messages/create"
+              method="post"
+              className="deal-message-form"
+            >
+              <input type="hidden" name="deal_id" value={deal.id} />
               <textarea
                 name="message"
-                placeholder="메시지를 입력하세요"
-                rows={4}
-                style={{
-                  width: "100%",
-                  borderRadius: 18,
-                  border: "1px solid #d9c7b3",
-                  background: "#fffdf9",
-                  padding: "14px 16px",
-                  color: "#24190f",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  lineHeight: 1.7,
-                  outline: "none",
-                  resize: "vertical",
-                }}
+                required
+                placeholder="메시지를 입력하세요."
+                className="deal-message-textarea"
+                rows={5}
               />
-              <button
-                type="submit"
-                style={{
-                  width: "100%",
-                  minHeight: 52,
-                  borderRadius: 16,
-                  border: 0,
-                  marginTop: 10,
-                  background: "#2f2417",
-                  color: "#fffaf2",
-                  fontSize: 15,
-                  fontWeight: 900,
-                  cursor: "pointer",
-                }}
-              >
+              <button type="submit" className="deal-btn deal-btn-primary">
                 메시지 보내기
               </button>
             </form>
           </section>
         </div>
-      </div>
+      </section>
+
+      <style>{`
+        .deal-page {
+          min-height: calc(100dvh - 140px);
+          padding: 24px 16px 120px;
+          background: #f6f1e7;
+        }
+
+        .deal-wrap {
+          width: 100%;
+          max-width: 1280px;
+          margin: 0 auto;
+        }
+
+        .deal-head {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .deal-head-copy {
+          min-width: 0;
+        }
+
+        .deal-eyebrow {
+          margin: 0 0 10px;
+          color: #9a7a57;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+        }
+
+        .deal-title {
+          margin: 0;
+          color: #1f140c;
+          font-size: clamp(40px, 7vw, 72px);
+          line-height: 0.95;
+          letter-spacing: -0.05em;
+          font-weight: 900;
+        }
+
+        .deal-subtitle {
+          margin: 14px 0 0;
+          color: #9a7a57;
+          font-size: clamp(15px, 2vw, 18px);
+          line-height: 1.6;
+          font-weight: 700;
+        }
+
+        .deal-head-actions {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
+        .deal-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 52px;
+          padding: 0 22px;
+          border-radius: 999px;
+          text-decoration: none;
+          font-size: 15px;
+          font-weight: 900;
+          transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+          border: 1px solid transparent;
+          box-sizing: border-box;
+          cursor: pointer;
+        }
+
+        .deal-btn:hover {
+          transform: translateY(-1px);
+        }
+
+        .deal-btn-primary {
+          background: #2f1d10;
+          color: #fff;
+          box-shadow: 0 10px 24px rgba(47, 29, 16, 0.16);
+        }
+
+        .deal-btn-secondary {
+          background: #efe4d4;
+          color: #2f1d10;
+          border-color: #e2d1ba;
+        }
+
+        .deal-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+          gap: 20px;
+          align-items: start;
+        }
+
+        .deal-panel {
+          min-width: 0;
+          border: 1px solid #e5d8c8;
+          border-radius: 32px;
+          background: rgba(255, 252, 247, 0.82);
+          box-shadow: 0 18px 40px rgba(47, 36, 23, 0.05);
+          padding: 22px;
+        }
+
+        .deal-panel-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+
+        .deal-panel-head h2 {
+          margin: 0;
+          color: #1f140c;
+          font-size: 22px;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+        }
+
+        .deal-panel-meta {
+          color: #9a7a57;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .deal-info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .deal-info-card {
+          min-width: 0;
+          border: 1px solid #e6dacb;
+          border-radius: 24px;
+          background: #fffdfa;
+          padding: 18px 18px 20px;
+        }
+
+        .deal-info-card-wide {
+          grid-column: span 2;
+        }
+
+        .deal-info-label {
+          display: block;
+          margin-bottom: 10px;
+          color: #9a7a57;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .deal-info-value {
+          display: block;
+          color: #20140c;
+          font-size: 18px;
+          line-height: 1.45;
+          font-weight: 900;
+        }
+
+        .deal-break-all {
+          word-break: break-all;
+          overflow-wrap: anywhere;
+        }
+
+        .deal-message-panel {
+          display: flex;
+          flex-direction: column;
+          min-height: 720px;
+        }
+
+        .deal-messages {
+          flex: 1;
+          min-height: 380px;
+          max-height: 640px;
+          overflow-y: auto;
+          padding-right: 4px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .deal-empty {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 220px;
+          border: 1px dashed #ddcebb;
+          border-radius: 24px;
+          color: #9a7a57;
+          background: #fffdfa;
+          font-size: 15px;
+          font-weight: 700;
+          text-align: center;
+          padding: 20px;
+        }
+
+        .deal-message {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          max-width: 88%;
+        }
+
+        .deal-message.is-mine {
+          align-self: flex-end;
+        }
+
+        .deal-message.is-other {
+          align-self: flex-start;
+        }
+
+        .deal-message-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #8f7658;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .deal-message-bubble {
+          border-radius: 22px;
+          padding: 14px 16px;
+          font-size: 15px;
+          line-height: 1.6;
+          font-weight: 700;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          white-space: pre-wrap;
+        }
+
+        .deal-message.is-mine .deal-message-bubble {
+          background: #2f1d10;
+          color: #fff;
+          border-bottom-right-radius: 10px;
+        }
+
+        .deal-message.is-other .deal-message-bubble {
+          background: #f1e6d6;
+          color: #2f1d10;
+          border-bottom-left-radius: 10px;
+        }
+
+        .deal-message-form {
+          margin-top: 18px;
+          display: grid;
+          gap: 12px;
+        }
+
+        .deal-message-textarea {
+          width: 100%;
+          min-height: 120px;
+          resize: vertical;
+          border-radius: 20px;
+          border: 1px solid #e3d5c3;
+          background: #fff;
+          padding: 16px;
+          color: #20140c;
+          font-size: 15px;
+          line-height: 1.55;
+          outline: none;
+          box-sizing: border-box;
+          transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .deal-message-textarea:focus {
+          border-color: #b88a5b;
+          box-shadow: 0 0 0 4px rgba(184, 138, 91, 0.14);
+        }
+
+        @media (max-width: 1080px) {
+          .deal-layout {
+            grid-template-columns: 1fr;
+          }
+
+          .deal-message-panel {
+            min-height: 0;
+          }
+
+          .deal-messages {
+            max-height: none;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .deal-page {
+            padding: 18px 12px 108px;
+          }
+
+          .deal-head {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 18px;
+          }
+
+          .deal-head-actions {
+            width: 100%;
+            justify-content: flex-start;
+          }
+
+          .deal-btn {
+            min-height: 48px;
+            padding: 0 18px;
+            font-size: 14px;
+          }
+
+          .deal-panel {
+            border-radius: 24px;
+            padding: 16px;
+          }
+
+          .deal-panel-head h2 {
+            font-size: 20px;
+          }
+
+          .deal-info-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .deal-info-card,
+          .deal-info-card-wide {
+            grid-column: span 1;
+            border-radius: 20px;
+            padding: 16px;
+          }
+
+          .deal-info-value {
+            font-size: 16px;
+          }
+
+          .deal-message {
+            max-width: 100%;
+          }
+
+          .deal-messages {
+            min-height: 280px;
+            gap: 10px;
+          }
+
+          .deal-message-bubble {
+            font-size: 14px;
+            padding: 13px 14px;
+          }
+
+          .deal-message-textarea {
+            min-height: 108px;
+            border-radius: 18px;
+            font-size: 14px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .deal-title {
+            font-size: 56px;
+          }
+
+          .deal-subtitle {
+            font-size: 14px;
+          }
+
+          .deal-head-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+          }
+
+          .deal-btn {
+            width: 100%;
+            padding: 0 12px;
+          }
+
+          .deal-panel {
+            padding: 14px;
+            border-radius: 22px;
+          }
+
+          .deal-panel-head {
+            margin-bottom: 14px;
+          }
+
+          .deal-panel-head h2 {
+            font-size: 18px;
+          }
+
+          .deal-info-label {
+            font-size: 12px;
+          }
+
+          .deal-info-value {
+            font-size: 15px;
+          }
+
+          .deal-message-meta {
+            font-size: 11px;
+          }
+        }
+      `}</style>
     </main>
   );
 }
