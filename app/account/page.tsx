@@ -16,7 +16,17 @@ type ProfileRow = {
   username?: string | null;
   gender?: string | null;
   email?: string | null;
+  avatar_url?: string | null;
+  provider?: string | null;
 };
+
+function providerLabel(provider?: string | null) {
+  if (!provider) return "이메일";
+  if (provider === "google") return "구글";
+  if (provider === "kakao") return "카카오";
+  if (provider === "naver" || provider === "custom:naver") return "네이버";
+  return provider;
+}
 
 export default async function AccountPage({ searchParams }: PageProps) {
   const resolved = (await searchParams) ?? {};
@@ -34,15 +44,41 @@ export default async function AccountPage({ searchParams }: PageProps) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, phone_number, username, gender, email")
+    .select("full_name, phone_number, username, gender, email, avatar_url, provider")
     .eq("id", user.id)
     .maybeSingle<ProfileRow>();
 
   const email = profile?.email || user.email || "";
-  const fullName = profile?.full_name || "";
-  const phoneNumber = profile?.phone_number || "";
-  const username = profile?.username || "";
+  const fullName =
+    profile?.full_name ||
+    (typeof user.user_metadata?.full_name === "string"
+      ? user.user_metadata.full_name
+      : typeof user.user_metadata?.name === "string"
+        ? user.user_metadata.name
+        : "");
+  const phoneNumber =
+    profile?.phone_number ||
+    (typeof user.user_metadata?.phone_number === "string"
+      ? user.user_metadata.phone_number
+      : "");
+  const username =
+    profile?.username ||
+    (typeof user.user_metadata?.username === "string"
+      ? user.user_metadata.username
+      : "");
   const gender = profile?.gender || "";
+  const avatarUrl =
+    profile?.avatar_url ||
+    (typeof user.user_metadata?.avatar_url === "string"
+      ? user.user_metadata.avatar_url
+      : typeof user.user_metadata?.picture === "string"
+        ? user.user_metadata.picture
+        : "");
+  const provider =
+    profile?.provider ||
+    (typeof user.app_metadata?.provider === "string"
+      ? user.app_metadata.provider
+      : "email");
 
   return (
     <>
@@ -52,6 +88,29 @@ export default async function AccountPage({ searchParams }: PageProps) {
             <div className="msell-account-top">
               <div className="msell-account-badge">ACCOUNT</div>
               <h1 className="msell-account-title">계정 설정</h1>
+            </div>
+
+            <div className="msell-account-hero">
+              <div className="msell-account-identity">
+                <div className="msell-account-avatar">
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl} alt="프로필 이미지" />
+                  ) : (
+                    <span>{(fullName || email || "U").slice(0, 1).toUpperCase()}</span>
+                  )}
+                </div>
+
+                <div className="msell-account-summary">
+                  <strong>{fullName || "이름 미설정"}</strong>
+                  <p>{email || "이메일 없음"}</p>
+                </div>
+              </div>
+
+              <div className="msell-account-provider">
+                <span>연결 방식</span>
+                <strong>{providerLabel(provider)}</strong>
+              </div>
             </div>
 
             {error ? (
@@ -200,6 +259,92 @@ export default async function AccountPage({ searchParams }: PageProps) {
           font-size: clamp(30px, 4vw, 44px);
           line-height: 1;
           letter-spacing: -0.04em;
+          font-weight: 900;
+        }
+
+        .msell-account-hero {
+          margin-bottom: 18px;
+          padding: 16px;
+          border-radius: 20px;
+          border: 1px solid #efe4d5;
+          background: #fbf6ee;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .msell-account-identity {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          min-width: 0;
+        }
+
+        .msell-account-avatar {
+          width: 58px;
+          height: 58px;
+          border-radius: 50%;
+          overflow: hidden;
+          background: #eadfcf;
+          border: 1px solid #dfd0bb;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #2f2417;
+          font-size: 20px;
+          font-weight: 900;
+          flex-shrink: 0;
+        }
+
+        .msell-account-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .msell-account-summary {
+          min-width: 0;
+        }
+
+        .msell-account-summary strong {
+          display: block;
+          color: #1f140c;
+          font-size: 18px;
+          font-weight: 900;
+          line-height: 1.2;
+        }
+
+        .msell-account-summary p {
+          margin: 6px 0 0;
+          color: #8f7658;
+          font-size: 13px;
+          font-weight: 700;
+          word-break: break-all;
+        }
+
+        .msell-account-provider {
+          display: grid;
+          gap: 6px;
+          min-width: 120px;
+          padding: 12px 14px;
+          border-radius: 16px;
+          border: 1px solid #eadfce;
+          background: #fffdfa;
+        }
+
+        .msell-account-provider span {
+          color: #9b7b58;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+        }
+
+        .msell-account-provider strong {
+          color: #1f140c;
+          font-size: 14px;
           font-weight: 900;
         }
 
@@ -357,6 +502,11 @@ export default async function AccountPage({ searchParams }: PageProps) {
             font-size: 28px;
           }
 
+          .msell-account-hero {
+            padding: 14px;
+            border-radius: 18px;
+          }
+
           .msell-account-input,
           .msell-account-submit,
           .msell-account-secondary {
@@ -377,6 +527,11 @@ export default async function AccountPage({ searchParams }: PageProps) {
 
           .msell-account-title {
             font-size: 26px;
+          }
+
+          .msell-account-avatar {
+            width: 52px;
+            height: 52px;
           }
 
           .msell-account-input,
