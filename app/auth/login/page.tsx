@@ -1,296 +1,298 @@
-import Link from 'next/link'
-import { loginAction, signInWithGoogle, signInWithKakao, signInWithNaver } from './actions'
+import Link from "next/link";
+import { loginAction } from "./actions";
+import AuthGateway from "@/components/auth/AuthGateway";
 
-type PageProps = {
-  searchParams?: Promise<{
-    next?: string
-    error?: string
-  }>
+type SearchParams =
+  | Promise<Record<string, string | string[] | undefined>>
+  | Record<string, string | string[] | undefined>
+  | undefined;
+
+function pickParam(
+  value: string | string[] | undefined,
+  fallback = ""
+): string {
+  if (Array.isArray(value)) return value[0] ?? fallback;
+  return value ?? fallback;
 }
 
-function normalizeNext(next?: string) {
-  if (!next) return '/'
-  if (!next.startsWith('/')) return '/'
-  if (next.startsWith('//')) return '/'
-  return next
-}
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams;
+}) {
+  const resolved =
+    searchParams && typeof (searchParams as Promise<Record<string, string | string[] | undefined>>).then === "function"
+      ? await searchParams
+      : (searchParams as Record<string, string | string[] | undefined> | undefined) ?? {};
 
-export default async function LoginPage({ searchParams }: PageProps) {
-  const params = (await searchParams) || {}
-  const next = normalizeNext(params.next)
-  const error = params.error || ''
+  const next = pickParam(resolved?.next, "/account");
+  const error = pickParam(resolved?.error, "");
+  const message = pickParam(resolved?.message, "");
 
   return (
-    <main
-      style={{
-        minHeight: 'calc(100vh - 120px)',
-        background: 'linear-gradient(180deg, #f6f4ef 0%, #f1eee8 100%)',
-        padding: '36px 24px 80px',
-      }}
-    >
-      <div
+    <>
+      <main
         style={{
-          maxWidth: 1280,
-          margin: '0 auto',
+          width: "100%",
+          minHeight: "calc(100dvh - 180px)",
+          padding: "clamp(24px, 6vw, 56px) 16px",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        <div
+        <section
+          className="msell-login-shell"
           style={{
-            maxWidth: 560,
-            margin: '0 auto',
-            borderRadius: 34,
-            background:
-              'radial-gradient(circle at top right, rgba(110,84,49,0.08), transparent 28%), linear-gradient(180deg, #fffdfa 0%, #f7f3ec 100%)',
-            border: '1px solid rgba(60,42,23,0.08)',
-            boxShadow: '0 20px 50px rgba(34,24,16,0.06)',
-            padding: 34,
+            width: "100%",
+            maxWidth: 420,
           }}
         >
           <div
+            className="msell-login-card"
             style={{
-              fontSize: 11,
-              letterSpacing: '0.18em',
-              color: 'rgba(58,40,22,0.48)',
-              fontWeight: 700,
+              width: "100%",
+              borderRadius: 28,
+              border: "1px solid #e7d9c8",
+              background:
+                "linear-gradient(180deg, #fffdfa 0%, #fcf8f1 100%)",
+              boxShadow: "0 24px 60px rgba(47, 36, 23, 0.08)",
+              padding: "22px 22px 24px",
             }}
           >
-            MSELL
-          </div>
-
-          <h1
-            style={{
-              margin: '16px 0 0',
-              fontSize: 44,
-              lineHeight: 0.98,
-              letterSpacing: '-0.05em',
-              fontWeight: 700,
-              color: '#18130f',
-            }}
-          >
-            로그인
-          </h1>
-
-          {error ? (
             <div
               style={{
-                marginTop: 18,
-                borderRadius: 18,
-                border: '1px solid rgba(166, 64, 64, 0.18)',
-                background: 'rgba(255, 243, 243, 0.9)',
-                color: '#8f2f2f',
-                fontSize: 14,
-                lineHeight: 1.6,
-                padding: '14px 16px',
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 10px",
+                borderRadius: 999,
+                background: "#f1e6d6",
+                color: "#9b7b58",
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: "0.14em",
               }}
             >
-              {error}
+              MSELL
             </div>
-          ) : null}
 
-          <form action={loginAction} style={{ marginTop: 22 }}>
-            <input type="hidden" name="next" value={next} />
+            <h1
+              style={{
+                margin: "14px 0 18px",
+                color: "#1f140c",
+                fontSize: "clamp(38px, 5vw, 54px)",
+                lineHeight: 1,
+                letterSpacing: "-0.04em",
+                fontWeight: 900,
+              }}
+            >
+              로그인
+            </h1>
 
-            <div style={{ display: 'grid', gap: 14 }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(52,38,24,0.70)',
-                  }}
-                >
-                  이메일
-                </label>
+            {error ? (
+              <div
+                style={{
+                  marginBottom: 14,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid #efc7c7",
+                  background: "#fff5f5",
+                  color: "#8b2e2e",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                {error}
+              </div>
+            ) : null}
+
+            {message ? (
+              <div
+                style={{
+                  marginBottom: 14,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid #d9d2c3",
+                  background: "#f8f3ea",
+                  color: "#5b4631",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                {message}
+              </div>
+            ) : null}
+
+            <form
+              action={loginAction}
+              style={{ display: "grid", gap: 12 }}
+            >
+              <input type="hidden" name="next" value={next} />
+
+              <label
+                htmlFor="email"
+                style={{
+                  display: "grid",
+                  gap: 8,
+                  color: "#8f7658",
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+              >
+                이메일
                 <input
+                  id="email"
                   name="email"
                   type="email"
+                  required
                   autoComplete="email"
                   placeholder="you@example.com"
-                  required
                   style={{
-                    width: '100%',
+                    width: "100%",
                     height: 52,
-                    borderRadius: 18,
-                    border: '1px solid rgba(60,42,23,0.10)',
-                    background: 'rgba(255,255,255,0.82)',
-                    padding: '0 16px',
-                    fontSize: 15,
-                    color: '#18130f',
-                    outline: 'none',
+                    borderRadius: 16,
+                    border: "1px solid #e5ddd2",
+                    background: "#ffffff",
+                    padding: "0 16px",
+                    color: "#2b1d12",
+                    fontSize: 14,
+                    outline: "none",
                   }}
                 />
-              </div>
+              </label>
 
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(52,38,24,0.70)',
-                  }}
-                >
-                  비밀번호
-                </label>
+              <label
+                htmlFor="password"
+                style={{
+                  display: "grid",
+                  gap: 8,
+                  color: "#8f7658",
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+              >
+                비밀번호
                 <input
+                  id="password"
                   name="password"
                   type="password"
+                  required
                   autoComplete="current-password"
                   placeholder="비밀번호 입력"
-                  required
                   style={{
-                    width: '100%',
+                    width: "100%",
                     height: 52,
-                    borderRadius: 18,
-                    border: '1px solid rgba(60,42,23,0.10)',
-                    background: 'rgba(255,255,255,0.82)',
-                    padding: '0 16px',
-                    fontSize: 15,
-                    color: '#18130f',
-                    outline: 'none',
+                    borderRadius: 16,
+                    border: "1px solid #e5ddd2",
+                    background: "#ffffff",
+                    padding: "0 16px",
+                    color: "#2b1d12",
+                    fontSize: 14,
+                    outline: "none",
                   }}
                 />
-              </div>
+              </label>
 
               <button
                 type="submit"
                 style={{
-                  height: 52,
-                  border: 'none',
+                  width: "100%",
+                  height: 54,
+                  marginTop: 2,
+                  border: "none",
                   borderRadius: 999,
-                  background: '#24180f',
-                  color: '#ffffff',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 10px 24px rgba(36,24,15,0.16)',
+                  background:
+                    "linear-gradient(180deg, #2f1d10 0%, #23140a 100%)",
+                  color: "#ffffff",
+                  fontSize: 14,
+                  fontWeight: 900,
+                  cursor: "pointer",
                 }}
               >
                 이메일로 로그인
               </button>
-            </div>
-          </form>
+            </form>
 
-          <div
-            style={{
-              margin: '22px 0 18px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <div style={{ flex: 1, height: 1, background: 'rgba(60,42,23,0.08)' }} />
             <div
               style={{
-                fontSize: 12,
-                color: 'rgba(52,38,24,0.48)',
-                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                margin: "18px 0 16px",
+                color: "#b29a7f",
+                fontSize: 11,
+                fontWeight: 800,
               }}
             >
+              <div
+                style={{
+                  flex: 1,
+                  height: 1,
+                  background: "#eadfce",
+                }}
+              />
               또는
+              <div
+                style={{
+                  flex: 1,
+                  height: 1,
+                  background: "#eadfce",
+                }}
+              />
             </div>
-            <div style={{ flex: 1, height: 1, background: 'rgba(60,42,23,0.08)' }} />
-          </div>
 
-          <div style={{ display: 'grid', gap: 10 }}>
-            <form
-              action={async () => {
-                'use server'
-                await signInWithGoogle(next)
-              }}
-            >
-              <button
-                type="submit"
-                style={{
-                  width: '100%',
-                  height: 50,
-                  borderRadius: 18,
-                  border: '1px solid rgba(60,42,23,0.10)',
-                  background: 'rgba(255,255,255,0.82)',
-                  color: '#24180f',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                구글로 계속하기
-              </button>
-            </form>
+            <AuthGateway next={next} />
 
-            <form
-              action={async () => {
-                'use server'
-                await signInWithKakao(next)
-              }}
-            >
-              <button
-                type="submit"
-                style={{
-                  width: '100%',
-                  height: 50,
-                  borderRadius: 18,
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  background: '#FEE500',
-                  color: '#191919',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                카카오로 계속하기
-              </button>
-            </form>
-
-            <form
-              action={async () => {
-                'use server'
-                await signInWithNaver(next)
-              }}
-            >
-              <button
-                type="submit"
-                style={{
-                  width: '100%',
-                  height: 50,
-                  borderRadius: 18,
-                  border: '1px solid rgba(0,0,0,0.04)',
-                  background: '#03C75A',
-                  color: '#ffffff',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                네이버로 계속하기
-              </button>
-            </form>
-          </div>
-
-          <div
-            style={{
-              marginTop: 20,
-              textAlign: 'center',
-              fontSize: 14,
-              color: 'rgba(52,38,24,0.62)',
-            }}
-          >
-            계정이 없으면{' '}
-            <Link
-              href={`/auth/signup?next=${encodeURIComponent(next)}`}
+            <div
               style={{
-                color: '#24180f',
+                marginTop: 16,
+                textAlign: "center",
+                color: "#8f7658",
+                fontSize: 13,
                 fontWeight: 700,
-                textDecoration: 'none',
               }}
             >
-              회원가입
-            </Link>
+              계정이 없으면{" "}
+              <Link
+                href={`/auth/signup?next=${encodeURIComponent(next)}`}
+                style={{
+                  color: "#2f1d10",
+                  fontWeight: 900,
+                  textDecoration: "none",
+                }}
+              >
+                회원가입
+              </Link>
+            </div>
           </div>
-        </div>
-      </div>
-    </main>
-  )
+        </section>
+      </main>
+
+      <style>{`
+        .msell-login-shell {
+          display: flex;
+          justify-content: center;
+        }
+
+        @media (max-height: 860px) {
+          main {
+            align-items: flex-start !important;
+          }
+
+          .msell-login-shell {
+            padding-top: 12px;
+            padding-bottom: 12px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .msell-login-card {
+            padding: 18px 16px 20px !important;
+            border-radius: 22px !important;
+          }
+        }
+      `}</style>
+    </>
+  );
 }

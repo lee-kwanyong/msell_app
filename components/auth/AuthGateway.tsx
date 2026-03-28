@@ -1,357 +1,194 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useMemo, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { supabaseBrowser } from '@/lib/supabase/client'
+import { useState } from "react";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Props = {
-  mode?: 'login' | 'signup'
-  next?: string
-  mobile?: boolean
+  next?: string;
+};
+
+type ProviderKey = "google" | "kakao" | "naver";
+
+function GoogleLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#EA4335"
+        d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.6C16.9 2.9 14.7 2 12 2 6.9 2 2.8 6.2 2.8 11.3S6.9 20.6 12 20.6c6.9 0 9.2-4.8 9.2-7.3 0-.5 0-.8-.1-1.1H12Z"
+      />
+      <path
+        fill="#34A853"
+        d="M2.8 11.3c0 1.6.4 3.1 1.2 4.4l3.6-2.8c-.2-.5-.3-1-.3-1.6s.1-1.1.3-1.6L4 6.9c-.8 1.3-1.2 2.8-1.2 4.4Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M12 20.6c2.7 0 4.9-.9 6.5-2.5l-3.2-2.6c-.9.6-2 1-3.3 1-2.5 0-4.7-1.7-5.5-4l-3.7 2.8c1.6 3.2 4.9 5.3 9.2 5.3Z"
+      />
+      <path
+        fill="#4285F4"
+        d="M18.5 18.1c1.9-1.8 2.7-4.3 2.7-6.8 0-.5 0-.8-.1-1.1H12v3.9h5.5c-.3 1.4-1.1 2.9-2.8 4l3.8 3Z"
+      />
+    </svg>
+  );
 }
 
-export default function AuthGateway({
-  mode = 'login',
-  next: nextProp,
-  mobile = false,
-}: Props) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const supabase = useMemo(() => supabaseBrowser(), [])
+function KakaoLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#3A1D1D"
+        d="M12 3C6.48 3 2 6.44 2 10.67c0 2.72 1.84 5.1 4.61 6.44l-1.12 4.09c-.1.36.3.65.62.45l4.83-3.19c.68.09 1.37.14 2.06.14 5.52 0 10-3.44 10-7.67S17.52 3 12 3Z"
+      />
+    </svg>
+  );
+}
 
-  const nextFromQuery = searchParams.get('next') || '/'
-  const next = nextProp || nextFromQuery || '/'
+function NaverLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#FFFFFF"
+        d="M16.9 12.7 7.9 0H0v24h7.1V11.3l9 12.7H24V0h-7.1v12.7Z"
+      />
+    </svg>
+  );
+}
 
-  const error = searchParams.get('error') || ''
-  const message = searchParams.get('message') || ''
+const SOCIAL_META: Record<
+  ProviderKey,
+  {
+    label: string;
+    background: string;
+    color: string;
+    border: string;
+    logo: JSX.Element;
+  }
+> = {
+  google: {
+    label: "구글로 계속하기",
+    background: "#ffffff",
+    color: "#1f140c",
+    border: "1px solid #e5ddd2",
+    logo: <GoogleLogo />,
+  },
+  kakao: {
+    label: "카카오로 계속하기",
+    background: "#FEE500",
+    color: "#3A1D1D",
+    border: "1px solid #e8d238",
+    logo: <KakaoLogo />,
+  },
+  naver: {
+    label: "네이버로 계속하기",
+    background: "#03C75A",
+    color: "#ffffff",
+    border: "1px solid #03C75A",
+    logo: <NaverLogo />,
+  },
+};
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
-  const [emailLoading, setEmailLoading] = useState(false)
-  const [localError, setLocalError] = useState('')
+export default function AuthGateway({ next = "/account" }: Props) {
+  const [pending, setPending] = useState<ProviderKey | null>(null);
+  const [error, setError] = useState("");
 
-  const callbackUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
-      : undefined
-
-  async function handleSocialLogin(provider: 'google' | 'kakao' | 'custom:naver') {
+  async function signIn(providerKey: ProviderKey) {
     try {
-      setLocalError('')
-      setLoadingProvider(provider)
+      setPending(providerKey);
+      setError("");
+
+      const supabase = supabaseBrowser();
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+        next
+      )}`;
+
+      const provider =
+        providerKey === "naver"
+          ? ("custom:naver" as any)
+          : (providerKey as any);
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: callbackUrl,
-          skipBrowserRedirect: false,
+          redirectTo,
         },
-      })
+      });
 
       if (error) {
-        setLocalError(error.message)
+        setError(error.message || "소셜 로그인 중 오류가 발생했습니다.");
+        setPending(null);
       }
-    } finally {
-      setLoadingProvider(null)
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "소셜 로그인 중 오류가 발생했습니다."
+      );
+      setPending(null);
     }
   }
-
-  async function handleEmailLogin(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-
-    try {
-      setLocalError('')
-      setEmailLoading(true)
-
-      const normalizedEmail = email.trim()
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      })
-
-      if (error) {
-        setLocalError(error.message)
-        return
-      }
-
-      router.replace(next)
-      router.refresh()
-    } finally {
-      setEmailLoading(false)
-    }
-  }
-
-  const radius = mobile ? 24 : 30
-  const contentPadding = mobile ? 20 : 28
 
   return (
-    <div
-      style={{
-        border: '1px solid #e5d9ca',
-        background: 'linear-gradient(180deg, #fffdfa 0%, #fcf8f2 100%)',
-        borderRadius: radius,
-        overflow: 'hidden',
-        boxShadow: '0 18px 50px rgba(47,36,23,0.05)',
-      }}
-    >
-      <div
-        style={{
-          padding: mobile ? '24px 20px 18px' : '28px 28px 20px',
-          borderBottom: '1px solid #ece0d2',
-          background: 'linear-gradient(180deg, #fcfaf6 0%, #f7f1e8 100%)',
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: mobile ? 34 : 42,
-            lineHeight: 1,
-            color: '#1f1710',
-            fontWeight: 900,
-            letterSpacing: '-0.05em',
-          }}
-        >
-          {mode === 'signup' ? '회원가입' : '로그인'}
-        </h1>
-
-        <p
-          style={{
-            margin: '12px 0 0',
-            color: '#756858',
-            fontSize: 14,
-            lineHeight: 1.7,
-          }}
-        >
-          구글, 카카오, 네이버 또는 이메일로 접속할 수 있습니다.
-        </p>
-      </div>
-
-      <div style={{ padding: contentPadding }}>
-        {(error || message || localError) && (
-          <div
-            style={{
-              marginBottom: 18,
-              borderRadius: 16,
-              border: '1px solid #efcdc8',
-              background: '#fff4f2',
-              color: '#8a2f25',
-              padding: '13px 15px',
-              fontSize: 14,
-              fontWeight: 700,
-              lineHeight: 1.5,
-            }}
-          >
-            {localError || error || message}
-          </div>
-        )}
-
-        <div style={{ display: 'grid', gap: 10 }}>
-          <button
-            type="button"
-            onClick={() => handleSocialLogin('google')}
-            disabled={loadingProvider !== null}
-            style={{
-              width: '100%',
-              height: 54,
-              borderRadius: 16,
-              border: '1px solid #dfd1bf',
-              background: '#fffdfa',
-              color: '#221a12',
-              fontSize: 14,
-              fontWeight: 900,
-              cursor: loadingProvider ? 'not-allowed' : 'pointer',
-              opacity: loadingProvider && loadingProvider !== 'google' ? 0.6 : 1,
-            }}
-          >
-            {loadingProvider === 'google' ? '이동 중...' : 'Google로 로그인'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSocialLogin('kakao')}
-            disabled={loadingProvider !== null}
-            style={{
-              width: '100%',
-              height: 54,
-              borderRadius: 16,
-              border: '1px solid #e7d96a',
-              background: '#FEE500',
-              color: '#191600',
-              fontSize: 14,
-              fontWeight: 900,
-              cursor: loadingProvider ? 'not-allowed' : 'pointer',
-              opacity: loadingProvider && loadingProvider !== 'kakao' ? 0.6 : 1,
-            }}
-          >
-            {loadingProvider === 'kakao' ? '이동 중...' : '카카오로 로그인'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSocialLogin('custom:naver')}
-            disabled={loadingProvider !== null}
-            style={{
-              width: '100%',
-              height: 54,
-              borderRadius: 16,
-              border: '1px solid #12b650',
-              background: '#03C75A',
-              color: '#ffffff',
-              fontSize: 14,
-              fontWeight: 900,
-              cursor: loadingProvider ? 'not-allowed' : 'pointer',
-              opacity: loadingProvider && loadingProvider !== 'custom:naver' ? 0.6 : 1,
-            }}
-          >
-            {loadingProvider === 'custom:naver' ? '이동 중...' : '네이버로 로그인'}
-          </button>
-        </div>
-
+    <div style={{ display: "grid", gap: 10 }}>
+      {error ? (
         <div
           style={{
-            margin: '22px 0 18px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            color: '#8a7a67',
-            fontSize: 12,
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid #efc7c7",
+            background: "#fff5f5",
+            color: "#8b2e2e",
+            fontSize: 13,
             fontWeight: 700,
           }}
         >
-          <div style={{ flex: 1, height: 1, background: '#eadfce' }} />
-          <span>또는 이메일 로그인</span>
-          <div style={{ flex: 1, height: 1, background: '#eadfce' }} />
+          {error}
         </div>
+      ) : null}
 
-        <form onSubmit={handleEmailLogin} style={{ display: 'grid', gap: 12 }}>
-          <div>
-            <label
-              htmlFor="email"
-              style={{
-                display: 'block',
-                marginBottom: 8,
-                fontSize: 13,
-                color: '#3f3121',
-                fontWeight: 800,
-              }}
-            >
-              이메일
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              style={{
-                width: '100%',
-                height: 54,
-                borderRadius: 16,
-                border: '1px solid #dfd1bf',
-                background: '#fffdfa',
-                padding: '0 16px',
-                color: '#221a12',
-                fontSize: 14,
-                outline: 'none',
-              }}
-            />
-          </div>
+      {(Object.keys(SOCIAL_META) as ProviderKey[]).map((providerKey) => {
+        const meta = SOCIAL_META[providerKey];
+        const isLoading = pending === providerKey;
 
-          <div>
-            <label
-              htmlFor="password"
-              style={{
-                display: 'block',
-                marginBottom: 8,
-                fontSize: 13,
-                color: '#3f3121',
-                fontWeight: 800,
-              }}
-            >
-              비밀번호
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="비밀번호를 입력하세요"
-              style={{
-                width: '100%',
-                height: 54,
-                borderRadius: 16,
-                border: '1px solid #dfd1bf',
-                background: '#fffdfa',
-                padding: '0 16px',
-                color: '#221a12',
-                fontSize: 14,
-                outline: 'none',
-              }}
-            />
-          </div>
-
+        return (
           <button
-            type="submit"
-            disabled={emailLoading}
+            key={providerKey}
+            type="button"
+            onClick={() => signIn(providerKey)}
+            disabled={pending !== null}
             style={{
-              width: '100%',
-              height: 54,
+              width: "100%",
+              height: 50,
               borderRadius: 16,
-              border: 'none',
-              background: 'linear-gradient(180deg, #3a2c1c 0%, #241b11 100%)',
-              color: '#fffaf3',
+              border: meta.border,
+              background: meta.background,
+              color: meta.color,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
               fontSize: 14,
               fontWeight: 900,
-              cursor: emailLoading ? 'not-allowed' : 'pointer',
-              boxShadow: '0 10px 24px rgba(47,36,23,0.18)',
+              cursor: pending !== null ? "default" : "pointer",
+              opacity: pending !== null && !isLoading ? 0.6 : 1,
+              transition: "transform 0.15s ease, opacity 0.15s ease",
             }}
           >
-            {emailLoading ? '처리 중...' : '이메일로 로그인'}
+            <span
+              style={{
+                width: 18,
+                height: 18,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              {meta.logo}
+            </span>
+            <span>{isLoading ? "이동 중..." : meta.label}</span>
           </button>
-        </form>
-
-        <div
-          style={{
-            marginTop: 22,
-            paddingTop: 18,
-            borderTop: '1px solid #ece0d2',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 12,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ fontSize: 13, color: '#7d6e5f', fontWeight: 700 }}>
-            아직 계정이 없다면
-          </div>
-
-          <Link
-            href={`/auth/signup${next ? `?next=${encodeURIComponent(next)}` : ''}`}
-            style={{
-              height: 42,
-              padding: '0 16px',
-              borderRadius: 14,
-              border: '1px solid #e0d4c4',
-              background: '#f7efe4',
-              color: '#2f2417',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 14,
-              fontWeight: 800,
-            }}
-          >
-            회원가입
-          </Link>
-        </div>
-      </div>
+        );
+      })}
     </div>
-  )
+  );
 }
