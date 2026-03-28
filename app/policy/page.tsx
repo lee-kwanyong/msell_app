@@ -147,7 +147,7 @@ export default function PolicyPage() {
                 }}
               >
                 거래 등록, 문의, 검수, 신고, 제한 기준까지 Msell 운영에 필요한 핵심
-                정책 15가지를 정리했습니다.
+                정책 15가지를 한 줄 목록 형태로 정리했습니다.
               </p>
             </div>
 
@@ -172,66 +172,99 @@ export default function PolicyPage() {
         <section
           style={{
             marginTop: 24,
-            display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: 16,
+            background: "#fbf7f1",
+            border: "1px solid #eadfce",
+            borderRadius: 30,
+            boxShadow: "0 14px 34px rgba(61, 41, 22, 0.06)",
+            overflow: "hidden",
           }}
         >
-          {POLICY_ITEMS.map((item) => (
-            <article
-              key={item.no}
-              style={{
-                borderRadius: 28,
-                background: "#fbf7f1",
-                border: "1px solid #eadfce",
-                padding: 20,
-                boxShadow: "0 14px 34px rgba(61, 41, 22, 0.06)",
-                minHeight: 220,
-              }}
-            >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "110px minmax(220px, 0.9fr) minmax(0, 2fr)",
+              gap: 0,
+              padding: "16px 20px",
+              background: "#f5ede2",
+              borderBottom: "1px solid #eadfce",
+              color: "#7f684f",
+              fontSize: 13,
+              fontWeight: 900,
+            }}
+          >
+            <div>번호</div>
+            <div>정책명</div>
+            <div>내용</div>
+          </div>
+
+          <div>
+            {POLICY_ITEMS.map((item, index) => (
               <div
+                key={item.no}
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  height: 32,
-                  padding: "0 12px",
-                  borderRadius: 999,
-                  background: "#f2e8db",
-                  color: "#7f684f",
-                  fontSize: 12,
-                  fontWeight: 900,
-                  marginBottom: 16,
+                  display: "grid",
+                  gridTemplateColumns: "110px minmax(220px, 0.9fr) minmax(0, 2fr)",
+                  gap: 0,
+                  padding: "20px",
+                  borderBottom:
+                    index === POLICY_ITEMS.length - 1 ? "none" : "1px solid #f0e6d9",
+                  background: index % 2 === 0 ? "#fbf7f1" : "#fffdf9",
+                  alignItems: "start",
                 }}
               >
-                {item.no}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    minHeight: 32,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: 44,
+                      height: 32,
+                      padding: "0 12px",
+                      borderRadius: 999,
+                      background: "#f2e8db",
+                      color: "#7f684f",
+                      fontSize: 12,
+                      fontWeight: 900,
+                    }}
+                  >
+                    {item.no}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    color: "#16110d",
+                    fontSize: 22,
+                    fontWeight: 900,
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.3,
+                    paddingRight: 18,
+                  }}
+                >
+                  {item.title}
+                </div>
+
+                <div
+                  style={{
+                    color: "#6d5945",
+                    fontSize: 14,
+                    lineHeight: 1.85,
+                    fontWeight: 600,
+                    wordBreak: "keep-all",
+                  }}
+                >
+                  {item.body}
+                </div>
               </div>
-
-              <h2
-                style={{
-                  margin: 0,
-                  color: "#16110d",
-                  fontSize: 22,
-                  fontWeight: 900,
-                  letterSpacing: "-0.03em",
-                  lineHeight: 1.2,
-                }}
-              >
-                {item.title}
-              </h2>
-
-              <p
-                style={{
-                  margin: "14px 0 0",
-                  color: "#6d5945",
-                  fontSize: 14,
-                  lineHeight: 1.8,
-                  fontWeight: 600,
-                }}
-              >
-                {item.body}
-              </p>
-            </article>
-          ))}
+            ))}
+          </div>
         </section>
 
         <section
