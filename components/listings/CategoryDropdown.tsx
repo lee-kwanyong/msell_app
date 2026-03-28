@@ -1,11 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  LISTING_CATEGORY_GROUPS,
-  findGroupByTypeLabel,
-  getTypesByGroupValue,
-} from "@/lib/listing-categories";
+
+type TypeOption = {
+  value: string;
+  label: string;
+  logoText: string;
+  logoBg: string;
+  logoColor: string;
+  featured?: boolean;
+};
+
+type CategoryGroup = {
+  value: string;
+  label: string;
+  icon: string;
+  types: TypeOption[];
+};
 
 type CategoryDropdownProps = {
   name?: string;
@@ -17,6 +28,159 @@ type CategoryDropdownProps = {
   showTypeLabel?: boolean;
   inline?: boolean;
 };
+
+const CATEGORY_GROUPS: CategoryGroup[] = [
+  {
+    value: "creator-assets",
+    label: "크리에이터 자산",
+    icon: "🎬",
+    types: [
+      {
+        value: "youtube-channel",
+        label: "YouTube Channel",
+        logoText: "YT",
+        logoBg: "#fff1f2",
+        logoColor: "#b91c1c",
+        featured: true,
+      },
+      {
+        value: "instagram-account",
+        label: "Instagram Account",
+        logoText: "IG",
+        logoBg: "#fdf0f7",
+        logoColor: "#b83b7c",
+        featured: true,
+      },
+      {
+        value: "tiktok-account",
+        label: "TikTok Account",
+        logoText: "TT",
+        logoBg: "#eefcff",
+        logoColor: "#0f766e",
+      },
+    ],
+  },
+  {
+    value: "content-assets",
+    label: "콘텐츠 자산",
+    icon: "📚",
+    types: [
+      {
+        value: "newsletter-community",
+        label: "Newsletter / Community",
+        logoText: "NC",
+        logoBg: "#fff7ed",
+        logoColor: "#c2410c",
+      },
+      {
+        value: "course-digital-content",
+        label: "Course / Digital Content",
+        logoText: "CD",
+        logoBg: "#eef2ff",
+        logoColor: "#3730a3",
+      },
+    ],
+  },
+  {
+    value: "web-assets",
+    label: "웹 자산",
+    icon: "🌐",
+    types: [
+      {
+        value: "website-blog",
+        label: "Website / Blog",
+        logoText: "WB",
+        logoBg: "#eff6ff",
+        logoColor: "#1d4ed8",
+        featured: true,
+      },
+      {
+        value: "saas-app",
+        label: "SaaS / App",
+        logoText: "SA",
+        logoBg: "#ecfdf5",
+        logoColor: "#15803d",
+      },
+    ],
+  },
+  {
+    value: "commerce-assets",
+    label: "커머스 자산",
+    icon: "🛒",
+    types: [
+      {
+        value: "store-commerce",
+        label: "Store / Commerce",
+        logoText: "SC",
+        logoBg: "#fefce8",
+        logoColor: "#a16207",
+      },
+    ],
+  },
+  {
+    value: "domain-marketing-assets",
+    label: "도메인/마케팅 자산",
+    icon: "📈",
+    types: [
+      {
+        value: "domain",
+        label: "Domain",
+        logoText: "DM",
+        logoBg: "#f3f4f6",
+        logoColor: "#111827",
+      },
+      {
+        value: "marketing-asset",
+        label: "Marketing Asset",
+        logoText: "MA",
+        logoBg: "#ecfccb",
+        logoColor: "#4d7c0f",
+      },
+    ],
+  },
+];
+
+const FEATURED_TYPES = CATEGORY_GROUPS.flatMap((group) =>
+  group.types
+    .filter((type) => type.featured)
+    .map((type) => ({
+      ...type,
+      groupValue: group.value,
+      groupLabel: group.label,
+      groupIcon: group.icon,
+    }))
+);
+
+function normalize(value?: string | null) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function findGroupByTypeLabel(typeLabel?: string | null) {
+  if (!typeLabel) return null;
+
+  for (const group of CATEGORY_GROUPS) {
+    const found = group.types.find(
+      (item) =>
+        item.label === typeLabel ||
+        item.value === typeLabel ||
+        normalize(item.label) === normalize(typeLabel)
+    );
+
+    if (found) {
+      return {
+        group,
+        type: found,
+      };
+    }
+  }
+
+  return null;
+}
+
+function getTypesByGroupValue(groupValue?: string | null) {
+  const group = CATEGORY_GROUPS.find((item) => item.value === groupValue);
+  return group?.types ?? [];
+}
 
 export default function CategoryDropdown({
   name = "category",
@@ -77,7 +241,7 @@ export default function CategoryDropdown({
   }, []);
 
   const selectedGroup =
-    LISTING_CATEGORY_GROUPS.find((group) => group.value === groupValue) ?? null;
+    CATEGORY_GROUPS.find((group) => group.value === groupValue) ?? null;
 
   const availableTypes = getTypesByGroupValue(groupValue);
 
@@ -87,15 +251,41 @@ export default function CategoryDropdown({
   const finalCategoryValue = selectedType?.label ?? "";
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gap: 14,
-      }}
-    >
+    <div style={{ display: "grid", gap: 14 }}>
       <input type="hidden" name={name} value={finalCategoryValue} />
       <input type="hidden" name="category_group" value={selectedGroup?.label ?? ""} />
       <input type="hidden" name="category_type" value={selectedType?.label ?? ""} />
+
+      {!groupValue ? (
+        <div style={featuredBox}>
+          <div style={featuredTitle}>추천 거래유형</div>
+          <div style={featuredList}>
+            {FEATURED_TYPES.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => {
+                  setGroupValue(item.groupValue);
+                  setTypeValue(item.value);
+                }}
+                disabled={disabled}
+                style={featuredButton}
+              >
+                <span
+                  style={{
+                    ...logoBadge,
+                    background: item.logoBg,
+                    color: item.logoColor,
+                  }}
+                >
+                  {item.logoText}
+                </span>
+                <span style={featuredButtonText}>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div
         style={{
@@ -120,7 +310,7 @@ export default function CategoryDropdown({
               style={nativeSelect}
             >
               <option value="">대분류를 선택하세요</option>
-              {LISTING_CATEGORY_GROUPS.map((group) => (
+              {CATEGORY_GROUPS.map((group) => (
                 <option key={group.value} value={group.value}>
                   {group.icon} {group.label}
                 </option>
@@ -418,4 +608,43 @@ const summaryValue: React.CSSProperties = {
 
 const summaryDivider: React.CSSProperties = {
   color: "#b89d80",
+};
+
+const featuredBox: React.CSSProperties = {
+  borderRadius: 18,
+  border: "1px solid #eadfce",
+  background: "#fbf6ef",
+  padding: "14px",
+};
+
+const featuredTitle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 900,
+  color: "#8a7156",
+  marginBottom: 10,
+};
+
+const featuredList: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 10,
+};
+
+const featuredButton: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  minHeight: 42,
+  padding: "0 12px",
+  borderRadius: 999,
+  border: "1px solid #dbcdb9",
+  background: "#fffdf9",
+  color: "#2f2417",
+  fontSize: 13,
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const featuredButtonText: React.CSSProperties = {
+  lineHeight: 1,
 };
