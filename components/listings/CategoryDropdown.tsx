@@ -15,6 +15,7 @@ type CategoryDropdownProps = {
   categories?: string[];
   showCategoryLabel?: boolean;
   showTypeLabel?: boolean;
+  inline?: boolean;
 };
 
 export default function CategoryDropdown({
@@ -22,8 +23,9 @@ export default function CategoryDropdown({
   defaultValue,
   required = false,
   disabled = false,
-  showCategoryLabel = false,
+  showCategoryLabel = true,
   showTypeLabel = true,
+  inline = false,
 }: CategoryDropdownProps) {
   const initialResolved = useMemo(() => {
     const found = findGroupByTypeLabel(defaultValue);
@@ -80,129 +82,137 @@ export default function CategoryDropdown({
   const availableTypes = getTypesByGroupValue(groupValue);
 
   const selectedType =
-    availableTypes.find((type) => type.value === typeValue) ??
-    (groupValue
-      ? LISTING_CATEGORY_GROUPS.find((group) => group.value === groupValue)?.types.find(
-          (type) => type.value === typeValue
-        ) ?? null
-      : null);
+    availableTypes.find((type) => type.value === typeValue) ?? null;
 
   const finalCategoryValue = selectedType?.label ?? "";
 
   return (
-    <div style={wrap}>
+    <div
+      style={{
+        display: "grid",
+        gap: 14,
+      }}
+    >
       <input type="hidden" name={name} value={finalCategoryValue} />
       <input type="hidden" name="category_group" value={selectedGroup?.label ?? ""} />
       <input type="hidden" name="category_type" value={selectedType?.label ?? ""} />
 
-      <div style={fieldBlock}>
-        {showCategoryLabel ? <label style={labelStyle}>카테고리</label> : null}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: inline ? "minmax(0, 1fr) minmax(0, 1fr)" : "1fr",
+          gap: 16,
+        }}
+      >
+        <div style={fieldBlock}>
+          {showCategoryLabel ? <label style={labelStyle}>카테고리</label> : null}
 
-        <div style={selectWrap}>
-          <select
-            value={groupValue}
-            onChange={(e) => {
-              setGroupValue(e.target.value);
-              setTypeValue("");
-              setIsTypeMenuOpen(false);
-            }}
-            disabled={disabled}
-            required={required}
-            style={nativeSelect}
-          >
-            <option value="">대분류를 선택하세요</option>
-            {LISTING_CATEGORY_GROUPS.map((group) => (
-              <option key={group.value} value={group.value}>
-                {group.icon} {group.label}
-              </option>
-            ))}
-          </select>
-
-          <span style={arrowStyle}>▾</span>
-        </div>
-      </div>
-
-      <div style={fieldBlock}>
-        {showTypeLabel ? <label style={labelStyle}>타입</label> : null}
-
-        <div ref={typeMenuRef} style={{ position: "relative" }}>
-          <button
-            type="button"
-            disabled={disabled || !groupValue}
-            onClick={() => {
-              if (!groupValue || disabled) return;
-              setIsTypeMenuOpen((prev) => !prev);
-            }}
-            style={{
-              ...typeButton,
-              ...(disabled || !groupValue ? typeButtonDisabled : null),
-            }}
-          >
-            {selectedType ? (
-              <span style={typeButtonContent}>
-                <span
-                  style={{
-                    ...logoBadge,
-                    background: selectedType.logoBg,
-                    color: selectedType.logoColor,
-                  }}
-                >
-                  {selectedType.logoText}
-                </span>
-                <span style={typeText}>{selectedType.label}</span>
-              </span>
-            ) : (
-              <span style={placeholderText}>
-                {groupValue ? "세부 타입을 선택하세요" : "먼저 카테고리를 선택하세요"}
-              </span>
-            )}
+          <div style={selectWrap}>
+            <select
+              value={groupValue}
+              onChange={(e) => {
+                setGroupValue(e.target.value);
+                setTypeValue("");
+                setIsTypeMenuOpen(false);
+              }}
+              disabled={disabled}
+              required={required}
+              style={nativeSelect}
+            >
+              <option value="">대분류를 선택하세요</option>
+              {LISTING_CATEGORY_GROUPS.map((group) => (
+                <option key={group.value} value={group.value}>
+                  {group.icon} {group.label}
+                </option>
+              ))}
+            </select>
 
             <span style={arrowStyle}>▾</span>
-          </button>
+          </div>
+        </div>
 
-          {isTypeMenuOpen && groupValue ? (
-            <div style={menuWrap}>
-              <div style={menuHeader}>
-                <span style={menuHeaderTitle}>
-                  {selectedGroup?.icon} {selectedGroup?.label}
+        <div style={fieldBlock}>
+          {showTypeLabel ? <label style={labelStyle}>타입</label> : null}
+
+          <div ref={typeMenuRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              disabled={disabled || !groupValue}
+              onClick={() => {
+                if (!groupValue || disabled) return;
+                setIsTypeMenuOpen((prev) => !prev);
+              }}
+              style={{
+                ...typeButton,
+                ...(disabled || !groupValue ? typeButtonDisabled : null),
+              }}
+            >
+              {selectedType ? (
+                <span style={typeButtonContent}>
+                  <span
+                    style={{
+                      ...logoBadge,
+                      background: selectedType.logoBg,
+                      color: selectedType.logoColor,
+                    }}
+                  >
+                    {selectedType.logoText}
+                  </span>
+                  <span style={typeText}>{selectedType.label}</span>
                 </span>
-                <span style={menuHeaderCount}>{availableTypes.length}개</span>
-              </div>
+              ) : (
+                <span style={placeholderText}>
+                  {groupValue ? "세부 타입을 선택하세요" : "먼저 카테고리를 선택하세요"}
+                </span>
+              )}
 
-              <div style={menuList}>
-                {availableTypes.map((type) => {
-                  const isSelected = type.value === typeValue;
+              <span style={arrowStyle}>▾</span>
+            </button>
 
-                  return (
-                    <button
-                      key={type.value}
-                      type="button"
-                      onClick={() => {
-                        setTypeValue(type.value);
-                        setIsTypeMenuOpen(false);
-                      }}
-                      style={{
-                        ...menuItem,
-                        ...(isSelected ? menuItemSelected : null),
-                      }}
-                    >
-                      <span
+            {isTypeMenuOpen && groupValue ? (
+              <div style={menuWrap}>
+                <div style={menuHeader}>
+                  <span style={menuHeaderTitle}>
+                    {selectedGroup?.icon} {selectedGroup?.label}
+                  </span>
+                  <span style={menuHeaderCount}>{availableTypes.length}개</span>
+                </div>
+
+                <div style={menuList}>
+                  {availableTypes.map((type) => {
+                    const isSelected = type.value === typeValue;
+
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => {
+                          setTypeValue(type.value);
+                          setIsTypeMenuOpen(false);
+                        }}
                         style={{
-                          ...logoBadge,
-                          background: type.logoBg,
-                          color: type.logoColor,
+                          ...menuItem,
+                          ...(isSelected ? menuItemSelected : null),
                         }}
                       >
-                        {type.logoText}
-                      </span>
+                        <span
+                          style={{
+                            ...logoBadge,
+                            background: type.logoBg,
+                            color: type.logoColor,
+                          }}
+                        >
+                          {type.logoText}
+                        </span>
 
-                      <span style={menuItemText}>{type.label}</span>
-                    </button>
-                  );
-                })}
+                        <span style={menuItemText}>{type.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -220,19 +230,15 @@ export default function CategoryDropdown({
   );
 }
 
-const wrap: React.CSSProperties = {
-  display: "grid",
-  gap: 14,
-};
-
 const fieldBlock: React.CSSProperties = {
   display: "grid",
   gap: 8,
+  minWidth: 0,
 };
 
 const labelStyle: React.CSSProperties = {
   fontSize: 14,
-  fontWeight: 800,
+  fontWeight: 900,
   color: "#2f2417",
 };
 
@@ -242,7 +248,7 @@ const selectWrap: React.CSSProperties = {
 
 const nativeSelect: React.CSSProperties = {
   width: "100%",
-  height: 54,
+  height: 56,
   borderRadius: 16,
   border: "1px solid #dbcdb9",
   background: "#fffdf9",
