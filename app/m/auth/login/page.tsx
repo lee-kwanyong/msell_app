@@ -1,303 +1,285 @@
-import Link from 'next/link'
-import {
-  loginAction,
-  signInWithGoogle,
-  signInWithKakao,
-  signInWithNaver,
-} from '@/app/auth/login/actions'
+import Link from "next/link";
+import AuthGateway from "@/components/auth/AuthGateway";
+import { loginAction } from "@/app/auth/login/actions";
 
 type PageProps = {
   searchParams?: Promise<{
-    next?: string
-    error?: string
-  }>
-}
-
-function normalizeNext(next?: string) {
-  if (!next) return '/m'
-  if (!next.startsWith('/')) return '/m'
-  if (next.startsWith('//')) return '/m'
-  return next
-}
-
-export const dynamic = 'force-dynamic'
+    next?: string;
+    error?: string;
+    message?: string;
+  }>;
+};
 
 export default async function MobileLoginPage({ searchParams }: PageProps) {
-  const params = (await searchParams) || {}
-  const next = normalizeNext(params.next)
-  const error = params.error || ''
+  const resolved = (await searchParams) ?? {};
+  const next = resolved.next || "/account";
+  const error = resolved.error || "";
+  const message = resolved.message || "";
 
   return (
-    <main
-      style={{
-        minHeight: '100dvh',
-        background: 'linear-gradient(180deg, #f6f4ef 0%, #f1eee8 100%)',
-        padding: '20px 16px 120px',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 520,
-          margin: '0 auto',
-          paddingTop: 8,
-        }}
-      >
-        <div
-          style={{
-            borderRadius: 28,
-            background:
-              'radial-gradient(circle at top right, rgba(110,84,49,0.08), transparent 28%), linear-gradient(180deg, #fffdfa 0%, #f7f3ec 100%)',
-            border: '1px solid rgba(60,42,23,0.08)',
-            boxShadow: '0 20px 50px rgba(34,24,16,0.06)',
-            padding: 22,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 11,
-              letterSpacing: '0.18em',
-              color: 'rgba(58,40,22,0.48)',
-              fontWeight: 700,
-            }}
-          >
-            MSELL
-          </div>
+    <>
+      <main className="msell-m-auth-page">
+        <section className="msell-m-auth-shell">
+          <div className="msell-m-auth-card">
+            <div className="msell-m-auth-badge">MSELL</div>
+            <h1 className="msell-m-auth-title">로그인</h1>
 
-          <h1
-            style={{
-              margin: '14px 0 0',
-              fontSize: 36,
-              lineHeight: 0.98,
-              letterSpacing: '-0.05em',
-              fontWeight: 700,
-              color: '#18130f',
-            }}
-          >
-            로그인
-          </h1>
+            {error ? (
+              <div className="msell-m-auth-alert msell-m-auth-alert-error">
+                {error}
+              </div>
+            ) : null}
 
-          {error ? (
-            <div
-              style={{
-                marginTop: 16,
-                borderRadius: 16,
-                border: '1px solid rgba(166, 64, 64, 0.18)',
-                background: 'rgba(255, 243, 243, 0.9)',
-                color: '#8f2f2f',
-                fontSize: 14,
-                lineHeight: 1.6,
-                padding: '13px 14px',
-              }}
-            >
-              {error}
-            </div>
-          ) : null}
+            {message ? (
+              <div className="msell-m-auth-alert msell-m-auth-alert-message">
+                {message}
+              </div>
+            ) : null}
 
-          <form action={loginAction} style={{ marginTop: 18 }}>
-            <input type="hidden" name="next" value={next} />
+            <form action={loginAction} className="msell-m-auth-form">
+              <input type="hidden" name="next" value={next} />
 
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(52,38,24,0.70)',
-                  }}
-                >
-                  이메일
-                </label>
+              <label htmlFor="email" className="msell-m-auth-label">
+                <span>이메일</span>
                 <input
+                  id="email"
                   name="email"
                   type="email"
+                  required
                   autoComplete="email"
                   placeholder="you@example.com"
-                  required
-                  style={{
-                    width: '100%',
-                    height: 50,
-                    borderRadius: 16,
-                    border: '1px solid rgba(60,42,23,0.10)',
-                    background: 'rgba(255,255,255,0.82)',
-                    padding: '0 14px',
-                    fontSize: 15,
-                    color: '#18130f',
-                    outline: 'none',
-                  }}
+                  className="msell-m-auth-input"
                 />
-              </div>
+              </label>
 
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(52,38,24,0.70)',
-                  }}
-                >
-                  비밀번호
-                </label>
+              <label htmlFor="password" className="msell-m-auth-label">
+                <span>비밀번호</span>
                 <input
+                  id="password"
                   name="password"
                   type="password"
+                  required
                   autoComplete="current-password"
                   placeholder="비밀번호 입력"
-                  required
-                  style={{
-                    width: '100%',
-                    height: 50,
-                    borderRadius: 16,
-                    border: '1px solid rgba(60,42,23,0.10)',
-                    background: 'rgba(255,255,255,0.82)',
-                    padding: '0 14px',
-                    fontSize: 15,
-                    color: '#18130f',
-                    outline: 'none',
-                  }}
+                  className="msell-m-auth-input"
                 />
-              </div>
+              </label>
 
-              <button
-                type="submit"
-                style={{
-                  height: 50,
-                  border: 'none',
-                  borderRadius: 999,
-                  background: '#24180f',
-                  color: '#ffffff',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 10px 24px rgba(36,24,15,0.16)',
-                }}
-              >
+              <button type="submit" className="msell-m-auth-submit">
                 이메일로 로그인
               </button>
+            </form>
+
+            <div className="msell-m-auth-divider" aria-hidden="true">
+              <span />
+              <em>또는</em>
+              <span />
             </div>
-          </form>
 
-          <div
-            style={{
-              margin: '18px 0 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <div style={{ flex: 1, height: 1, background: 'rgba(60,42,23,0.08)' }} />
-            <div
-              style={{
-                fontSize: 12,
-                color: 'rgba(52,38,24,0.48)',
-                fontWeight: 600,
-              }}
-            >
-              또는
+            <AuthGateway next={next} mode="login" />
+
+            <div className="msell-m-auth-bottom">
+              계정이 없으면{" "}
+              <Link
+                href={`/m/auth/signup?next=${encodeURIComponent(next)}`}
+                className="msell-m-auth-link"
+              >
+                회원가입
+              </Link>
             </div>
-            <div style={{ flex: 1, height: 1, background: 'rgba(60,42,23,0.08)' }} />
           </div>
+        </section>
+      </main>
 
-          <div style={{ display: 'grid', gap: 10 }}>
-            <form
-              action={async () => {
-                'use server'
-                await signInWithGoogle(next)
-              }}
-            >
-              <button
-                type="submit"
-                style={{
-                  width: '100%',
-                  height: 48,
-                  borderRadius: 16,
-                  border: '1px solid rgba(60,42,23,0.10)',
-                  background: 'rgba(255,255,255,0.82)',
-                  color: '#24180f',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                구글로 계속하기
-              </button>
-            </form>
+      <style>{`
+        .msell-m-auth-page {
+          width: 100%;
+          min-height: calc(100dvh - 104px);
+          padding: 12px 12px 20px;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          box-sizing: border-box;
+          background: #f6f1e7;
+        }
 
-            <form
-              action={async () => {
-                'use server'
-                await signInWithKakao(next)
-              }}
-            >
-              <button
-                type="submit"
-                style={{
-                  width: '100%',
-                  height: 48,
-                  borderRadius: 16,
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  background: '#FEE500',
-                  color: '#191919',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                카카오로 계속하기
-              </button>
-            </form>
+        .msell-m-auth-shell {
+          width: 100%;
+          max-width: 520px;
+        }
 
-            <form
-              action={async () => {
-                'use server'
-                await signInWithNaver(next)
-              }}
-            >
-              <button
-                type="submit"
-                style={{
-                  width: '100%',
-                  height: 48,
-                  borderRadius: 16,
-                  border: '1px solid rgba(0,0,0,0.04)',
-                  background: '#03C75A',
-                  color: '#ffffff',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                네이버로 계속하기
-              </button>
-            </form>
-          </div>
+        .msell-m-auth-card {
+          width: 100%;
+          border-radius: 22px;
+          border: 1px solid #e7d9c8;
+          background: linear-gradient(180deg, #fffdfa 0%, #fcf8f1 100%);
+          box-shadow: 0 16px 34px rgba(47, 36, 23, 0.08);
+          padding: 18px 16px 20px;
+          box-sizing: border-box;
+        }
 
-          <div
-            style={{
-              marginTop: 18,
-              textAlign: 'center',
-              fontSize: 14,
-              color: 'rgba(52,38,24,0.62)',
-            }}
-          >
-            계정이 없으면{' '}
-            <Link
-              href={`/m/auth/signup?next=${encodeURIComponent(next)}`}
-              style={{
-                color: '#24180f',
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
-              회원가입
-            </Link>
-          </div>
-        </div>
-      </div>
-    </main>
-  )
+        .msell-m-auth-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: #f1e6d6;
+          color: #9b7b58;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+        }
+
+        .msell-m-auth-title {
+          margin: 12px 0 16px;
+          color: #1f140c;
+          font-size: 30px;
+          line-height: 1;
+          letter-spacing: -0.04em;
+          font-weight: 900;
+        }
+
+        .msell-m-auth-alert {
+          margin-bottom: 14px;
+          padding: 12px 14px;
+          border-radius: 14px;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .msell-m-auth-alert-error {
+          border: 1px solid #efc7c7;
+          background: #fff5f5;
+          color: #8b2e2e;
+        }
+
+        .msell-m-auth-alert-message {
+          border: 1px solid #d9d2c3;
+          background: #f8f3ea;
+          color: #5b4631;
+        }
+
+        .msell-m-auth-form {
+          display: grid;
+          gap: 12px;
+        }
+
+        .msell-m-auth-label {
+          display: grid;
+          gap: 8px;
+        }
+
+        .msell-m-auth-label span {
+          color: #8f7658;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .msell-m-auth-input {
+          width: 100%;
+          height: 52px;
+          border-radius: 16px;
+          border: 1px solid #e5ddd2;
+          background: #ffffff;
+          padding: 0 16px;
+          color: #2b1d12;
+          font-size: 14px;
+          outline: none;
+          box-sizing: border-box;
+          transition:
+            border-color 0.18s ease,
+            box-shadow 0.18s ease,
+            transform 0.18s ease;
+        }
+
+        .msell-m-auth-input::placeholder {
+          color: #b4a089;
+        }
+
+        .msell-m-auth-input:focus {
+          border-color: #b88a5b;
+          box-shadow: 0 0 0 4px rgba(184, 138, 91, 0.14);
+          transform: translateY(-1px);
+        }
+
+        .msell-m-auth-submit {
+          width: 100%;
+          height: 52px;
+          margin-top: 2px;
+          border: none;
+          border-radius: 999px;
+          background: linear-gradient(180deg, #2f1d10 0%, #23140a 100%);
+          color: #ffffff;
+          font-size: 14px;
+          font-weight: 900;
+          cursor: pointer;
+          transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease,
+            filter 0.18s ease;
+          box-shadow: 0 10px 24px rgba(47, 29, 16, 0.18);
+        }
+
+        .msell-m-auth-submit:active {
+          transform: translateY(0);
+          box-shadow: 0 8px 18px rgba(47, 29, 16, 0.16);
+        }
+
+        .msell-m-auth-divider {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: 16px 0 14px;
+        }
+
+        .msell-m-auth-divider span {
+          flex: 1;
+          height: 1px;
+          background: #eadfce;
+        }
+
+        .msell-m-auth-divider em {
+          font-style: normal;
+          color: #b29a7f;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+        }
+
+        .msell-m-auth-bottom {
+          margin-top: 16px;
+          text-align: center;
+          color: #8f7658;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .msell-m-auth-link {
+          color: #2f1d10;
+          font-weight: 900;
+          text-decoration: none;
+        }
+
+        .msell-m-auth-link:active {
+          opacity: 0.8;
+        }
+
+        @media (max-width: 380px) {
+          .msell-m-auth-card {
+            padding: 16px 14px 18px;
+          }
+
+          .msell-m-auth-title {
+            font-size: 28px;
+          }
+
+          .msell-m-auth-input,
+          .msell-m-auth-submit {
+            height: 50px;
+            font-size: 13px;
+          }
+        }
+      `}</style>
+    </>
+  );
 }
