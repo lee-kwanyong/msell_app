@@ -1,8 +1,8 @@
 export const metadata = {
-  title: "분쟁처리 및 신고정책 | Msell",
+  title: "광고 운영정책 | Msell",
 };
 
-export default function DisputePolicyPage() {
+export default function AdvertisingPolicyPage() {
   return (
     <main
       style={{
@@ -31,7 +31,7 @@ export default function DisputePolicyPage() {
             fontWeight: 800,
           }}
         >
-          분쟁처리 및 신고정책
+          광고 운영정책
         </h1>
 
         <p style={{ marginTop: 12, color: "#7b624d", fontSize: 14 }}>
@@ -50,33 +50,53 @@ export default function DisputePolicyPage() {
         >
           <section>
             <h2 style={{ fontSize: 20, margin: "0 0 10px", color: "#24170f" }}>
-              1. 신고 접수
+              1. 기본 원칙
             </h2>
             <p style={{ margin: 0 }}>
-              이용자는 허위 등록, 사칭, 부정 행위, 거래 방해 등 문제가 있는 경우
-              운영자에게 신고할 수 있습니다.
+              Msell 내 광고 또는 홍보성 콘텐츠는 이용자에게 혼동을 주지 않도록
+              일반 거래 정보와 명확히 구분되어야 합니다.
             </p>
           </section>
 
           <section>
             <h2 style={{ fontSize: 20, margin: "0 0 10px", color: "#24170f" }}>
-              2. 검토 절차
+              2. 광고 표시 기준
             </h2>
             <p style={{ margin: 0 }}>
-              신고가 접수되면 관련 자료와 서비스 내 기록을 바탕으로 검토하며,
-              필요시 게시물 숨김, 계정 제한, 추가 자료 요청 등의 조치를 할 수
+              광고, 제휴, 프로모션, 후원성 콘텐츠는 이용자가 일반 게시물로
+              오인하지 않도록 적절한 표시가 이루어져야 합니다.
+            </p>
+          </section>
+
+          <section>
+            <h2 style={{ fontSize: 20, margin: "0 0 10px", color: "#24170f" }}>
+              3. 금지되는 광고
+            </h2>
+            <p style={{ margin: 0 }}>
+              허위·과장 표현, 타인 사칭, 불법 서비스 유도, 검증되지 않은 수익
+              보장 문구, 관계 법령 위반 가능성이 있는 광고는 게재할 수 없습니다.
+            </p>
+          </section>
+
+          <section>
+            <h2 style={{ fontSize: 20, margin: "0 0 10px", color: "#24170f" }}>
+              4. 운영 조치
+            </h2>
+            <p style={{ margin: 0 }}>
+              운영정책에 위반되는 광고성 게시물은 사전 통지 없이 숨김, 수정
+              요청, 삭제 처리될 수 있으며, 반복 위반 시 계정 제재가 이루어질 수
               있습니다.
             </p>
           </section>
 
           <section>
             <h2 style={{ fontSize: 20, margin: "0 0 10px", color: "#24170f" }}>
-              3. 분쟁 관련 안내
+              5. 책임과 제한
             </h2>
             <p style={{ margin: 0 }}>
-              Msell은 플랫폼 운영자로서 신고 접수와 기본적인 사실관계 확인을
-              지원할 수 있으나, 개별 거래의 법적 책임 판단이나 금전적 배상 주체가
-              되지는 않습니다.
+              광고 내용의 적법성, 정확성, 권리관계에 대한 책임은 해당 광고를
+              등록한 회원 또는 광고주에게 있으며, Msell은 관련 법령상 허용되는
+              범위 내에서 플랫폼 운영자로서 필요한 조치를 할 수 있습니다.
             </p>
           </section>
         </div>
