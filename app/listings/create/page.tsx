@@ -7,6 +7,7 @@ type SearchParams = Promise<{
   title?: string;
   category?: string;
   price?: string;
+  price_negotiable?: string;
   transfer_method?: string;
   description?: string;
   status?: string;
@@ -69,6 +70,23 @@ function quickLinkStyle(): React.CSSProperties {
   };
 }
 
+function radioCardStyle(selected: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    minHeight: 56,
+    padding: "0 16px",
+    borderRadius: 16,
+    border: `1px solid ${selected ? "#2f2417" : "#d8c8b2"}`,
+    background: selected ? "#f7efe4" : "#fffdf9",
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 800,
+    color: "#2f2417",
+  };
+}
+
 export default async function CreateListingPage({
   searchParams,
 }: {
@@ -80,6 +98,7 @@ export default async function CreateListingPage({
   const defaultTitle = decodeValue(resolved.title);
   const defaultCategory = decodeValue(resolved.category);
   const defaultPrice = decodeValue(resolved.price);
+  const defaultPriceNegotiable = decodeValue(resolved.price_negotiable || "false") === "true";
   const defaultTransferMethod = decodeValue(resolved.transfer_method);
   const defaultDescription = decodeValue(resolved.description);
   const defaultStatus = decodeValue(resolved.status) || "active";
@@ -112,13 +131,6 @@ export default async function CreateListingPage({
           top: 96px;
         }
 
-        .create-category-row {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-          gap: 16px;
-          align-items: start;
-        }
-
         @media (max-width: 980px) {
           .create-layout {
             grid-template-columns: 1fr;
@@ -131,8 +143,8 @@ export default async function CreateListingPage({
         }
 
         @media (max-width: 640px) {
-          .create-category-row {
-            grid-template-columns: 1fr;
+          .price-negotiable-row {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>
@@ -263,32 +275,78 @@ export default async function CreateListingPage({
                 inline
               />
 
-              <div style={{ display: "grid", gap: 8 }}>
-                <label
-                  htmlFor="price"
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 900,
-                    color: "#2f2417",
-                  }}
-                >
-                  희망 가격
-                </label>
-                <input
-                  id="price"
-                  name="price"
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  step="1"
-                  required
-                  defaultValue={defaultPrice}
-                  placeholder="예: 1500000"
-                  style={field({
-                    height: 56,
-                    padding: "0 16px",
-                  })}
-                />
+              <div
+                className="price-negotiable-row"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0, 1fr) 260px",
+                  gap: 16,
+                  alignItems: "start",
+                }}
+              >
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label
+                    htmlFor="price"
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 900,
+                      color: "#2f2417",
+                    }}
+                  >
+                    희망 가격
+                  </label>
+                  <input
+                    id="price"
+                    name="price"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    step="1"
+                    required
+                    defaultValue={defaultPrice}
+                    placeholder="예: 1500000"
+                    style={field({
+                      height: 56,
+                      padding: "0 16px",
+                    })}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 900,
+                      color: "#2f2417",
+                    }}
+                  >
+                    금액 협의
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <label style={radioCardStyle(defaultPriceNegotiable)}>
+                      <input
+                        type="radio"
+                        name="price_negotiable"
+                        value="true"
+                        defaultChecked={defaultPriceNegotiable}
+                        style={{ margin: 0 }}
+                      />
+                      가능
+                    </label>
+
+                    <label style={radioCardStyle(!defaultPriceNegotiable)}>
+                      <input
+                        type="radio"
+                        name="price_negotiable"
+                        value="false"
+                        defaultChecked={!defaultPriceNegotiable}
+                        style={{ margin: 0 }}
+                      />
+                      불가능
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: "grid", gap: 8 }}>
@@ -505,7 +563,7 @@ export default async function CreateListingPage({
                       fontWeight: 700,
                     }}
                   >
-                    실제 희망 거래가는 숫자로 입력
+                    실제 희망 거래가는 숫자로 입력하고 협의 가능 여부를 함께 선택
                   </div>
                 </div>
 

@@ -1,129 +1,128 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 
-function clean(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") return "";
-  return value.trim();
-}
-
-function buildDescription(transferMethod: string, description: string) {
-  if (transferMethod && description) {
-    return `[이전 방식] ${transferMethod}\n\n${description}`;
-  }
-
-  if (transferMethod) {
-    return `[이전 방식] ${transferMethod}`;
-  }
-
-  return description;
-}
-
-function toCreateRedirectURL(
-  request: Request,
-  params: Record<string, string>
-) {
-  const url = new URL("/listings/create", request.url);
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value) url.searchParams.set(key, value);
+function toQueryString(values: Record<string, string>) {
+  const params = new URLSearchParams();
+  Object.entries(values).forEach(([key, value]) => {
+    params.set(key, value);
   });
-
-  return url;
+  return params.toString();
 }
 
 export async function POST(request: Request) {
   const supabase = await supabaseServer();
+  const formData = await request.formData();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const title = String(formData.get("title") ?? "").trim();
+  const category = String(formData.get("category") ?? "").trim();
+  const priceRaw = String(formData.get("price") ?? "").trim();
+  const priceNegotiableRaw = String(formData.get("price_negotiable") ?? "false").trim();
+  const transferMethod = String(formData.get("transfer_method") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const status = String(formData.get("status") ?? "active").trim();
 
-  if (userError || !user) {
+  const allowedStatus = new Set([
+    "draft",
+    "pending_review",
+    "active",
+    "reserved",
+    "sold",
+    "hidden",
+    "rejected",
+    "archived",
+  ]);
+
+  const queryBase = {
+    title: encodeURIComponent(title),
+    category: encodeURIComponent(category),
+    price: encodeURIComponent(priceRaw),
+    price_negotiable: encodeURIComponent(priceNegotiableRaw === "true" ? "true" : "false"),
+    transfer_method: encodeURIComponent(transferMethod),
+    description: encodeURIComponent(description),
+    status: encodeURIComponent(status),
+  };
+
+  if (!title || !category || !priceRaw || !transferMethod || !description) {
     return NextResponse.redirect(
-      new URL("/auth/login?next=/listings/create", request.url),
-      { status: 303 }
+      new URL(
+        `/listings/create?${toQueryString({
+          ...queryBase,
+          error: encodeURIComponent("필수 항목을 모두 입력해 주세요."),
+        })}`,
+        request.url
+      ),
+      303
     );
   }
 
-  const formData = await request.formData();
-
-  const title = clean(formData.get("title"));
-  const category = clean(formData.get("category"));
-  const priceRaw = clean(formData.get("price"));
-  const transferMethod = clean(formData.get("transfer_method"));
-  const descriptionRaw = clean(formData.get("description"));
-  const status = clean(formData.get("status")) || "active";
-
-  const returnParams = {
-    title,
-    category,
-    price: priceRaw,
-    transfer_method: transferMethod,
-    description: descriptionRaw,
-    status,
-  };
-
-  if (!title || !category || !priceRaw) {
-    const url = toCreateRedirectURL(request, {
-      ...returnParams,
-      error: "제목, 카테고리, 희망 가격은 필수입니다.",
-    });
-
-    return NextResponse.redirect(url, { status: 303 });
-  }
-
   const price = Number(priceRaw);
-
   if (!Number.isFinite(price) || price < 0) {
-    const url = toCreateRedirectURL(request, {
-      ...returnParams,
-      error: "희망 가격은 0 이상의 숫자로 입력해 주세요.",
-    });
-
-    return NextResponse.redirect(url, { status: 303 });
+    return NextResponse.redirect(
+      new URL(
+        `/listings/create?${toQueryString({
+          ...queryBase,
+          error: encodeURIComponent("희망 가격을 올바르게 입력해 주세요."),
+        })}`,
+        request.url
+      ),
+      303
+    );
   }
 
-  const description = buildDescription(transferMethod, descriptionRaw);
-  const sellerId = user.id;
-
-  if (!sellerId) {
-    const url = toCreateRedirectURL(request, {
-      ...returnParams,
-      error: "로그인 사용자 정보를 확인할 수 없습니다.",
-    });
-
-    return NextResponse.redirect(url, { status: 303 });
+  if (!allowedStatus.has(status)) {
+    return NextResponse.redirect(
+      new URL(
+        `/listings/create?${toQueryString({
+          ...queryBase,
+          error: encodeURIComponent("상태 값이 올바르지 않습니다."),
+        })}`,
+        request.url
+      ),
+      303
+    );
   }
 
-  const payload = {
-    seller_id: sellerId,
-    title,
-    category,
-    price,
-    description: description || null,
-    status,
-  };
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.redirect(
+      new URL("/auth/login?next=/listings/create", request.url),
+      303
+    );
+  }
+
+  const finalDescription = `[이전 방식] ${transferMethod}\n\n${description}`;
+  const priceNegotiable = priceNegotiableRaw === "true";
 
   const { data, error } = await supabase
     .from("listings")
-    .insert(payload)
+    .insert({
+      user_id: user.id,
+      title,
+      category,
+      price,
+      price_negotiable: priceNegotiable,
+      description: finalDescription,
+      status,
+    })
     .select("id")
     .single();
 
-  if (error) {
-    const url = toCreateRedirectURL(request, {
-      ...returnParams,
-      error:
-        error.message?.includes("seller_id")
-          ? "판매자 정보 연결에 실패했습니다. 현재 로그인 상태를 다시 확인해 주세요."
-          : error.message,
-    });
-
-    return NextResponse.redirect(url, { status: 303 });
+  if (error || !data?.id) {
+    return NextResponse.redirect(
+      new URL(
+        `/listings/create?${toQueryString({
+          ...queryBase,
+          error: encodeURIComponent(error?.message || "등록 중 오류가 발생했습니다."),
+        })}`,
+        request.url
+      ),
+      303
+    );
   }
 
-  return NextResponse.redirect(new URL(`/listings/${data.id}`, request.url), {
-    status: 303,
-  });
+  return NextResponse.redirect(new URL(`/listings/${data.id}`, request.url), 303);
 }
