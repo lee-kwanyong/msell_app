@@ -1,419 +1,372 @@
-import Link from 'next/link'
-import { notFound } from 'next/navigation'
-import { supabaseServer } from '@/lib/supabase/server'
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
   params: Promise<{
-    id: string
-  }>
+    id: string;
+  }>;
   searchParams: Promise<{
-    success?: string
-    error?: string
-  }>
-}
+    error?: string;
+    success?: string;
+    reply?: string;
+  }>;
+};
 
-type NoticeRow = {
-  id: string
-  title: string | null
-  content: string | null
-  created_at: string | null
-  source: string | null
-  user_id: string | null
-}
-
-type ProfileRow = {
-  role?: string | null
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '-'
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date)
+function decodeValue(value?: string) {
+  return value ? decodeURIComponent(value) : "";
 }
 
 function formatDateTime(value?: string | null) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '-'
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
 
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 export default async function BoardDetailPage({
   params,
   searchParams,
 }: PageProps) {
-  const { id } = await params
-  const query = await searchParams
-  const supabase = await supabaseServer()
+  const { id } = await params;
+  const query = await searchParams;
 
+  const error = decodeValue(query?.error);
+  const success = decodeValue(query?.success);
+  const replyDraft = decodeValue(query?.reply);
+
+  const supabase = await supabaseServer();
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-  let isAdmin = false
+  const { data: post, error: postError } = await supabase
+    .from("board_posts")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (postError || !post) {
+    redirect("/board");
+  }
+
+  const { data: replies } = await supabase
+    .from("board_replies")
+    .select("*")
+    .eq("post_id", id)
+    .order("created_at", { ascending: true });
+
+  let isAdmin = false;
 
   if (user) {
-    const [{ data: profile }, { data: rpcIsAdmin }] = await Promise.all([
-      supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
-      supabase.rpc('is_admin'),
-    ])
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
 
-    const me = (profile as ProfileRow | null) ?? null
-    isAdmin = rpcIsAdmin === true || me?.role === 'admin'
+    isAdmin = profile?.role === "admin";
   }
 
-  const { data } = await supabase
-    .from('posts')
-    .select('id,title,content,created_at,source,user_id')
-    .eq('id', id)
-    .eq('source', 'notice')
-    .maybeSingle()
-
-  const notice = (data as NoticeRow | null) ?? null
-
-  if (!notice) {
-    notFound()
-  }
+  const replyRows = replies ?? [];
 
   return (
-    <main className="msell-page">
-      <div className="msell-shell">
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f6f1e7",
+        padding: "32px 20px 96px",
+      }}
+    >
+      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            flexWrap: 'wrap',
             marginBottom: 18,
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            color: "#8a7156",
+            fontSize: 13,
+            fontWeight: 700,
           }}
         >
-          <Link
-            href="/board"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              textDecoration: 'none',
-              color: '#5b4632',
-              fontSize: 14,
-              fontWeight: 700,
-            }}
-          >
-            ← 공지사항 목록으로 돌아가기
+          <Link href="/board" style={{ color: "#8a7156", textDecoration: "none" }}>
+            ← 게시판 목록
           </Link>
-
-          {isAdmin ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                flexWrap: 'wrap',
-              }}
-            >
-              <Link
-                href={`/board/${notice.id}/edit`}
-                className="msell-btn msell-btn-secondary"
-                style={{ minHeight: 44 }}
-              >
-                공지 수정
-              </Link>
-
-              <form action="/api/board/delete" method="post" style={{ margin: 0 }}>
-                <input type="hidden" name="id" value={notice.id} />
-                <button
-                  type="submit"
-                  className="msell-btn msell-btn-primary"
-                  style={{
-                    minHeight: 44,
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  공지 삭제
-                </button>
-              </form>
-            </div>
-          ) : null}
         </div>
 
-        {query.success ? (
-          <div className="msell-alert msell-alert-success">{query.success}</div>
+        {error ? (
+          <div
+            style={{
+              marginBottom: 16,
+              borderRadius: 18,
+              border: "1px solid #efc0c0",
+              background: "#fff4f4",
+              color: "#b42318",
+              padding: "14px 16px",
+              fontSize: 14,
+              fontWeight: 700,
+              lineHeight: 1.6,
+            }}
+          >
+            {error}
+          </div>
         ) : null}
 
-        {query.error ? (
-          <div className="msell-alert msell-alert-danger">{query.error}</div>
+        {success ? (
+          <div
+            style={{
+              marginBottom: 16,
+              borderRadius: 18,
+              border: "1px solid #cfe3c7",
+              background: "#f5fbf2",
+              color: "#2f6b2f",
+              padding: "14px 16px",
+              fontSize: 14,
+              fontWeight: 700,
+              lineHeight: 1.6,
+            }}
+          >
+            {success}
+          </div>
         ) : null}
 
         <section
-          className="msell-card"
           style={{
-            padding: '28px 30px 26px',
-            background:
-              'radial-gradient(circle at top right, rgba(224, 202, 176, 0.42), transparent 28%), linear-gradient(180deg, #fffdf9 0%, #ffffff 100%)',
-            overflow: 'hidden',
+            background: "#fbf7f1",
+            border: "1px solid #eadfce",
+            borderRadius: 30,
+            padding: 24,
+            boxShadow: "0 14px 34px rgba(61, 41, 22, 0.06)",
           }}
         >
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1.2fr) minmax(320px, 0.8fr)',
-              gap: 18,
-              alignItems: 'stretch',
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginBottom: 18,
             }}
           >
-            <div style={{ minWidth: 0 }}>
-              <span className="msell-eyebrow">NOTICE DETAIL</span>
+            <div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 72,
+                  height: 34,
+                  padding: "0 14px",
+                  borderRadius: 999,
+                  background:
+                    post.status === "answered" ? "#e8f6ea" : "#f2e8db",
+                  color:
+                    post.status === "answered" ? "#3f8a53" : "#7f684f",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  marginBottom: 12,
+                }}
+              >
+                {post.status === "answered" ? "답변완료" : "접수"}
+              </div>
 
               <h1
                 style={{
-                  margin: '18px 0 0',
-                  fontSize: 'clamp(32px, 3.3vw, 50px)',
-                  lineHeight: 1.06,
-                  letterSpacing: '-0.055em',
-                  fontWeight: 950,
-                  color: '#2c1f14',
-                  wordBreak: 'break-word',
+                  margin: 0,
+                  color: "#16110d",
+                  fontSize: 36,
+                  fontWeight: 900,
+                  letterSpacing: "-0.04em",
+                  lineHeight: 1.12,
                 }}
               >
-                {notice.title || '제목 없음'}
+                {post.title}
               </h1>
-
-              <p
-                style={{
-                  margin: '16px 0 0',
-                  fontSize: 15,
-                  lineHeight: 1.9,
-                  color: '#645442',
-                  maxWidth: 760,
-                }}
-              >
-                운영 정책, 사기 방지 안내, 거래 유의사항 등
-                <br />
-                서비스 이용 전 반드시 확인해야 하는 안내사항입니다.
-              </p>
             </div>
 
-            <aside
+            <div
               style={{
-                borderRadius: 24,
-                padding: '18px 18px 16px',
-                background: 'linear-gradient(180deg, #3a291a 0%, #20160e 100%)',
-                color: '#ffffff',
-                boxShadow: '0 18px 34px rgba(34, 23, 13, 0.16)',
-                display: 'grid',
-                gap: 14,
-                alignContent: 'start',
+                color: "#8a7156",
+                fontSize: 13,
+                fontWeight: 700,
               }}
             >
-              <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: '0.08em',
-                    opacity: 0.72,
-                  }}
-                >
-                  NOTICE META
-                </div>
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 22,
-                    fontWeight: 900,
-                    letterSpacing: '-0.04em',
-                    lineHeight: 1.25,
-                  }}
-                >
-                  정책·안내·거래 유의사항
-                </div>
-              </div>
+              작성일 {formatDateTime(post.created_at)}
+            </div>
+          </div>
 
-              <div
-                style={{
-                  height: 1,
-                  background: 'rgba(255,255,255,0.12)',
-                }}
-              />
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: 12,
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      letterSpacing: '0.08em',
-                      opacity: 0.72,
-                    }}
-                  >
-                    DATE
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: 15,
-                      fontWeight: 800,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {formatDate(notice.created_at)}
-                  </div>
-                </div>
-
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      letterSpacing: '0.08em',
-                      opacity: 0.72,
-                    }}
-                  >
-                    UPDATED VIEW
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: 15,
-                      fontWeight: 800,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {formatDateTime(notice.created_at)}
-                  </div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  marginTop: 4,
-                  borderRadius: 18,
-                  padding: '14px 14px 13px',
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: '0.08em',
-                    opacity: 0.72,
-                  }}
-                >
-                  QUICK ACTION
-                </div>
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 14,
-                    fontWeight: 800,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  운영 공지 확인 후 매물 비교와 거래 문의를 진행하세요.
-                </div>
-              </div>
-            </aside>
+          <div
+            style={{
+              borderRadius: 24,
+              background: "#fffdf9",
+              border: "1px solid #eadfcf",
+              padding: 20,
+              color: "#24190f",
+              fontSize: 15,
+              fontWeight: 600,
+              lineHeight: 1.85,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {post.content}
           </div>
         </section>
 
-        <section className="msell-section">
-          <section className="msell-card msell-panel">
-            <div
-              style={{
-                marginBottom: 18,
-                borderRadius: 20,
-                padding: '16px 18px',
-                background: 'linear-gradient(180deg, #f8f1e5 0%, #f2e6d3 100%)',
-                border: '1px solid #e2d0b7',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  color: '#8a7762',
-                }}
-              >
-                NOTICE CONTENT
-              </div>
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 20,
-                  fontWeight: 900,
-                  letterSpacing: '-0.03em',
-                  color: '#2c1f14',
-                }}
-              >
-                공지 상세 내용
-              </div>
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 13,
-                  lineHeight: 1.7,
-                  color: '#6a5743',
-                }}
-              >
-                아래 내용을 충분히 검토한 뒤 서비스 이용 및 거래를 진행하세요.
-              </div>
-            </div>
+        <section
+          style={{
+            marginTop: 18,
+            background: "#fbf7f1",
+            border: "1px solid #eadfce",
+            borderRadius: 30,
+            padding: 24,
+            boxShadow: "0 14px 34px rgba(61, 41, 22, 0.06)",
+          }}
+        >
+          <div
+            style={{
+              color: "#16110d",
+              fontSize: 22,
+              fontWeight: 900,
+              marginBottom: 16,
+            }}
+          >
+            관리자 답변
+          </div>
 
+          {replyRows.length === 0 ? (
             <div
               style={{
-                borderRadius: 24,
-                background: 'linear-gradient(180deg, #fffdf9 0%, #faf3e8 100%)',
-                border: '1px solid #e8d8c2',
-                padding: '30px 26px',
-                fontSize: 17,
-                lineHeight: 2.05,
-                color: '#4a3829',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
+                borderRadius: 20,
+                border: "1px dashed #eadfcf",
+                background: "#fffdf9",
+                padding: "18px 16px",
+                color: "#8a7156",
+                fontSize: 14,
+                fontWeight: 600,
               }}
             >
-              {notice.content || ''}
+              아직 등록된 답변이 없습니다.
             </div>
-          </section>
+          ) : (
+            <div style={{ display: "grid", gap: 14 }}>
+              {replyRows.map((item: any) => (
+                <div
+                  key={item.id}
+                  style={{
+                    borderRadius: 22,
+                    background: "#fffdf9",
+                    border: "1px solid #eadfcf",
+                    padding: 18,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "center",
+                      marginBottom: 10,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: "#16110d",
+                        fontSize: 14,
+                        fontWeight: 900,
+                      }}
+                    >
+                      관리자 답변
+                    </div>
+
+                    <div
+                      style={{
+                        color: "#8a7156",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {formatDateTime(item.created_at)}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#24190f",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      lineHeight: 1.8,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {item.content}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {isAdmin ? (
+            <form method="post" action="/api/board/replies/create" style={{ marginTop: 18 }}>
+              <input type="hidden" name="post_id" value={id} />
+              <textarea
+                name="content"
+                defaultValue={replyDraft}
+                placeholder="관리자 답변을 입력하세요"
+                rows={6}
+                style={{
+                  width: "100%",
+                  borderRadius: 20,
+                  border: "1px solid #eadfcf",
+                  background: "#fffdf9",
+                  padding: "16px 18px",
+                  color: "#24190f",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  outline: "none",
+                  resize: "vertical",
+                  lineHeight: 1.7,
+                }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginTop: 12,
+                }}
+              >
+                <button
+                  type="submit"
+                  style={{
+                    minWidth: 180,
+                    height: 52,
+                    borderRadius: 18,
+                    border: 0,
+                    background: "#2f2417",
+                    color: "#fffaf2",
+                    fontSize: 15,
+                    fontWeight: 900,
+                    cursor: "pointer",
+                  }}
+                >
+                  답변 등록
+                </button>
+              </div>
+            </form>
+          ) : null}
         </section>
       </div>
-
-      <style>{`
-        @media (max-width: 920px) {
-          .msell-page div[style*='grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr)'] {
-            grid-template-columns: 1fr !important;
-          }
-
-          .msell-page div[style*='grid-template-columns: repeat(2, minmax(0, 1fr))'] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </main>
-  )
+  );
 }
