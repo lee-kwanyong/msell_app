@@ -62,6 +62,7 @@ const SOCIAL_META: Record<
     color: string;
     border: string;
     logo: JSX.Element;
+    shadow: string;
   }
 > = {
   google: {
@@ -70,6 +71,7 @@ const SOCIAL_META: Record<
     color: "#1f140c",
     border: "1px solid #e5ddd2",
     logo: <GoogleLogo />,
+    shadow: "0 8px 18px rgba(47, 36, 23, 0.04)",
   },
   kakao: {
     label: "카카오로 계속하기",
@@ -77,6 +79,7 @@ const SOCIAL_META: Record<
     color: "#3A1D1D",
     border: "1px solid #e8d238",
     logo: <KakaoLogo />,
+    shadow: "0 8px 18px rgba(58, 29, 29, 0.08)",
   },
   naver: {
     label: "네이버로 계속하기",
@@ -84,6 +87,7 @@ const SOCIAL_META: Record<
     color: "#ffffff",
     border: "1px solid #03C75A",
     logo: <NaverLogo />,
+    shadow: "0 8px 18px rgba(3, 199, 90, 0.16)",
   },
 };
 
@@ -157,20 +161,32 @@ export default function AuthGateway({ next = "/account" }: Props) {
             disabled={pending !== null}
             style={{
               width: "100%",
-              height: 50,
+              minHeight: 50,
+              padding: "0 16px",
               borderRadius: 16,
               border: meta.border,
               background: meta.background,
               color: meta.color,
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns: "20px 1fr 20px",
               alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
+              columnGap: 10,
               fontSize: 14,
               fontWeight: 900,
               cursor: pending !== null ? "default" : "pointer",
               opacity: pending !== null && !isLoading ? 0.6 : 1,
-              transition: "transform 0.15s ease, opacity 0.15s ease",
+              transition:
+                "transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease",
+              boxShadow: meta.shadow,
+            }}
+            onMouseEnter={(e) => {
+              if (pending !== null) return;
+              e.currentTarget.style.transform = "translateY(-1px)";
+              e.currentTarget.style.filter = "brightness(1.01)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.filter = "brightness(1)";
             }}
           >
             <span
@@ -185,7 +201,19 @@ export default function AuthGateway({ next = "/account" }: Props) {
             >
               {meta.logo}
             </span>
-            <span>{isLoading ? "이동 중..." : meta.label}</span>
+
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isLoading ? "이동 중..." : meta.label}
+            </span>
+
+            <span />
           </button>
         );
       })}
