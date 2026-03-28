@@ -23,7 +23,7 @@ export default async function Header() {
   const navItems: NavItem[] = [
     { href: "/", label: "홈" },
     { href: "/listings", label: "거래목록" },
-    { href: "/posts", label: "게시판" },
+    { href: "/policy", label: "운영정책" },
     { href: "/listings/create", label: "자산등록" },
     { href: "/my/listings", label: "내 매물" },
     { href: "/my/deals", label: "내 거래" },
