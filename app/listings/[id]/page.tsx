@@ -62,6 +62,34 @@ function pickOwnerId(listing: Record<string, any>) {
   );
 }
 
+function mapDealError(error: string) {
+  if (error === "cannot_deal_with_own_listing") {
+    return "본인 매물에는 거래 문의를 시작할 수 없습니다.";
+  }
+
+  if (error === "missing_seller_id") {
+    return "판매자 정보가 연결되지 않았습니다.";
+  }
+
+  if (error === "listing_not_found") {
+    return "매물을 찾을 수 없습니다.";
+  }
+
+  if (error === "missing_listing_id") {
+    return "매물 식별값이 누락되었습니다.";
+  }
+
+  if (error.startsWith("existing_deal_check_failed:")) {
+    return `기존 거래방 확인 실패: ${error.replace("existing_deal_check_failed:", "")}`;
+  }
+
+  if (error.startsWith("failed_to_create_deal:")) {
+    return `거래 문의방 생성 실패: ${error.replace("failed_to_create_deal:", "")}`;
+  }
+
+  return error;
+}
+
 export default async function ListingDetailPage({
   params,
   searchParams,
@@ -69,7 +97,7 @@ export default async function ListingDetailPage({
   const { id } = await params;
   const query = await searchParams;
 
-  const error = decodeValue(query?.error);
+  const rawError = decodeValue(query?.error);
   const success = decodeValue(query?.success);
 
   const supabase = await supabaseServer();
@@ -168,7 +196,7 @@ export default async function ListingDetailPage({
           <span>상세 보기</span>
         </div>
 
-        {error ? (
+        {rawError ? (
           <div
             style={{
               marginBottom: 16,
@@ -180,15 +208,10 @@ export default async function ListingDetailPage({
               fontSize: 14,
               fontWeight: 700,
               lineHeight: 1.6,
+              wordBreak: "break-word",
             }}
           >
-            {error === "failed_to_create_deal"
-              ? "거래 문의방 생성에 실패했습니다. 다시 시도해 주세요."
-              : error === "cannot_deal_with_own_listing"
-              ? "본인 매물에는 거래 문의를 시작할 수 없습니다."
-              : error === "missing_seller_id"
-              ? "판매자 정보가 연결되지 않았습니다. 매물 데이터를 확인해 주세요."
-              : error}
+            {mapDealError(rawError)}
           </div>
         ) : null}
 
@@ -526,11 +549,7 @@ export default async function ListingDetailPage({
               ) : (
                 <form method="post" action="/api/deals/create">
                   <input type="hidden" name="listing_id" value={id} />
-                  <input
-                    type="hidden"
-                    name="return_to"
-                    value={`/listings/${id}`}
-                  />
+                  <input type="hidden" name="return_to" value={`/listings/${id}`} />
                   <button
                     type="submit"
                     style={{
