@@ -15,18 +15,12 @@ export async function POST(request: Request) {
   const status = String(formData.get("status") ?? "active").trim();
 
   if (!id || !title || !category || !priceRaw || !transferMethod || !description) {
-    return NextResponse.redirect(
-      new URL(`/listings/${id}/edit`, request.url),
-      303
-    );
+    return NextResponse.redirect(new URL(`/listings/${id}/edit`, request.url), 303);
   }
 
   const price = Number(priceRaw);
   if (!Number.isFinite(price) || price < 0) {
-    return NextResponse.redirect(
-      new URL(`/listings/${id}/edit`, request.url),
-      303
-    );
+    return NextResponse.redirect(new URL(`/listings/${id}/edit`, request.url), 303);
   }
 
   const allowedStatus = new Set([
@@ -41,10 +35,7 @@ export async function POST(request: Request) {
   ]);
 
   if (!allowedStatus.has(status)) {
-    return NextResponse.redirect(
-      new URL(`/listings/${id}/edit`, request.url),
-      303
-    );
+    return NextResponse.redirect(new URL(`/listings/${id}/edit`, request.url), 303);
   }
 
   const {
