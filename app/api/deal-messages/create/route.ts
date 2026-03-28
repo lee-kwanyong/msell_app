@@ -1,68 +1,105 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 
-function getBaseUrl(req: NextRequest) {
-  return new URL(req.url).origin;
+function redirectTo(request: Request, path: string) {
+  return NextResponse.redirect(new URL(path, request.url), { status: 303 });
 }
 
-function redirectToDeal(req: NextRequest, dealId: string, error?: string) {
-  const url = new URL(`/deal/${dealId}`, getBaseUrl(req));
-  if (error) {
-    url.searchParams.set("error", error);
-  }
-  return NextResponse.redirect(url, { status: 303 });
+function buildErrorPath(basePath: string, message: string) {
+  return `${basePath}?error=${encodeURIComponent(message)}`;
 }
 
-export async function POST(req: NextRequest) {
-  const supabase = await supabaseServer();
-  const formData = await req.formData();
+export async function POST(request: Request) {
+  try {
+    const supabase = await supabaseServer();
 
-  const dealId = String(formData.get("deal_id") || "").trim();
-  const message = String(formData.get("message") || "").trim();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-  if (!dealId || !message) {
-    return dealId
-      ? redirectToDeal(req, dealId, "missing_required_fields")
-      : NextResponse.redirect(new URL("/my/deals?error=missing_required_fields", getBaseUrl(req)), {
-          status: 303,
-        });
+    if (userError || !user) {
+      return redirectTo(request, "/auth/login?next=/my/deals");
+    }
+
+    const formData = await request.formData();
+    const dealId = String(formData.get("deal_id") || "").trim();
+    const message = String(formData.get("message") || "").trim();
+
+    if (!dealId) {
+      return redirectTo(
+        request,
+        buildErrorPath("/my/deals", "missing_deal_id")
+      );
+    }
+
+    if (!message) {
+      return redirectTo(
+        request,
+        buildErrorPath(`/deal/${dealId}`, "메시지를 입력해 주세요.")
+      );
+    }
+
+    const { data: deal, error: dealError } = await supabase
+      .from("deals")
+      .select("id, seller_id, buyer_id, listing_id")
+      .eq("id", dealId)
+      .single();
+
+    if (dealError || !deal) {
+      return redirectTo(
+        request,
+        buildErrorPath("/my/deals", "deal_not_found")
+      );
+    }
+
+    const isParticipant =
+      deal.seller_id === user.id || deal.buyer_id === user.id;
+
+    if (!isParticipant) {
+      return redirectTo(
+        request,
+        buildErrorPath(`/deal/${dealId}`, "not_deal_participant")
+      );
+    }
+
+    const insertPayload = {
+      deal_id: dealId,
+      sender_id: user.id,
+      message,
+    };
+
+    const { error: insertError } = await supabase
+      .from("deal_messages")
+      .insert(insertPayload);
+
+    if (insertError) {
+      return redirectTo(
+        request,
+        buildErrorPath(
+          `/deal/${dealId}`,
+          `failed_to_send_message:${insertError.message}`
+        )
+      );
+    }
+
+    return redirectTo(
+      request,
+      `/deal/${dealId}?success=${encodeURIComponent("메시지를 보냈습니다.")}`
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "unexpected_message_send_error";
+
+    const formData = await request.formData().catch(() => null);
+    const dealId = String(formData?.get("deal_id") || "").trim();
+
+    return redirectTo(
+      request,
+      buildErrorPath(
+        dealId ? `/deal/${dealId}` : "/my/deals",
+        `failed_to_send_message:${message}`
+      )
+    );
   }
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    const loginUrl = new URL("/auth/login", getBaseUrl(req));
-    loginUrl.searchParams.set("next", `/deal/${dealId}`);
-    return NextResponse.redirect(loginUrl, { status: 303 });
-  }
-
-  const { data: deal, error: dealError } = await supabase
-    .from("deals")
-    .select("id, buyer_id, seller_id, status")
-    .eq("id", dealId)
-    .maybeSingle();
-
-  if (dealError || !deal) {
-    return redirectToDeal(req, dealId, "deal_not_found");
-  }
-
-  const isParticipant = deal.buyer_id === user.id || deal.seller_id === user.id;
-  if (!isParticipant) {
-    return redirectToDeal(req, dealId, "forbidden");
-  }
-
-  const { error: insertError } = await supabase.from("deal_messages").insert({
-    deal_id: dealId,
-    sender_id: user.id,
-    message,
-  });
-
-  if (insertError) {
-    return redirectToDeal(req, dealId, "failed_to_send_message");
-  }
-
-  return redirectToDeal(req, dealId);
 }
