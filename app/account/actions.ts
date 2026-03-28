@@ -1,17 +1,18 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 
-function clean(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") return "";
-  return value.trim();
+function normalize(value: FormDataEntryValue | null) {
+  return String(value || "").trim();
 }
 
-export async function saveAccountAction(formData: FormData) {
-  const supabase = await supabaseServer();
+function encode(message: string) {
+  return encodeURIComponent(message);
+}
 
+export async function updateAccountAction(formData: FormData) {
+  const supabase = await supabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -20,37 +21,57 @@ export async function saveAccountAction(formData: FormData) {
     redirect("/auth/login?next=/account");
   }
 
-  const full_name = clean(formData.get("full_name"));
-  const username = clean(formData.get("username"));
-  const phone_number = clean(formData.get("phone_number"));
-  const gender = clean(formData.get("gender"));
+  const fullName = normalize(formData.get("full_name"));
+  const phoneNumber = normalize(formData.get("phone_number"));
+  const username = normalize(formData.get("username"));
+  const gender = normalize(formData.get("gender"));
 
-  const payload = {
-    id: user.id,
-    full_name: full_name || null,
-    username: username || null,
-    phone_number: phone_number || null,
-    gender: gender || null,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error } = await supabase.from("profiles").upsert(payload, {
-    onConflict: "id",
-  });
-
-  if (error) {
-    redirect(`/account?error=${encodeURIComponent(error.message)}`);
+  if (!fullName) {
+    redirect(`/account?error=${encode("이름을 입력해 주세요.")}`);
   }
 
-  await supabase.auth.updateUser({
+  if (!phoneNumber) {
+    redirect(`/account?error=${encode("연락처를 입력해 주세요.")}`);
+  }
+
+  if (username && !/^[a-zA-Z0-9._]+$/.test(username)) {
+    redirect(
+      `/account?error=${encode("아이디는 영문, 숫자, 마침표, 밑줄만 사용할 수 있습니다.")}`
+    );
+  }
+
+  if (gender && !["male", "female", "other"].includes(gender)) {
+    redirect(`/account?error=${encode("성별 값이 올바르지 않습니다.")}`);
+  }
+
+  const profilePayload = {
+    full_name: fullName,
+    phone_number: phoneNumber,
+    username: username || null,
+    gender: gender || null,
+  };
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update(profilePayload)
+    .eq("id", user.id);
+
+  if (profileError) {
+    redirect(`/account?error=${encode(profileError.message)}`);
+  }
+
+  const { error: authError } = await supabase.auth.updateUser({
     data: {
-      full_name: full_name || null,
+      full_name: fullName,
+      phone_number: phoneNumber,
       username: username || null,
-      phone_number: phone_number || null,
       gender: gender || null,
     },
   });
 
-  revalidatePath("/account");
-  redirect("/account?saved=1");
+  if (authError) {
+    redirect(`/account?error=${encode(authError.message)}`);
+  }
+
+  redirect(`/account?message=${encode("저장되었습니다.")}`);
 }
