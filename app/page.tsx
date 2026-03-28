@@ -16,8 +16,8 @@ function formatPrice(value: number | string | null | undefined) {
     typeof value === "number"
       ? value
       : typeof value === "string"
-      ? Number(value)
-      : NaN;
+        ? Number(value)
+        : NaN;
 
   if (!Number.isFinite(price)) return "-";
   return `₩ ${price.toLocaleString("ko-KR")}`;
@@ -118,8 +118,8 @@ export default async function HomePage() {
         typeof item.price === "number"
           ? item.price
           : typeof item.price === "string"
-          ? Number(item.price)
-          : 0;
+            ? Number(item.price)
+            : 0;
 
       return {
         date: formatDate(item.created_at),
@@ -134,353 +134,603 @@ export default async function HomePage() {
       : 1;
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f6f1e7",
-        padding: "32px 20px 96px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1180,
-          margin: "0 auto",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.55fr) minmax(340px, 0.95fr)",
-            gap: 18,
-            alignItems: "stretch",
-          }}
-        >
-          <section
-            style={{
-              position: "relative",
-              overflow: "hidden",
-              borderRadius: 36,
-              padding: "40px 36px 34px",
-              minHeight: 440,
-              background:
-                "radial-gradient(circle at top right, rgba(137,95,54,0.18), transparent 28%), linear-gradient(135deg, #fffdf9 0%, #f7f0e6 52%, #efe2cf 100%)",
-              border: "1px solid #eadfce",
-              boxShadow: "0 24px 60px rgba(61, 41, 22, 0.08)",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                top: -60,
-                right: -30,
-                width: 220,
-                height: 220,
-                borderRadius: 999,
-                background:
-                  "radial-gradient(circle, rgba(112,72,37,0.16) 0%, rgba(112,72,37,0.05) 45%, transparent 72%)",
-                pointerEvents: "none",
-              }}
-            />
+    <main className="home-page">
+      <style>{`
+        .home-page {
+          min-height: 100vh;
+          background: #f6f1e7;
+          padding: 24px 20px 120px;
+        }
 
-            <div
-              style={{
-                position: "relative",
-                zIndex: 1,
-                maxWidth: 720,
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  height: 34,
-                  padding: "0 14px",
-                  borderRadius: 999,
-                  background: "#f3e7d6",
-                  color: "#7b6248",
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: "0.14em",
-                  marginBottom: 20,
-                }}
-              >
-                MSELL
-              </div>
+        .home-shell {
+          max-width: 1180px;
+          margin: 0 auto;
+        }
 
-              <h1
-                style={{
-                  margin: 0,
-                  color: "#17110c",
-                  fontSize: 82,
-                  lineHeight: 0.9,
-                  letterSpacing: "-0.075em",
-                  fontWeight: 950,
-                  wordBreak: "keep-all",
-                }}
-              >
-                디지털 자산
-                <br />
-                <span
-                  style={{
-                    display: "inline-block",
-                    background:
-                      "linear-gradient(180deg, #17110c 0%, #3b2918 55%, #6f4725 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  마켓플레이스
-                </span>
+        .home-top-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.95fr);
+          gap: 18px;
+          align-items: stretch;
+        }
+
+        .hero-card {
+          position: relative;
+          overflow: hidden;
+          border-radius: 36px;
+          padding: 42px 36px 34px;
+          min-height: 440px;
+          background:
+            radial-gradient(circle at top right, rgba(137,95,54,0.16), transparent 26%),
+            linear-gradient(135deg, #fffdf9 0%, #f7f0e6 52%, #efe2cf 100%);
+          border: 1px solid #eadfce;
+          box-shadow: 0 24px 60px rgba(61, 41, 22, 0.08);
+        }
+
+        .hero-glow {
+          position: absolute;
+          top: -60px;
+          right: -30px;
+          width: 220px;
+          height: 220px;
+          border-radius: 999px;
+          background: radial-gradient(circle, rgba(112,72,37,0.15) 0%, rgba(112,72,37,0.04) 45%, transparent 72%);
+          pointer-events: none;
+        }
+
+        .hero-inner {
+          position: relative;
+          z-index: 1;
+          max-width: 760px;
+        }
+
+        .eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          height: 34px;
+          padding: 0 14px;
+          border-radius: 999px;
+          background: #f3e7d6;
+          color: #7b6248;
+          font-size: 12px;
+          font-weight: 900;
+          letter-spacing: 0.14em;
+          margin-bottom: 22px;
+        }
+
+        .hero-title {
+          margin: 0;
+          color: #17110c;
+          font-size: 64px;
+          line-height: 1.02;
+          letter-spacing: -0.035em;
+          font-weight: 900;
+          word-break: keep-all;
+        }
+
+        .hero-title span {
+          display: block;
+        }
+
+        .hero-title .hero-title-accent {
+          margin-top: 8px;
+          background: linear-gradient(180deg, #17110c 0%, #332318 60%, #6c4526 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .hero-copy {
+          margin: 26px 0 0;
+          max-width: 620px;
+          color: #6e5944;
+          font-size: 18px;
+          line-height: 1.8;
+          font-weight: 650;
+          word-break: keep-all;
+        }
+
+        .hero-actions {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-top: 28px;
+        }
+
+        .primary-btn,
+        .secondary-btn,
+        .ghost-btn {
+          height: 52px;
+          padding: 0 20px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          font-size: 15px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .primary-btn {
+          background: #2f2417;
+          color: #fffaf2;
+          box-shadow: 0 12px 24px rgba(47, 36, 23, 0.18);
+        }
+
+        .secondary-btn {
+          background: #fffdf9;
+          border: 1px solid #e2d4c2;
+          color: #2f2417;
+        }
+
+        .hero-points {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+          margin-top: 28px;
+          max-width: 560px;
+        }
+
+        .hero-point {
+          border-radius: 20px;
+          padding: 14px 14px 12px;
+          background: rgba(255,253,249,0.76);
+          border: 1px solid #eadfce;
+          backdrop-filter: blur(8px);
+        }
+
+        .hero-point-title {
+          color: #1e1610;
+          font-size: 15px;
+          font-weight: 900;
+          margin-bottom: 4px;
+        }
+
+        .hero-point-copy {
+          color: #7a6651;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1.55;
+        }
+
+        .panel-card {
+          border-radius: 32px;
+          background: #fbf7f1;
+          border: 1px solid #eadfce;
+          padding: 20px;
+          box-shadow: 0 20px 44px rgba(61, 41, 22, 0.06);
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+
+        .panel-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: center;
+          margin-bottom: 18px;
+        }
+
+        .panel-eyebrow {
+          color: #a58a6d;
+          font-size: 12px;
+          font-weight: 900;
+          letter-spacing: 0.14em;
+          margin-bottom: 6px;
+        }
+
+        .panel-title {
+          color: #16110d;
+          font-size: 22px;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+        }
+
+        .pill-chip {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          height: 30px;
+          padding: 0 12px;
+          border-radius: 999px;
+          background: #f2e8db;
+          color: #7f684f;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .amount-box {
+          flex: 1;
+          min-height: 250px;
+          border-radius: 26px;
+          border: 1px solid #eadfce;
+          background: #fffdf9;
+          padding: 24px 18px 16px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 10px;
+          min-width: 0;
+          overflow: hidden;
+        }
+
+        .amount-empty {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #8a7156;
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .amount-bar-col {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
+        .amount-bar {
+          width: 100%;
+          max-width: 44px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, #d0a879 0%, #a16e3d 48%, #744a26 100%);
+          box-shadow: 0 12px 20px rgba(110, 73, 37, 0.14);
+        }
+
+        .amount-date {
+          color: #8a7156;
+          font-size: 11px;
+          font-weight: 800;
+          white-space: nowrap;
+        }
+
+        .home-mid-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 18px;
+          margin-top: 18px;
+        }
+
+        .snapshot-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .snapshot-item,
+        .flow-item,
+        .listing-card {
+          min-width: 0;
+        }
+
+        .snapshot-item {
+          border-radius: 24px;
+          background: #fffdf9;
+          border: 1px solid #eadfce;
+          padding: 18px 18px 16px;
+        }
+
+        .snapshot-label {
+          color: #9a846d;
+          font-size: 12px;
+          font-weight: 800;
+          margin-bottom: 10px;
+        }
+
+        .snapshot-value {
+          color: #16110d;
+          font-size: 34px;
+          font-weight: 900;
+          letter-spacing: -0.04em;
+        }
+
+        .flow-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .flow-item {
+          border-radius: 20px;
+          background: #fffdf9;
+          border: 1px solid #eadfce;
+          padding: 18px 16px 16px;
+        }
+
+        .flow-no {
+          color: #a58a6d;
+          font-size: 12px;
+          font-weight: 900;
+          margin-bottom: 10px;
+        }
+
+        .flow-label {
+          color: #16110d;
+          font-size: 16px;
+          font-weight: 900;
+          line-height: 1.4;
+          word-break: keep-all;
+        }
+
+        .listing-section {
+          margin-top: 24px;
+        }
+
+        .listing-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: center;
+          margin-bottom: 14px;
+          flex-wrap: wrap;
+        }
+
+        .listing-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 16px;
+        }
+
+        .listing-link {
+          text-decoration: none;
+          color: inherit;
+          min-width: 0;
+        }
+
+        .listing-card {
+          border-radius: 28px;
+          background: #fbf7f1;
+          border: 1px solid #eadfce;
+          padding: 20px;
+          box-shadow: 0 16px 34px rgba(61, 41, 22, 0.06);
+          min-height: 220px;
+        }
+
+        .listing-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .listing-title {
+          color: #16110d;
+          font-size: 30px;
+          font-weight: 900;
+          letter-spacing: -0.05em;
+          line-height: 1.08;
+          margin-bottom: 18px;
+          min-height: 66px;
+          word-break: keep-all;
+        }
+
+        .listing-price {
+          color: #1f1510;
+          font-size: 20px;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          margin-bottom: 16px;
+        }
+
+        .listing-meta {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: center;
+          color: #8a7156;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .listing-empty {
+          border-radius: 30px;
+          background: #fbf7f1;
+          border: 1px solid #eadfce;
+          padding: 40px 24px;
+          text-align: center;
+          box-shadow: 0 16px 34px rgba(61, 41, 22, 0.06);
+        }
+
+        .listing-empty-title {
+          color: #16110d;
+          font-size: 22px;
+          font-weight: 900;
+          margin-bottom: 10px;
+        }
+
+        @media (max-width: 1024px) {
+          .home-top-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .home-mid-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .listing-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .hero-title {
+            font-size: 56px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .home-page {
+            padding: 18px 12px 120px;
+          }
+
+          .hero-card,
+          .panel-card {
+            border-radius: 28px;
+          }
+
+          .hero-card {
+            min-height: auto;
+            padding: 28px 20px 22px;
+          }
+
+          .hero-title {
+            font-size: 38px;
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+          }
+
+          .hero-title .hero-title-accent {
+            margin-top: 4px;
+          }
+
+          .hero-copy {
+            margin-top: 18px;
+            font-size: 15px;
+            line-height: 1.75;
+          }
+
+          .hero-actions {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .primary-btn,
+          .secondary-btn {
+            width: 100%;
+            padding: 0 14px;
+            font-size: 14px;
+          }
+
+          .hero-points {
+            grid-template-columns: 1fr;
+            max-width: none;
+            margin-top: 18px;
+          }
+
+          .panel-card {
+            padding: 16px;
+          }
+
+          .panel-title {
+            font-size: 18px;
+          }
+
+          .amount-box {
+            min-height: 200px;
+            padding: 18px 12px 12px;
+            gap: 8px;
+          }
+
+          .amount-bar {
+            max-width: 28px;
+          }
+
+          .amount-date {
+            font-size: 10px;
+          }
+
+          .snapshot-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .flow-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .listing-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .listing-title {
+            font-size: 24px;
+            min-height: auto;
+            margin-bottom: 14px;
+          }
+
+          .listing-price {
+            font-size: 18px;
+          }
+
+          .listing-meta {
+            font-size: 11px;
+          }
+        }
+      `}</style>
+
+      <div className="home-shell">
+        <div className="home-top-grid">
+          <section className="hero-card">
+            <div className="hero-glow" />
+
+            <div className="hero-inner">
+              <div className="eyebrow">MSELL</div>
+
+              <h1 className="hero-title">
+                <span>디지털 자산</span>
+                <span className="hero-title-accent">마켓플레이스</span>
               </h1>
 
-              <p
-                style={{
-                  margin: "24px 0 0",
-                  maxWidth: 560,
-                  color: "#6e5944",
-                  fontSize: 17,
-                  lineHeight: 1.8,
-                  fontWeight: 650,
-                  wordBreak: "keep-all",
-                }}
-              >
+              <p className="hero-copy">
                 계정, 채널, 도메인, 웹사이트, 디지털 상품까지.
                 <br />
                 등록부터 문의, 협의, 이전까지 한 흐름으로 연결되는 거래 공간.
               </p>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  flexWrap: "wrap",
-                  marginTop: 28,
-                }}
-              >
-                <Link
-                  href="/listings"
-                  style={{
-                    height: 52,
-                    padding: "0 20px",
-                    borderRadius: 999,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textDecoration: "none",
-                    background: "#2f2417",
-                    color: "#fffaf2",
-                    fontSize: 15,
-                    fontWeight: 900,
-                    boxShadow: "0 12px 24px rgba(47, 36, 23, 0.18)",
-                  }}
-                >
+              <div className="hero-actions">
+                <Link href="/listings" className="primary-btn">
                   거래목록 보기
                 </Link>
 
-                <Link
-                  href="/listings/create"
-                  style={{
-                    height: 52,
-                    padding: "0 20px",
-                    borderRadius: 999,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textDecoration: "none",
-                    background: "#fffdf9",
-                    border: "1px solid #e2d4c2",
-                    color: "#2f2417",
-                    fontSize: 15,
-                    fontWeight: 900,
-                  }}
-                >
+                <Link href="/listings/create" className="secondary-btn">
                   자산 등록하기
                 </Link>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  gap: 12,
-                  marginTop: 28,
-                  maxWidth: 560,
-                }}
-              >
+              <div className="hero-points">
                 {[
                   ["빠른 등록", "핵심 정보 중심"],
                   ["안전한 문의", "딜룸 연결"],
                   ["명확한 이전", "절차 가시화"],
                 ].map(([title, desc]) => (
-                  <div
-                    key={title}
-                    style={{
-                      borderRadius: 20,
-                      padding: "14px 14px 12px",
-                      background: "rgba(255,253,249,0.72)",
-                      border: "1px solid #eadfce",
-                      backdropFilter: "blur(8px)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: "#1e1610",
-                        fontSize: 15,
-                        fontWeight: 900,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {title}
-                    </div>
-                    <div
-                      style={{
-                        color: "#7a6651",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {desc}
-                    </div>
+                  <div key={title} className="hero-point">
+                    <div className="hero-point-title">{title}</div>
+                    <div className="hero-point-copy">{desc}</div>
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          <section
-            style={{
-              borderRadius: 32,
-              background: "#fbf7f1",
-              border: "1px solid #eadfce",
-              padding: 20,
-              boxShadow: "0 20px 44px rgba(61, 41, 22, 0.06)",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "center",
-                marginBottom: 18,
-              }}
-            >
+          <section className="panel-card">
+            <div className="panel-head">
               <div>
-                <div
-                  style={{
-                    color: "#a58a6d",
-                    fontSize: 12,
-                    fontWeight: 900,
-                    letterSpacing: "0.14em",
-                    marginBottom: 6,
-                  }}
-                >
-                  AMOUNT TREND
-                </div>
-                <div
-                  style={{
-                    color: "#16110d",
-                    fontSize: 22,
-                    fontWeight: 900,
-                    letterSpacing: "-0.03em",
-                  }}
-                >
-                  거래금액 추이
-                </div>
+                <div className="panel-eyebrow">AMOUNT TREND</div>
+                <div className="panel-title">거래금액 추이</div>
               </div>
 
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: 30,
-                  padding: "0 12px",
-                  borderRadius: 999,
-                  background: "#f2e8db",
-                  color: "#7f684f",
-                  fontSize: 12,
-                  fontWeight: 900,
-                }}
-              >
-                최근 7건
-              </div>
+              <div className="pill-chip">최근 7건</div>
             </div>
 
-            <div
-              style={{
-                flex: 1,
-                minHeight: 250,
-                borderRadius: 26,
-                border: "1px solid #eadfce",
-                background: "#fffdf9",
-                padding: "24px 18px 16px",
-                display: "flex",
-                alignItems: "flex-end",
-                justifyContent: "space-between",
-                gap: 10,
-              }}
-            >
+            <div className="amount-box">
               {recentAmountSeries.length === 0 ? (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#8a7156",
-                    fontSize: 14,
-                    fontWeight: 700,
-                  }}
-                >
-                  표시할 데이터가 없습니다.
-                </div>
+                <div className="amount-empty">표시할 데이터가 없습니다.</div>
               ) : (
                 recentAmountSeries.map((item, index) => {
-                  const height = Math.max(
-                    42,
-                    Math.round((item.value / maxAmount) * 150)
-                  );
+                  const height = Math.max(42, Math.round((item.value / maxAmount) * 150));
 
                   return (
-                    <div
-                      key={`${item.date}-${index}`}
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "flex-end",
-                        gap: 10,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "100%",
-                          maxWidth: 44,
-                          height,
-                          borderRadius: 999,
-                          background:
-                            "linear-gradient(180deg, #d0a879 0%, #a16e3d 48%, #744a26 100%)",
-                          boxShadow: "0 12px 20px rgba(110, 73, 37, 0.14)",
-                        }}
-                      />
-                      <div
-                        style={{
-                          color: "#8a7156",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {item.date}
-                      </div>
+                    <div key={`${item.date}-${index}`} className="amount-bar-col">
+                      <div className="amount-bar" style={{ height }} />
+                      <div className="amount-date">{item.date}</div>
                     </div>
                   );
                 })
@@ -489,266 +739,71 @@ export default async function HomePage() {
           </section>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-            gap: 18,
-            marginTop: 18,
-          }}
-        >
-          <section
-            style={{
-              borderRadius: 30,
-              background: "#fbf7f1",
-              border: "1px solid #eadfce",
-              padding: 20,
-              boxShadow: "0 16px 34px rgba(61, 41, 22, 0.06)",
-            }}
-          >
-            <div
-              style={{
-                color: "#a58a6d",
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: "0.14em",
-                marginBottom: 8,
-              }}
-            >
-              LIVE SNAPSHOT
-            </div>
+        <div className="home-mid-grid">
+          <section className="panel-card">
+            <div className="panel-eyebrow">LIVE SNAPSHOT</div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: 14,
-              }}
-            >
+            <div className="snapshot-grid">
               {[
                 ["현재 공개 자산", String(activeListings)],
                 ["누적 등록 수", String(totalListings)],
                 ["거래 종료 수", String(soldListings)],
               ].map(([label, value]) => (
-                <div
-                  key={label}
-                  style={{
-                    borderRadius: 24,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfce",
-                    padding: "18px 18px 16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      color: "#9a846d",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      marginBottom: 10,
-                    }}
-                  >
-                    {label}
-                  </div>
-                  <div
-                    style={{
-                      color: "#16110d",
-                      fontSize: 34,
-                      fontWeight: 900,
-                      letterSpacing: "-0.04em",
-                    }}
-                  >
-                    {value}
-                  </div>
+                <div key={label} className="snapshot-item">
+                  <div className="snapshot-label">{label}</div>
+                  <div className="snapshot-value">{value}</div>
                 </div>
               ))}
             </div>
           </section>
 
-          <section
-            style={{
-              borderRadius: 30,
-              background: "#fbf7f1",
-              border: "1px solid #eadfce",
-              padding: 20,
-              boxShadow: "0 16px 34px rgba(61, 41, 22, 0.06)",
-            }}
-          >
-            <div
-              style={{
-                color: "#a58a6d",
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: "0.14em",
-                marginBottom: 8,
-              }}
-            >
-              TRADE FLOW
-            </div>
-
-            <div
-              style={{
-                color: "#16110d",
-                fontSize: 28,
-                fontWeight: 900,
-                letterSpacing: "-0.04em",
-                marginBottom: 16,
-              }}
-            >
+          <section className="panel-card">
+            <div className="panel-eyebrow">TRADE FLOW</div>
+            <div className="panel-title" style={{ marginBottom: 16 }}>
               거래 진행 4단계
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gap: 12,
-              }}
-            >
+            <div className="flow-grid">
               {[
                 ["01", "매물 확인"],
                 ["02", "거래 문의"],
                 ["03", "조건 협의"],
                 ["04", "이전 완료"],
               ].map(([no, label]) => (
-                <div
-                  key={no}
-                  style={{
-                    borderRadius: 20,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfce",
-                    padding: "18px 16px 16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      color: "#a58a6d",
-                      fontSize: 12,
-                      fontWeight: 900,
-                      marginBottom: 10,
-                    }}
-                  >
-                    {no}
-                  </div>
-                  <div
-                    style={{
-                      color: "#16110d",
-                      fontSize: 16,
-                      fontWeight: 900,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {label}
-                  </div>
+                <div key={no} className="flow-item">
+                  <div className="flow-no">{no}</div>
+                  <div className="flow-label">{label}</div>
                 </div>
               ))}
             </div>
           </section>
         </div>
 
-        <section style={{ marginTop: 24 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-              marginBottom: 14,
-              flexWrap: "wrap",
-            }}
-          >
+        <section className="listing-section">
+          <div className="listing-head">
             <div>
-              <div
-                style={{
-                  color: "#a58a6d",
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: "0.14em",
-                  marginBottom: 6,
-                }}
-              >
+              <div className="panel-eyebrow" style={{ marginBottom: 6 }}>
                 LIVE LISTINGS
               </div>
-              <div
-                style={{
-                  color: "#16110d",
-                  fontSize: 28,
-                  fontWeight: 900,
-                  letterSpacing: "-0.04em",
-                }}
-              >
+              <div className="panel-title" style={{ fontSize: 28 }}>
                 최신 등록 자산
               </div>
             </div>
 
-            <Link
-              href="/listings"
-              style={{
-                height: 42,
-                padding: "0 16px",
-                borderRadius: 999,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textDecoration: "none",
-                background: "#fffdf9",
-                border: "1px solid #e1d4c3",
-                color: "#2f2417",
-                fontSize: 14,
-                fontWeight: 900,
-              }}
-            >
+            <Link href="/listings" className="secondary-btn" style={{ height: 42 }}>
               전체 자산 보기
             </Link>
           </div>
 
           {latestListings.length === 0 ? (
-            <div
-              style={{
-                borderRadius: 30,
-                background: "#fbf7f1",
-                border: "1px solid #eadfce",
-                padding: "40px 24px",
-                textAlign: "center",
-                boxShadow: "0 16px 34px rgba(61, 41, 22, 0.06)",
-              }}
-            >
-              <div
-                style={{
-                  color: "#16110d",
-                  fontSize: 22,
-                  fontWeight: 900,
-                  marginBottom: 10,
-                }}
-              >
-                등록된 자산이 없습니다
-              </div>
-              <Link
-                href="/listings/create"
-                style={{
-                  height: 46,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#2f2417",
-                  color: "#fffaf2",
-                  fontSize: 14,
-                  fontWeight: 900,
-                }}
-              >
+            <div className="listing-empty">
+              <div className="listing-empty-title">등록된 자산이 없습니다</div>
+              <Link href="/listings/create" className="primary-btn" style={{ height: 46 }}>
                 자산등록
               </Link>
             </div>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: 16,
-              }}
-            >
+            <div className="listing-grid">
               {latestListings.map((item) => {
                 const tone = statusTone(item.status);
 
@@ -756,103 +811,28 @@ export default async function HomePage() {
                   <Link
                     key={item.id}
                     href={`/listings/${item.id}`}
-                    style={{
-                      textDecoration: "none",
-                      color: "inherit",
-                    }}
+                    className="listing-link"
                   >
-                    <article
-                      style={{
-                        borderRadius: 28,
-                        background: "#fbf7f1",
-                        border: "1px solid #eadfce",
-                        padding: 20,
-                        boxShadow: "0 16px 34px rgba(61, 41, 22, 0.06)",
-                        minHeight: 220,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          alignItems: "center",
-                          marginBottom: 16,
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            height: 30,
-                            padding: "0 12px",
-                            borderRadius: 999,
-                            background: "#f2e8db",
-                            color: "#7f684f",
-                            fontSize: 12,
-                            fontWeight: 900,
-                          }}
-                        >
-                          {item.category || "기타"}
-                        </span>
+                    <article className="listing-card">
+                      <div className="listing-top">
+                        <span className="pill-chip">{item.category || "기타"}</span>
 
                         <span
+                          className="pill-chip"
                           style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            height: 30,
-                            padding: "0 12px",
-                            borderRadius: 999,
                             background: tone.background,
                             color: tone.color,
-                            fontSize: 12,
-                            fontWeight: 900,
                           }}
                         >
                           {statusLabel(item.status)}
                         </span>
                       </div>
 
-                      <div
-                        style={{
-                          color: "#16110d",
-                          fontSize: 30,
-                          fontWeight: 900,
-                          letterSpacing: "-0.05em",
-                          lineHeight: 1.05,
-                          marginBottom: 18,
-                          minHeight: 66,
-                          wordBreak: "keep-all",
-                        }}
-                      >
-                        {item.title || "제목 없음"}
-                      </div>
+                      <div className="listing-title">{item.title || "제목 없음"}</div>
 
-                      <div
-                        style={{
-                          color: "#1f1510",
-                          fontSize: 20,
-                          fontWeight: 900,
-                          letterSpacing: "-0.03em",
-                          marginBottom: 16,
-                        }}
-                      >
-                        {formatPrice(item.price)}
-                      </div>
+                      <div className="listing-price">{formatPrice(item.price)}</div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          alignItems: "center",
-                          color: "#8a7156",
-                          fontSize: 12,
-                          fontWeight: 800,
-                        }}
-                      >
+                      <div className="listing-meta">
                         <span>{formatDate(item.created_at)}</span>
                         <span>조회 {item.view_count ?? 0}</span>
                       </div>
