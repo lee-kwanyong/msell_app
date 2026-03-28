@@ -112,10 +112,11 @@ export default async function CreateListingPage({
           top: 96px;
         }
 
-        .create-two-col {
+        .create-category-row {
           display: grid;
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 16px;
+          align-items: start;
         }
 
         @media (max-width: 980px) {
@@ -130,7 +131,7 @@ export default async function CreateListingPage({
         }
 
         @media (max-width: 640px) {
-          .create-two-col {
+          .create-category-row {
             grid-template-columns: 1fr;
           }
         }
@@ -253,54 +254,41 @@ export default async function CreateListingPage({
                 />
               </div>
 
-              <div className="create-two-col">
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 900,
-                      color: "#2f2417",
-                    }}
-                  >
-                    카테고리
-                  </label>
+              <CategoryDropdown
+                name="category"
+                defaultValue={defaultCategory}
+                required
+                showCategoryLabel={true}
+                showTypeLabel={true}
+                inline
+              />
 
-                  <CategoryDropdown
-                    name="category"
-                    defaultValue={defaultCategory}
-                    required
-                    showCategoryLabel={false}
-                    showTypeLabel={true}
-                  />
-                </div>
-
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label
-                    htmlFor="price"
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 900,
-                      color: "#2f2417",
-                    }}
-                  >
-                    희망 가격
-                  </label>
-                  <input
-                    id="price"
-                    name="price"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    step="1"
-                    required
-                    defaultValue={defaultPrice}
-                    placeholder="예: 1500000"
-                    style={field({
-                      height: 56,
-                      padding: "0 16px",
-                    })}
-                  />
-                </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <label
+                  htmlFor="price"
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 900,
+                    color: "#2f2417",
+                  }}
+                >
+                  희망 가격
+                </label>
+                <input
+                  id="price"
+                  name="price"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1"
+                  required
+                  defaultValue={defaultPrice}
+                  placeholder="예: 1500000"
+                  style={field({
+                    height: 56,
+                    padding: "0 16px",
+                  })}
+                />
               </div>
 
               <div style={{ display: "grid", gap: 8 }}>
