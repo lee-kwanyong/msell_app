@@ -1,148 +1,125 @@
 import Link from "next/link";
 
-const footerLinks = [
-  { href: "/policies/terms", label: "이용약관" },
-  { href: "/policies/privacy", label: "개인정보처리방침" },
-  { href: "/policies/ad-policy", label: "광고 운영정책" },
-  { href: "/policies/seller-policy", label: "판매자 등록정책" },
-  { href: "/policies/dispute-policy", label: "분쟁처리 및 신고정책" },
+const POLICY_LINKS = [
+  { href: "/terms", label: "이용약관" },
+  { href: "/privacy", label: "개인정보처리방침" },
+  { href: "/advertising-policy", label: "광고 운영정책" },
+  { href: "/seller-policy", label: "판매자 등록정책" },
+  { href: "/dispute-policy", label: "분쟁처리 및 신고정책" },
 ];
 
 export default function Footer() {
   return (
     <footer
       style={{
-        marginTop: 48,
-        borderTop: "1px solid #e7dccd",
+        width: "100%",
+        borderTop: "1px solid #e2d6c8",
         background: "#f6f1e7",
       }}
     >
       <div
         style={{
-          maxWidth: 1180,
+          maxWidth: 1280,
           margin: "0 auto",
-          padding: "28px 20px 34px",
+          padding: "28px 20px 120px",
         }}
       >
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            gap: 24,
-            flexWrap: "wrap",
-            alignItems: "flex-start",
+            alignItems: "center",
+            gap: 14,
+            marginBottom: 18,
           }}
         >
-          <div style={{ minWidth: 260 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 8,
-              }}
-            >
-              <span
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 10,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "#2f2417",
-                  color: "#fffaf2",
-                  fontSize: 16,
-                  fontWeight: 900,
-                }}
-              >
-                M
-              </span>
-              <div>
-                <div
-                  style={{
-                    color: "#16110d",
-                    fontSize: 18,
-                    fontWeight: 900,
-                    letterSpacing: "-0.03em",
-                  }}
-                >
-                  Msell
-                </div>
-                <div
-                  style={{
-                    color: "#8a7156",
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  DIGITAL ASSET MARKETPLACE
-                </div>
-              </div>
-            </div>
-
-            <p
-              style={{
-                margin: 0,
-                color: "#8a7156",
-                fontSize: 13,
-                lineHeight: 1.8,
-                fontWeight: 600,
-              }}
-            >
-              Msell은 디지털 자산 거래 정보를 등록하고
-              <br />
-              거래 당사자 간 연결을 돕는 플랫폼입니다.
-            </p>
-          </div>
-
           <div
             style={{
+              width: 52,
+              height: 52,
+              borderRadius: 16,
+              background: "#3b2414",
+              color: "#fff",
               display: "flex",
-              gap: 10,
-              flexWrap: "wrap",
-              justifyContent: "flex-end",
-              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 24,
+              fontWeight: 800,
+              flexShrink: 0,
             }}
           >
-            {footerLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  height: 40,
-                  padding: "0 16px",
-                  borderRadius: 999,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#fffdf9",
-                  border: "1px solid #e3d5c3",
-                  color: "#5e4a38",
-                  fontSize: 13,
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {item.label}
-              </Link>
-            ))}
+            M
+          </div>
+
+          <div>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: "#1f140d",
+                lineHeight: 1.1,
+              }}
+            >
+              Msell
+            </div>
+            <div
+              style={{
+                marginTop: 4,
+                fontSize: 11,
+                letterSpacing: "0.16em",
+                fontWeight: 700,
+                color: "#9c7f62",
+              }}
+            >
+              DIGITAL ASSET MARKETPLACE
+            </div>
           </div>
         </div>
 
-        <div
+        <p
           style={{
-            marginTop: 18,
-            paddingTop: 16,
-            borderTop: "1px solid #eadfce",
-            color: "#9a8268",
-            fontSize: 12,
-            fontWeight: 700,
+            margin: 0,
+            color: "#7b624d",
+            fontSize: 15,
+            lineHeight: 1.8,
+            wordBreak: "keep-all",
           }}
         >
-          © 2026 Msell. All rights reserved.
+          Msell은 디지털 자산 거래 정보를 등록하고
+          <br />
+          거래 당사자 간 연결을 돕는 플랫폼입니다.
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 12,
+            marginTop: 24,
+          }}
+        >
+          {POLICY_LINKS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: 52,
+                padding: "0 22px",
+                borderRadius: 9999,
+                border: "1px solid #dccfbe",
+                background: "#fffdf9",
+                color: "#5e4735",
+                fontSize: 15,
+                fontWeight: 700,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
       </div>
     </footer>
