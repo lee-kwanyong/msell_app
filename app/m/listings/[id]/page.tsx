@@ -1,552 +1,551 @@
-import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
-import { supabaseServer } from '@/lib/supabase/server'
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
-  params: Promise<{ id: string }>
-  searchParams?: Promise<{ success?: string; error?: string }>
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+type ListingRow = {
+  id: string;
+  user_id?: string | null;
+  title?: string | null;
+  category?: string | null;
+  price?: number | string | null;
+  status?: string | null;
+  created_at?: string | null;
+  thumbnail_url?: string | null;
+  description?: string | null;
+  seller_name?: string | null;
+  username?: string | null;
+};
+
+function formatPrice(value: unknown) {
+  const num =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : NaN;
+
+  if (!Number.isFinite(num)) return "가격 협의";
+  return `${new Intl.NumberFormat("ko-KR").format(num)}원`;
 }
 
-function formatPrice(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === '') return '가격 미정'
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return String(value)
-  return `${numeric.toLocaleString('ko-KR')}원`
+function formatDate(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
 }
 
-function decodeText(value?: string) {
-  return value ? decodeURIComponent(value) : ''
-}
-
-function getStatusLabel(status?: string | null) {
+function statusLabel(status?: string | null) {
   switch (status) {
-    case 'active':
-      return '거래가능'
-    case 'draft':
-      return '임시저장'
-    case 'hidden':
-      return '숨김'
-    case 'sold':
-      return '거래종료'
-    case 'pending_review':
-      return '검수중'
-    case 'reserved':
-      return '예약중'
-    case 'rejected':
-      return '반려'
-    case 'archived':
-      return '보관됨'
+    case "active":
+      return "거래가능";
+    case "reserved":
+      return "예약중";
+    case "sold":
+      return "거래종료";
+    case "hidden":
+      return "숨김";
+    case "draft":
+      return "임시저장";
+    case "pending_review":
+      return "검수중";
+    case "rejected":
+      return "반려";
+    case "archived":
+      return "보관";
     default:
-      return status || '상태미정'
+      return "거래가능";
+  }
+}
+
+function statusClassName(status?: string | null) {
+  switch (status) {
+    case "reserved":
+      return "is-reserved";
+    case "sold":
+      return "is-sold";
+    case "hidden":
+    case "draft":
+    case "pending_review":
+    case "rejected":
+    case "archived":
+      return "is-muted";
+    default:
+      return "is-active";
   }
 }
 
 function extractTransferMethod(description?: string | null) {
-  if (!description) return ''
-  const match = description.match(/^\[이전 방식\]\s*(.*)$/m)
-  return match?.[1]?.trim() || ''
+  if (!description) return "";
+  const match = description.match(/\[이전 방식\]\s*(.*)/);
+  return match?.[1]?.trim() || "";
 }
 
-function stripTransferMethod(description?: string | null) {
-  if (!description) return ''
-  return description.replace(/^\[이전 방식\]\s*.*(\n\n)?/m, '').trim()
+function cleanDescription(description?: string | null) {
+  if (!description) return "";
+  return description.replace(/\[이전 방식\]\s*.*$/m, "").trim();
 }
 
-export default async function MobileListingDetailPage({
-  params,
-  searchParams,
-}: PageProps) {
-  const { id } = await params
-  const pageParams = searchParams ? await searchParams : undefined
-  const success = decodeText(pageParams?.success)
-  const error = decodeText(pageParams?.error)
+function firstText(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
 
-  const supabase = await supabaseServer()
+export default async function MobileListingDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  const supabase = await supabaseServer();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-  const { data: listing, error: listingError } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const { data, error } = await supabase
+    .from("listings")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
 
-  if (listingError || !listing) {
-    notFound()
+  if (error) {
+    notFound();
   }
 
-  const ownerId = listing.user_id ?? ''
-  const isOwner = !!user?.id && user.id === ownerId
-  const status = listing.status ?? 'active'
-  const statusLabel = getStatusLabel(status)
-  const transferMethod = extractTransferMethod(listing.description)
-  const pureDescription = stripTransferMethod(listing.description)
+  const listing = data as ListingRow | null;
 
-  let ownerProfile: any = null
-
-  if (ownerId) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name, username')
-      .eq('id', ownerId)
-      .maybeSingle()
-
-    ownerProfile = data
+  if (!listing?.id) {
+    notFound();
   }
 
-  async function startDealAction(formData: FormData) {
-    'use server'
-
-    const listingId = String(formData.get('listing_id') ?? '')
-
-    if (!listingId) {
-      redirect(`/m/listings/${id}?error=${encodeURIComponent('잘못된 요청입니다.')}`)
-    }
-
-    redirect(
-      `/api/deals/create?listing_id=${encodeURIComponent(listingId)}&return_to=/m/listings/${encodeURIComponent(listingId)}`
-    )
-  }
+  const isOwner = !!user?.id && !!listing.user_id && user.id === listing.user_id;
+  const transferMethod = extractTransferMethod(listing.description);
+  const cleanBody = cleanDescription(listing.description);
+  const seller = firstText(listing.seller_name, listing.username, "판매자");
+  const canInquire = listing.status === "active" || listing.status === "reserved";
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: '#f6f1e7',
-        padding: '18px 14px 132px',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 760,
-          margin: '0 auto',
-          display: 'grid',
-          gap: 14,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            flexWrap: 'wrap',
-          }}
-        >
-          <Link href="/m/listings" style={topNavLinkStyle}>
-            ← 목록
+    <>
+      <main className="msell-m-detail-page">
+        <section className="msell-m-detail-topbar">
+          <Link href="/m/listings" className="msell-m-detail-back">
+            목록으로
           </Link>
-          <Link href="/m/my/listings" style={topNavLinkStyle}>
-            내 자산
-          </Link>
+
           {isOwner ? (
-            <Link href={`/listings/${id}/edit`} style={editLinkStyle}>
+            <Link
+              href={`/listings/${listing.id}/edit`}
+              className="msell-m-detail-edit"
+            >
               수정
             </Link>
           ) : null}
-        </div>
+        </section>
 
-        {error ? <div style={errorBoxStyle}>{error}</div> : null}
-        {success ? <div style={successBoxStyle}>{success}</div> : null}
-
-        <section
-          style={{
-            background: '#ffffff',
-            border: '1px solid #eadfcf',
-            borderRadius: 24,
-            padding: 20,
-            boxShadow: '0 14px 34px rgba(47, 36, 23, 0.06)',
-            display: 'grid',
-            gap: 14,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              flexWrap: 'wrap',
-            }}
-          >
-            <span style={statusBadgeStyle}>{statusLabel}</span>
-            {listing.category ? (
-              <span style={categoryBadgeStyle}>{listing.category}</span>
-            ) : null}
+        <section className="msell-m-detail-hero">
+          <div className="msell-m-detail-thumb">
+            {listing.thumbnail_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={listing.thumbnail_url} alt={listing.title || "listing"} />
+            ) : (
+              <span>{firstText(listing.category, "기타").slice(0, 2).toUpperCase()}</span>
+            )}
           </div>
 
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 28,
-              lineHeight: 1.25,
-              fontWeight: 900,
-              color: '#241b11',
-              wordBreak: 'keep-all',
-            }}
-          >
-            {listing.title || '제목 없음'}
-          </h1>
-
-          <div
-            style={{
-              fontSize: 28,
-              lineHeight: 1.2,
-              fontWeight: 900,
-              color: '#2f2417',
-            }}
-          >
-            {formatPrice(listing.price)}
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gap: 10,
-            }}
-          >
-            <InfoCard
-              label="판매자"
-              value={
-                ownerProfile?.full_name ||
-                ownerProfile?.username ||
-                '판매자 정보 없음'
-              }
-            />
-            <InfoCard label="자산 상태" value={statusLabel} />
-            <InfoCard label="이전 방식" value={transferMethod || '별도 협의'} />
-          </div>
-
-          <div
-            style={{
-              padding: '16px',
-              borderRadius: 18,
-              background: '#fbf7f0',
-              border: '1px solid #efe4d5',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 900,
-                color: '#241b11',
-                marginBottom: 8,
-              }}
-            >
-              설명
+          <div className="msell-m-detail-header">
+            <div className="msell-m-detail-meta">
+              <span className="msell-m-detail-category">
+                {firstText(listing.category, "기타")}
+              </span>
+              <span
+                className={`msell-m-detail-status ${statusClassName(listing.status)}`}
+              >
+                {statusLabel(listing.status)}
+              </span>
             </div>
-            <div
-              style={{
-                whiteSpace: 'pre-wrap',
-                color: '#5f4f3f',
-                fontSize: 14,
-                lineHeight: 1.8,
-                wordBreak: 'keep-all',
-              }}
-            >
-              {pureDescription || '등록된 설명이 없습니다.'}
+
+            <h1 className="msell-m-detail-title">
+              {firstText(listing.title, "제목 없음")}
+            </h1>
+
+            <div className="msell-m-detail-price">{formatPrice(listing.price)}</div>
+
+            <div className="msell-m-detail-subinfo">
+              <span>{seller}</span>
+              <span>{formatDate(listing.created_at)}</span>
             </div>
           </div>
         </section>
 
-        <section
-          style={{
-            borderRadius: 24,
-            padding: 20,
-            background:
-              'linear-gradient(135deg, rgba(47,36,23,1) 0%, rgba(73,56,36,1) 100%)',
-            color: '#fffdf8',
-            boxShadow: '0 16px 38px rgba(47, 36, 23, 0.12)',
-            display: 'grid',
-            gap: 12,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: '0.1em',
-              color: 'rgba(255,248,236,0.78)',
-            }}
-          >
-            QUICK ACTION
+        <section className="msell-m-detail-summary">
+          <div className="msell-m-detail-summary-card">
+            <span>카테고리</span>
+            <strong>{firstText(listing.category, "기타")}</strong>
           </div>
-
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 24,
-              lineHeight: 1.2,
-              fontWeight: 900,
-            }}
-          >
-            모바일에서 바로
-            <br />
-            거래를 시작하세요
-          </h2>
-
-          <div
-            style={{
-              display: 'grid',
-              gap: 8,
-            }}
-          >
-            <ActionInfo text={`상태: ${statusLabel}`} />
-            <ActionInfo text={`가격: ${formatPrice(listing.price)}`} />
-            <ActionInfo text={`이전 방식: ${transferMethod || '별도 협의'}`} />
+          <div className="msell-m-detail-summary-card">
+            <span>상태</span>
+            <strong>{statusLabel(listing.status)}</strong>
           </div>
+          <div className="msell-m-detail-summary-card">
+            <span>희망 가격</span>
+            <strong>{formatPrice(listing.price)}</strong>
+          </div>
+        </section>
 
+        {transferMethod ? (
+          <section className="msell-m-detail-section">
+            <div className="msell-m-detail-section-label">이전 방식</div>
+            <div className="msell-m-detail-transfer">{transferMethod}</div>
+          </section>
+        ) : null}
+
+        <section className="msell-m-detail-section">
+          <div className="msell-m-detail-section-label">설명</div>
+          <div className="msell-m-detail-body">
+            {cleanBody ? (
+              cleanBody.split("\n").map((line, index) => (
+                <p key={`${listing.id}-${index}`}>{line || "\u00A0"}</p>
+              ))
+            ) : (
+              <p>등록된 설명이 없습니다.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="msell-m-detail-bottom">
           {isOwner ? (
-            <div style={ownerNoticeStyle}>
-              본인 자산입니다. 수정 페이지에서 내용과 상태를 관리할 수 있습니다.
-            </div>
-          ) : status === 'sold' || status === 'hidden' || status === 'archived' ? (
-            <div style={ownerNoticeStyle}>
-              현재 이 자산은 바로 문의를 시작할 수 없는 상태입니다.
-            </div>
-          ) : user ? (
-            <form action={startDealAction} style={{ display: 'grid', gap: 10 }}>
-              <input type="hidden" name="listing_id" value={id} />
-              <button type="submit" style={primaryCtaStyle}>
+            <Link
+              href={`/listings/${listing.id}/edit`}
+              className="msell-m-detail-primary"
+            >
+              자산 수정
+            </Link>
+          ) : canInquire ? (
+            <form action="/api/deals/create" method="post" className="msell-m-detail-form">
+              <input type="hidden" name="listing_id" value={listing.id} />
+              <input type="hidden" name="return_to" value={`/m/listings/${listing.id}`} />
+              <button type="submit" className="msell-m-detail-primary">
                 거래 문의 시작
               </button>
-              <Link href="/m/my/deals" style={secondaryCtaStyle}>
-                내 거래 보기
-              </Link>
             </form>
           ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
-              <Link
-                href={`/m/auth/login?next=${encodeURIComponent(`/m/listings/${id}`)}`}
-                style={primaryCtaLinkStyle}
-              >
-                로그인 후 문의 시작
-              </Link>
-              <Link
-                href={`/m/auth/signup?next=${encodeURIComponent(`/m/listings/${id}`)}`}
-                style={secondaryCtaStyle}
-              >
-                회원가입
-              </Link>
-            </div>
+            <button type="button" className="msell-m-detail-disabled" disabled>
+              현재 문의 불가
+            </button>
           )}
+
+          <Link href="/m/listings" className="msell-m-detail-secondary">
+            다른 자산 보기
+          </Link>
         </section>
+      </main>
 
-        <section
-          style={{
-            background: '#ffffff',
-            border: '1px solid #eadfcf',
-            borderRadius: 20,
-            padding: 16,
-            boxShadow: '0 14px 34px rgba(47, 36, 23, 0.06)',
-            display: 'grid',
-            gap: 10,
-          }}
-        >
-          <GuideLine text="문의 시작 시 기존 deal이 있으면 재사용됩니다." />
-          <GuideLine text="본인 자산에는 문의를 시작할 수 없습니다." />
-          <GuideLine text="메시지는 deal room에서 이어서 확인할 수 있습니다." />
-        </section>
-      </div>
-    </main>
-  )
-}
+      <style>{`
+        .msell-m-detail-page {
+          width: 100%;
+          padding: 12px 12px 0;
+          box-sizing: border-box;
+          display: grid;
+          gap: 14px;
+        }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gap: 5,
-        padding: '13px 14px',
-        borderRadius: 16,
-        background: '#fbf7f0',
-        border: '1px solid #efe4d5',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          color: '#8a745b',
-          letterSpacing: '0.06em',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 14,
-          fontWeight: 800,
-          color: '#241b11',
-          lineHeight: 1.6,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  )
-}
+        .msell-m-detail-topbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
 
-function ActionInfo({ text }: { text: string }) {
-  return (
-    <div
-      style={{
-        padding: '11px 12px',
-        borderRadius: 14,
-        background: 'rgba(255,255,255,0.08)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        fontSize: 13,
-        fontWeight: 700,
-        color: 'rgba(255,248,236,0.86)',
-      }}
-    >
-      {text}
-    </div>
-  )
-}
+        .msell-m-detail-back,
+        .msell-m-detail-edit {
+          height: 38px;
+          padding: 0 14px;
+          border-radius: 999px;
+          border: 1px solid #dfd0bb;
+          background: #fffdfa;
+          color: #2f2417;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 900;
+        }
 
-function GuideLine({ text }: { text: string }) {
-  return (
-    <div
-      style={{
-        padding: '12px 14px',
-        borderRadius: 14,
-        background: '#fbf7f0',
-        border: '1px solid #efe4d5',
-        color: '#5f4f3f',
-        fontSize: 13,
-        lineHeight: 1.7,
-      }}
-    >
-      {text}
-    </div>
-  )
-}
+        .msell-m-detail-hero {
+          display: grid;
+          gap: 14px;
+          padding: 14px;
+          border-radius: 22px;
+          border: 1px solid #e7d9c8;
+          background: linear-gradient(180deg, #fffdfa 0%, #fcf8f1 100%);
+          box-shadow: 0 16px 34px rgba(47, 36, 23, 0.06);
+        }
 
-const topNavLinkStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 40,
-  padding: '0 13px',
-  borderRadius: 14,
-  border: '1px solid #e4d6c2',
-  background: '#fffaf4',
-  color: '#241b11',
-  textDecoration: 'none',
-  fontWeight: 800,
-  fontSize: 13,
-}
+        .msell-m-detail-thumb {
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          border-radius: 22px;
+          overflow: hidden;
+          border: 1px solid #eadfce;
+          background: #f7f1e8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #8f7658;
+          font-size: 22px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+        }
 
-const editLinkStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 40,
-  padding: '0 13px',
-  borderRadius: 14,
-  background: '#2f2417',
-  color: '#ffffff',
-  textDecoration: 'none',
-  fontWeight: 800,
-  fontSize: 13,
-}
+        .msell-m-detail-thumb img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
 
-const statusBadgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 30,
-  padding: '0 10px',
-  borderRadius: 999,
-  background: '#2f2417',
-  color: '#ffffff',
-  fontSize: 11,
-  fontWeight: 800,
-}
+        .msell-m-detail-header {
+          min-width: 0;
+        }
 
-const categoryBadgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 30,
-  padding: '0 10px',
-  borderRadius: 999,
-  background: '#f0e5d7',
-  color: '#5b4938',
-  fontSize: 11,
-  fontWeight: 800,
-}
+        .msell-m-detail-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 10px;
+        }
 
-const primaryCtaStyle: React.CSSProperties = {
-  width: '100%',
-  minHeight: 54,
-  borderRadius: 18,
-  border: 'none',
-  background: '#fffaf4',
-  color: '#241b11',
-  fontSize: 15,
-  fontWeight: 900,
-  cursor: 'pointer',
-}
+        .msell-m-detail-category {
+          display: inline-flex;
+          align-items: center;
+          height: 28px;
+          padding: 0 10px;
+          border-radius: 999px;
+          background: #f1e6d6;
+          color: #8f7658;
+          font-size: 11px;
+          font-weight: 800;
+        }
 
-const primaryCtaLinkStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '100%',
-  minHeight: 54,
-  borderRadius: 18,
-  background: '#fffaf4',
-  color: '#241b11',
-  textDecoration: 'none',
-  fontSize: 15,
-  fontWeight: 900,
-}
+        .msell-m-detail-status {
+          display: inline-flex;
+          align-items: center;
+          height: 28px;
+          padding: 0 10px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 900;
+        }
 
-const secondaryCtaStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '100%',
-  minHeight: 48,
-  borderRadius: 16,
-  border: '1px solid rgba(255,255,255,0.14)',
-  color: '#fffaf2',
-  textDecoration: 'none',
-  fontSize: 14,
-  fontWeight: 800,
-  background: 'transparent',
-}
+        .msell-m-detail-status.is-active {
+          background: #edf7ef;
+          color: #256c3d;
+        }
 
-const ownerNoticeStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  borderRadius: 16,
-  background: 'rgba(255,255,255,0.08)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  color: 'rgba(255,248,236,0.9)',
-  fontSize: 14,
-  lineHeight: 1.75,
-  fontWeight: 700,
-}
+        .msell-m-detail-status.is-reserved {
+          background: #fff3e6;
+          color: #9c5a16;
+        }
 
-const errorBoxStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  borderRadius: 14,
-  background: '#fff4f2',
-  border: '1px solid #f1d0c8',
-  color: '#9a3f2d',
-  fontSize: 14,
-  fontWeight: 700,
-  lineHeight: 1.6,
-}
+        .msell-m-detail-status.is-sold {
+          background: #efe8ff;
+          color: #5c3ea8;
+        }
 
-const successBoxStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  borderRadius: 14,
-  background: '#f4fbf4',
-  border: '1px solid #d5ead5',
-  color: '#2f6b3d',
-  fontSize: 14,
-  fontWeight: 700,
-  lineHeight: 1.6,
+        .msell-m-detail-status.is-muted {
+          background: #f2eee7;
+          color: #8f7658;
+        }
+
+        .msell-m-detail-title {
+          margin: 0;
+          color: #1f140c;
+          font-size: 24px;
+          line-height: 1.35;
+          letter-spacing: -0.03em;
+          font-weight: 900;
+          word-break: break-word;
+        }
+
+        .msell-m-detail-price {
+          margin-top: 10px;
+          color: #2f2417;
+          font-size: 24px;
+          line-height: 1.2;
+          font-weight: 900;
+        }
+
+        .msell-m-detail-subinfo {
+          margin-top: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          color: #8f7658;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .msell-m-detail-summary {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .msell-m-detail-summary-card {
+          padding: 14px 12px;
+          border-radius: 18px;
+          border: 1px solid #e7d9c8;
+          background: #fffdfa;
+          display: grid;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .msell-m-detail-summary-card span {
+          color: #9b7b58;
+          font-size: 11px;
+          font-weight: 800;
+        }
+
+        .msell-m-detail-summary-card strong {
+          color: #1f140c;
+          font-size: 14px;
+          line-height: 1.4;
+          font-weight: 900;
+          word-break: break-word;
+        }
+
+        .msell-m-detail-section {
+          display: grid;
+          gap: 10px;
+          padding: 14px;
+          border-radius: 22px;
+          border: 1px solid #e7d9c8;
+          background: linear-gradient(180deg, #fffdfa 0%, #fcf8f1 100%);
+          box-shadow: 0 16px 34px rgba(47, 36, 23, 0.05);
+        }
+
+        .msell-m-detail-section-label {
+          color: #9b7b58;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+        }
+
+        .msell-m-detail-transfer {
+          color: #2f2417;
+          font-size: 14px;
+          line-height: 1.6;
+          font-weight: 800;
+        }
+
+        .msell-m-detail-body {
+          display: grid;
+          gap: 10px;
+          color: #5e4b38;
+          font-size: 14px;
+          line-height: 1.75;
+          font-weight: 600;
+        }
+
+        .msell-m-detail-body p {
+          margin: 0;
+          word-break: break-word;
+        }
+
+        .msell-m-detail-bottom {
+          display: grid;
+          gap: 10px;
+        }
+
+        .msell-m-detail-form {
+          width: 100%;
+        }
+
+        .msell-m-detail-primary,
+        .msell-m-detail-secondary,
+        .msell-m-detail-disabled {
+          width: 100%;
+          height: 52px;
+          border-radius: 999px;
+          font-size: 14px;
+          font-weight: 900;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          box-sizing: border-box;
+        }
+
+        .msell-m-detail-primary {
+          border: none;
+          background: linear-gradient(180deg, #2f1d10 0%, #23140a 100%);
+          color: #ffffff;
+          box-shadow: 0 10px 24px rgba(47, 29, 16, 0.18);
+          cursor: pointer;
+        }
+
+        .msell-m-detail-secondary {
+          border: 1px solid #dfd0bb;
+          background: #eadfcf;
+          color: #2f2417;
+        }
+
+        .msell-m-detail-disabled {
+          border: 1px solid #e5ddd2;
+          background: #f2eee7;
+          color: #9b7b58;
+          cursor: not-allowed;
+        }
+
+        @media (max-width: 380px) {
+          .msell-m-detail-page {
+            padding-left: 10px;
+            padding-right: 10px;
+          }
+
+          .msell-m-detail-hero,
+          .msell-m-detail-section {
+            padding: 12px;
+            border-radius: 20px;
+          }
+
+          .msell-m-detail-thumb {
+            border-radius: 18px;
+          }
+
+          .msell-m-detail-title {
+            font-size: 22px;
+          }
+
+          .msell-m-detail-price {
+            font-size: 22px;
+          }
+
+          .msell-m-detail-summary {
+            grid-template-columns: 1fr;
+          }
+
+          .msell-m-detail-primary,
+          .msell-m-detail-secondary,
+          .msell-m-detail-disabled {
+            height: 50px;
+            font-size: 13px;
+          }
+        }
+      `}</style>
+    </>
+  );
 }
