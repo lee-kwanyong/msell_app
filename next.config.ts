@@ -28,6 +28,16 @@ const nextConfig: NextConfig = {
         destination: "/dispute-policy",
         permanent: true,
       },
+      {
+        source: "/policies/dispute",
+        destination: "/dispute-policy",
+        permanent: true,
+      },
+      {
+        source: "/policies/report",
+        destination: "/dispute-policy",
+        permanent: true,
+      },
     ];
   },
 };
