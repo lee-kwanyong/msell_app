@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 
 function formatPrice(value: number | string | null | undefined) {
@@ -37,6 +37,88 @@ function statusLabel(status?: string | null) {
   }
 }
 
+function categoryMeta(category?: string | null) {
+  switch (category) {
+    case "YouTube Channel":
+      return {
+        short: "YT",
+        bg: "#fff1f2",
+        color: "#b91c1c",
+        guide: "채널 주제, 구독자 성격, 수익화 상태, 운영 기간을 확인하기 좋은 유형",
+      };
+    case "Instagram Account":
+      return {
+        short: "IG",
+        bg: "#fdf0f7",
+        color: "#b83b7c",
+        guide: "팔로워 품질, 주제 적합성, 계정 히스토리를 함께 보는 유형",
+      };
+    case "TikTok Account":
+      return {
+        short: "TT",
+        bg: "#eefcff",
+        color: "#0f766e",
+        guide: "짧은 영상 중심 성장 계정과 콘텐츠 운영권 거래에 적합한 유형",
+      };
+    case "Website / Blog":
+      return {
+        short: "WB",
+        bg: "#eff6ff",
+        color: "#1d4ed8",
+        guide: "트래픽, SEO, 수익 구조, 운영 이력을 확인하기 좋은 유형",
+      };
+    case "Store / Commerce":
+      return {
+        short: "SC",
+        bg: "#fefce8",
+        color: "#a16207",
+        guide: "상품 구조, 주문 흐름, 고객 재구매 데이터를 확인하기 좋은 유형",
+      };
+    case "SaaS / App":
+      return {
+        short: "SA",
+        bg: "#ecfdf5",
+        color: "#15803d",
+        guide: "사용자 수, 결제 구조, 운영 문서 인계가 중요한 유형",
+      };
+    case "Domain":
+      return {
+        short: "DM",
+        bg: "#f3f4f6",
+        color: "#111827",
+        guide: "짧고 명확한 네이밍, 브랜드 확장성, 이전 절차가 중요한 유형",
+      };
+    case "Newsletter / Community":
+      return {
+        short: "NC",
+        bg: "#fff7ed",
+        color: "#c2410c",
+        guide: "구독자 반응과 커뮤니티 활동성이 핵심인 유형",
+      };
+    case "Course / Digital Content":
+      return {
+        short: "CD",
+        bg: "#eef2ff",
+        color: "#3730a3",
+        guide: "강의 자료, 판권 범위, 업데이트 권한이 핵심인 유형",
+      };
+    case "Marketing Asset":
+      return {
+        short: "MA",
+        bg: "#ecfccb",
+        color: "#4d7c0f",
+        guide: "광고 계정, 운영 데이터, 성과 기록을 함께 보는 유형",
+      };
+    default:
+      return {
+        short: "ETC",
+        bg: "#f4ede3",
+        color: "#6b4e33",
+        guide: "거래 대상의 핵심 정보와 이전 범위를 명확히 확인하세요.",
+      };
+  }
+}
+
 export default async function ListingDetailPage({
   params,
 }: {
@@ -68,6 +150,7 @@ export default async function ListingDetailPage({
 
   const transferMethod = parseTransferMethod(listing.description);
   const bodyDescription = parseBodyDescription(listing.description);
+  const meta = categoryMeta(listing.category);
 
   return (
     <main
@@ -168,14 +251,32 @@ export default async function ListingDetailPage({
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
+                  gap: 8,
                   padding: "8px 12px",
                   borderRadius: 999,
-                  background: "#e9dece",
-                  color: "#845f3b",
+                  background: "#fffdf9",
+                  border: "1px solid #d8c8b2",
+                  color: "#6b4e33",
                   fontSize: 12,
                   fontWeight: 900,
                 }}
               >
+                <span
+                  style={{
+                    minWidth: 24,
+                    height: 24,
+                    borderRadius: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: meta.bg,
+                    color: meta.color,
+                    fontSize: 10,
+                    fontWeight: 900,
+                  }}
+                >
+                  {meta.short}
+                </span>
                 {listing.category || "기타"}
               </span>
 
@@ -191,7 +292,7 @@ export default async function ListingDetailPage({
                   fontWeight: 900,
                 }}
               >
-                {listing.price_negotiable ? "금액협의 가능" : "금액협의 불가"}
+                {listing.price_negotiable ? "금액 협의 가능" : "금액 협의 불가"}
               </span>
 
               <span
@@ -235,6 +336,36 @@ export default async function ListingDetailPage({
                 }}
               >
                 {formatPrice(listing.price)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                borderRadius: 20,
+                border: "1px solid #d8c8b2",
+                background: "#fffdf9",
+                padding: 18,
+              }}
+            >
+              <div
+                style={{
+                  color: "#8a7156",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  marginBottom: 8,
+                }}
+              >
+                카테고리 안내
+              </div>
+              <div
+                style={{
+                  color: "#2f2417",
+                  fontSize: 15,
+                  lineHeight: 1.7,
+                  fontWeight: 700,
+                }}
+              >
+                {meta.guide}
               </div>
             </div>
 
@@ -355,6 +486,22 @@ export default async function ListingDetailPage({
                 </div>
                 <div style={{ color: "#2f2417", fontSize: 14, fontWeight: 800 }}>
                   {listing.price_negotiable ? "가능" : "불가능"}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  borderRadius: 18,
+                  border: "1px solid #d8c8b2",
+                  background: "#fffdf9",
+                  padding: "14px 16px",
+                }}
+              >
+                <div style={{ color: "#8a7156", fontSize: 12, fontWeight: 900, marginBottom: 6 }}>
+                  자산 유형
+                </div>
+                <div style={{ color: "#2f2417", fontSize: 14, fontWeight: 800 }}>
+                  {listing.category || "-"}
                 </div>
               </div>
             </section>

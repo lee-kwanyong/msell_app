@@ -390,7 +390,7 @@ export default async function CreateListingPage({
                   name="description"
                   required
                   defaultValue={defaultDescription}
-                  placeholder="운영 기간, 수익 구조, 팔로워/구독자 상태, 인수인계 범위를 구체적으로 적어 주세요."
+                  placeholder="운영 기간, 핵심 지표, 수익 구조, 인수인계 범위를 구체적으로 적어 주세요."
                   style={field({
                     minHeight: 180,
                     padding: "16px",
@@ -507,6 +507,29 @@ export default async function CreateListingPage({
                       marginBottom: 6,
                     }}
                   >
+                    카테고리 선택
+                  </div>
+                  <div
+                    style={{
+                      color: "#6f5a46",
+                      fontSize: 14,
+                      lineHeight: 1.7,
+                      fontWeight: 700,
+                    }}
+                  >
+                    처음에는 YouTube Channel, Instagram Account, Website / Blog 중심으로 등록하는 흐름이 가장 자연스럽습니다.
+                  </div>
+                </div>
+
+                <div style={helperItemStyle()}>
+                  <div
+                    style={{
+                      color: "#2f2417",
+                      fontSize: 14,
+                      fontWeight: 900,
+                      marginBottom: 6,
+                    }}
+                  >
                     제목
                   </div>
                   <div
@@ -517,7 +540,30 @@ export default async function CreateListingPage({
                       fontWeight: 700,
                     }}
                   >
-                    자산의 핵심이 바로 보이도록 짧고 명확하게 작성
+                    자산의 성격이 한눈에 보이도록 짧고 명확하게 작성
+                  </div>
+                </div>
+
+                <div style={helperItemStyle()}>
+                  <div
+                    style={{
+                      color: "#2f2417",
+                      fontSize: 14,
+                      fontWeight: 900,
+                      marginBottom: 6,
+                    }}
+                  >
+                    가격과 협의 여부
+                  </div>
+                  <div
+                    style={{
+                      color: "#6f5a46",
+                      fontSize: 14,
+                      lineHeight: 1.7,
+                      fontWeight: 700,
+                    }}
+                  >
+                    희망 가격은 숫자로 입력하고, 협의 가능 여부를 함께 표시하면 문의 전환에 도움이 됩니다.
                   </div>
                 </div>
 
@@ -540,53 +586,7 @@ export default async function CreateListingPage({
                       fontWeight: 700,
                     }}
                   >
-                    운영 이력, 수익 구조, 이전 범위를 중심으로 작성
-                  </div>
-                </div>
-
-                <div style={helperItemStyle()}>
-                  <div
-                    style={{
-                      color: "#2f2417",
-                      fontSize: 14,
-                      fontWeight: 900,
-                      marginBottom: 6,
-                    }}
-                  >
-                    가격
-                  </div>
-                  <div
-                    style={{
-                      color: "#6f5a46",
-                      fontSize: 14,
-                      lineHeight: 1.7,
-                      fontWeight: 700,
-                    }}
-                  >
-                    실제 희망 거래가는 숫자로 입력하고 협의 가능 여부를 함께 선택
-                  </div>
-                </div>
-
-                <div style={helperItemStyle()}>
-                  <div
-                    style={{
-                      color: "#2f2417",
-                      fontSize: 14,
-                      fontWeight: 900,
-                      marginBottom: 6,
-                    }}
-                  >
-                    상태
-                  </div>
-                  <div
-                    style={{
-                      color: "#6f5a46",
-                      fontSize: 14,
-                      lineHeight: 1.7,
-                      fontWeight: 700,
-                    }}
-                  >
-                    공개 판매는 거래가능, 보관은 임시저장 또는 숨김 사용
+                    운영 기간, 핵심 지표, 수익 구조, 인수인계 범위를 중심으로 작성
                   </div>
                 </div>
               </div>
