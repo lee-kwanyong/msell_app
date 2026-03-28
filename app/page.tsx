@@ -3,34 +3,135 @@ import { supabaseServer } from "@/lib/supabase/server";
 
 type ListingRow = {
   id: string;
-  title: string | null;
-  category: string | null;
-  price: number | null;
-  status: string | null;
-  created_at: string | null;
+  title?: string | null;
+  category?: string | null;
+  price?: number | string | null;
+  status?: string | null;
+  created_at?: string | null;
+  view_count?: number | null;
 };
 
-function priceLabel(price?: number | null) {
-  if (typeof price !== "number" || Number.isNaN(price)) return "-";
+function formatPrice(value: number | string | null | undefined) {
+  const price =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+      ? Number(value)
+      : NaN;
+
+  if (!Number.isFinite(price)) return "-";
   return `₩ ${price.toLocaleString("ko-KR")}`;
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function statusLabel(status?: string | null) {
+  const value = (status || "").toLowerCase();
+
+  const map: Record<string, string> = {
+    active: "거래가능",
+    draft: "임시저장",
+    hidden: "숨김",
+    sold: "거래종료",
+    reserved: "예약중",
+    pending_review: "검토중",
+    rejected: "반려",
+    archived: "보관",
+  };
+
+  return map[value] || status || "-";
+}
+
+function statusTone(status?: string | null) {
+  const value = (status || "").toLowerCase();
+
+  if (value === "active") {
+    return {
+      background: "#e8f6ea",
+      color: "#3f8a53",
+    };
+  }
+
+  if (value === "sold") {
+    return {
+      background: "#f2e8db",
+      color: "#7f684f",
+    };
+  }
+
+  if (value === "reserved") {
+    return {
+      background: "#fff3d8",
+      color: "#9a6b10",
+    };
+  }
+
+  return {
+    background: "#f2e8db",
+    color: "#7f684f",
+  };
 }
 
 export default async function HomePage() {
   const supabase = await supabaseServer();
 
-  const { data: listings } = await supabase
-    .from("listings")
-    .select("id, title, category, price, status, created_at")
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(6);
+  const [
+    latestListingsResult,
+    totalListingsResult,
+    activeListingsResult,
+    soldListingsResult,
+  ] = await Promise.all([
+    supabase
+      .from("listings")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(6),
+    supabase.from("listings").select("*", { count: "exact", head: true }),
+    supabase
+      .from("listings")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "active"),
+    supabase
+      .from("listings")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "sold"),
+  ]);
 
-  const activeListings = (listings ?? []) as ListingRow[];
-  const totalActive = activeListings.length;
-  const totalAmount = activeListings.reduce(
-    (sum, item) => sum + (typeof item.price === "number" ? item.price : 0),
-    0
-  );
+  const latestListings = (latestListingsResult.data ?? []) as ListingRow[];
+  const totalListings = totalListingsResult.count ?? 0;
+  const activeListings = activeListingsResult.count ?? 0;
+  const soldListings = soldListingsResult.count ?? 0;
+
+  const recentAmountSeries = latestListings
+    .slice(0, 7)
+    .map((item) => {
+      const raw =
+        typeof item.price === "number"
+          ? item.price
+          : typeof item.price === "string"
+          ? Number(item.price)
+          : 0;
+
+      return {
+        date: formatDate(item.created_at),
+        value: Number.isFinite(raw) ? raw : 0,
+      };
+    })
+    .reverse();
+
+  const maxAmount =
+    recentAmountSeries.length > 0
+      ? Math.max(...recentAmountSeries.map((item) => item.value), 1)
+      : 1;
 
   return (
     <main
@@ -49,217 +150,212 @@ export default async function HomePage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.55fr) minmax(320px, 0.95fr)",
-            gap: 24,
+            gridTemplateColumns: "minmax(0, 1.55fr) minmax(340px, 0.95fr)",
+            gap: 18,
             alignItems: "stretch",
           }}
         >
           <section
             style={{
-              background: "#fbf7f1",
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: 36,
+              padding: "40px 36px 34px",
+              minHeight: 440,
+              background:
+                "radial-gradient(circle at top right, rgba(137,95,54,0.18), transparent 28%), linear-gradient(135deg, #fffdf9 0%, #f7f0e6 52%, #efe2cf 100%)",
               border: "1px solid #eadfce",
-              borderRadius: 34,
-              padding: 28,
-              boxShadow: "0 18px 40px rgba(61, 41, 22, 0.06)",
+              boxShadow: "0 24px 60px rgba(61, 41, 22, 0.08)",
             }}
           >
             <div
               style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: "0.16em",
-                color: "#a58a6d",
-                marginBottom: 14,
+                position: "absolute",
+                top: -60,
+                right: -30,
+                width: 220,
+                height: 220,
+                borderRadius: 999,
+                background:
+                  "radial-gradient(circle, rgba(112,72,37,0.16) 0%, rgba(112,72,37,0.05) 45%, transparent 72%)",
+                pointerEvents: "none",
               }}
-            >
-              MSELL
-            </div>
-
-            <h1
-              style={{
-                margin: 0,
-                color: "#16110d",
-                fontSize: 66,
-                lineHeight: 0.98,
-                letterSpacing: "-0.05em",
-                fontWeight: 900,
-              }}
-            >
-              디지털 자산
-              <br />
-              마켓플레이스
-            </h1>
-
-            <p
-              style={{
-                margin: "18px 0 0",
-                maxWidth: 620,
-                color: "#6d5945",
-                fontSize: 16,
-                lineHeight: 1.75,
-                fontWeight: 600,
-              }}
-            >
-              계정, 채널, 도메인, 커뮤니티, 디지털 상품 등 거래 가능한 자산을
-              간결하게 등록하고 바로 문의까지 연결할 수 있습니다.
-            </p>
+            />
 
             <div
               style={{
-                display: "flex",
-                gap: 12,
-                flexWrap: "wrap",
-                marginTop: 24,
-              }}
-            >
-              <Link
-                href="/listings"
-                style={{
-                  height: 48,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#2f2417",
-                  color: "#fffaf2",
-                  fontSize: 14,
-                  fontWeight: 900,
-                  boxShadow: "0 10px 22px rgba(47, 36, 23, 0.18)",
-                }}
-              >
-                자산목록
-              </Link>
-
-              <Link
-                href="/listings/create"
-                style={{
-                  height: 48,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#fffdf9",
-                  color: "#2f2417",
-                  border: "1px solid #e1d4c3",
-                  fontSize: 14,
-                  fontWeight: 900,
-                }}
-              >
-                자산등록
-              </Link>
-            </div>
-
-            <div
-              style={{
-                marginTop: 26,
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: 14,
+                position: "relative",
+                zIndex: 1,
+                maxWidth: 720,
               }}
             >
               <div
                 style={{
-                  borderRadius: 24,
-                  background: "#fffdf9",
-                  border: "1px solid #eadfcf",
-                  padding: "16px 18px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  height: 34,
+                  padding: "0 14px",
+                  borderRadius: 999,
+                  background: "#f3e7d6",
+                  color: "#7b6248",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  letterSpacing: "0.14em",
+                  marginBottom: 20,
                 }}
               >
-                <div
+                MSELL
+              </div>
+
+              <h1
+                style={{
+                  margin: 0,
+                  color: "#17110c",
+                  fontSize: 82,
+                  lineHeight: 0.9,
+                  letterSpacing: "-0.075em",
+                  fontWeight: 950,
+                  wordBreak: "keep-all",
+                }}
+              >
+                디지털 자산
+                <br />
+                <span
                   style={{
-                    color: "#aa9074",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    marginBottom: 10,
+                    display: "inline-block",
+                    background:
+                      "linear-gradient(180deg, #17110c 0%, #3b2918 55%, #6f4725 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
                   }}
                 >
-                  현재 공개 자산
-                </div>
-                <div
+                  마켓플레이스
+                </span>
+              </h1>
+
+              <p
+                style={{
+                  margin: "24px 0 0",
+                  maxWidth: 560,
+                  color: "#6e5944",
+                  fontSize: 17,
+                  lineHeight: 1.8,
+                  fontWeight: 650,
+                  wordBreak: "keep-all",
+                }}
+              >
+                계정, 채널, 도메인, 웹사이트, 디지털 상품까지.
+                <br />
+                등록부터 문의, 협의, 이전까지 한 흐름으로 연결되는 거래 공간.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  marginTop: 28,
+                }}
+              >
+                <Link
+                  href="/listings"
                   style={{
-                    color: "#16110d",
-                    fontSize: 26,
+                    height: 52,
+                    padding: "0 20px",
+                    borderRadius: 999,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textDecoration: "none",
+                    background: "#2f2417",
+                    color: "#fffaf2",
+                    fontSize: 15,
                     fontWeight: 900,
-                    letterSpacing: "-0.04em",
+                    boxShadow: "0 12px 24px rgba(47, 36, 23, 0.18)",
                   }}
                 >
-                  {totalActive}
-                </div>
+                  거래목록 보기
+                </Link>
+
+                <Link
+                  href="/listings/create"
+                  style={{
+                    height: 52,
+                    padding: "0 20px",
+                    borderRadius: 999,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textDecoration: "none",
+                    background: "#fffdf9",
+                    border: "1px solid #e2d4c2",
+                    color: "#2f2417",
+                    fontSize: 15,
+                    fontWeight: 900,
+                  }}
+                >
+                  자산 등록하기
+                </Link>
               </div>
 
               <div
                 style={{
-                  borderRadius: 24,
-                  background: "#fffdf9",
-                  border: "1px solid #eadfcf",
-                  padding: "16px 18px",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 12,
+                  marginTop: 28,
+                  maxWidth: 560,
                 }}
               >
-                <div
-                  style={{
-                    color: "#aa9074",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    marginBottom: 10,
-                  }}
-                >
-                  공개 금액 합계
-                </div>
-                <div
-                  style={{
-                    color: "#16110d",
-                    fontSize: 26,
-                    fontWeight: 900,
-                    letterSpacing: "-0.04em",
-                  }}
-                >
-                  ₩ {totalAmount.toLocaleString("ko-KR")}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  borderRadius: 24,
-                  background: "#fffdf9",
-                  border: "1px solid #eadfcf",
-                  padding: "16px 18px",
-                }}
-              >
-                <div
-                  style={{
-                    color: "#aa9074",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    marginBottom: 10,
-                  }}
-                >
-                  최근 등록 자산
-                </div>
-                <div
-                  style={{
-                    color: "#16110d",
-                    fontSize: 26,
-                    fontWeight: 900,
-                    letterSpacing: "-0.04em",
-                  }}
-                >
-                  {activeListings.length}
-                </div>
+                {[
+                  ["빠른 등록", "핵심 정보 중심"],
+                  ["안전한 문의", "딜룸 연결"],
+                  ["명확한 이전", "절차 가시화"],
+                ].map(([title, desc]) => (
+                  <div
+                    key={title}
+                    style={{
+                      borderRadius: 20,
+                      padding: "14px 14px 12px",
+                      background: "rgba(255,253,249,0.72)",
+                      border: "1px solid #eadfce",
+                      backdropFilter: "blur(8px)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: "#1e1610",
+                        fontSize: 15,
+                        fontWeight: 900,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {title}
+                    </div>
+                    <div
+                      style={{
+                        color: "#7a6651",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {desc}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
 
           <section
             style={{
+              borderRadius: 32,
               background: "#fbf7f1",
               border: "1px solid #eadfce",
-              borderRadius: 34,
               padding: 20,
-              boxShadow: "0 18px 40px rgba(61, 41, 22, 0.06)",
+              boxShadow: "0 20px 44px rgba(61, 41, 22, 0.06)",
               display: "flex",
               flexDirection: "column",
             }}
@@ -270,17 +366,17 @@ export default async function HomePage() {
                 justifyContent: "space-between",
                 gap: 12,
                 alignItems: "center",
-                marginBottom: 14,
+                marginBottom: 18,
               }}
             >
               <div>
                 <div
                   style={{
+                    color: "#a58a6d",
                     fontSize: 12,
                     fontWeight: 900,
-                    letterSpacing: "0.16em",
-                    color: "#a58a6d",
-                    marginBottom: 8,
+                    letterSpacing: "0.14em",
+                    marginBottom: 6,
                   }}
                 >
                   AMOUNT TREND
@@ -288,8 +384,9 @@ export default async function HomePage() {
                 <div
                   style={{
                     color: "#16110d",
-                    fontSize: 18,
+                    fontSize: 22,
                     fontWeight: 900,
+                    letterSpacing: "-0.03em",
                   }}
                 >
                   거래금액 추이
@@ -298,264 +395,281 @@ export default async function HomePage() {
 
               <div
                 style={{
-                  height: 30,
-                  padding: "0 12px",
-                  borderRadius: 999,
-                  background: "#f2e9dd",
-                  color: "#8a7156",
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  height: 30,
+                  padding: "0 12px",
+                  borderRadius: 999,
+                  background: "#f2e8db",
+                  color: "#7f684f",
                   fontSize: 12,
-                  fontWeight: 800,
+                  fontWeight: 900,
                 }}
               >
-                최근 7일
+                최근 7건
               </div>
             </div>
 
             <div
               style={{
                 flex: 1,
-                minHeight: 240,
+                minHeight: 250,
                 borderRadius: 26,
+                border: "1px solid #eadfce",
                 background: "#fffdf9",
-                border: "1px solid #eadfcf",
-                padding: 16,
+                padding: "24px 18px 16px",
                 display: "flex",
-                flexDirection: "column",
-                justifyContent: "end",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                gap: 10,
               }}
             >
-              <div
-                style={{
-                  height: 150,
-                  display: "grid",
-                  gridTemplateColumns: "repeat(7, 1fr)",
-                  gap: 10,
-                  alignItems: "end",
-                }}
-              >
-                {[54, 88, 46, 96, 64, 118, 82].map((height, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "end",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "100%",
-                        maxWidth: 32,
-                        height,
-                        borderRadius: 999,
-                        background:
-                          "linear-gradient(180deg, #c7a27a 0%, #7b4f28 100%)",
-                        boxShadow: "0 8px 20px rgba(91, 57, 27, 0.15)",
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
+              {recentAmountSeries.length === 0 ? (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#8a7156",
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  표시할 데이터가 없습니다.
+                </div>
+              ) : (
+                recentAmountSeries.map((item, index) => {
+                  const height = Math.max(
+                    42,
+                    Math.round((item.value / maxAmount) * 150)
+                  );
 
-              <div
-                style={{
-                  marginTop: 12,
-                  display: "grid",
-                  gridTemplateColumns: "repeat(7, 1fr)",
-                  gap: 10,
-                }}
-              >
-                {["3/21", "3/22", "3/23", "3/24", "3/25", "3/26", "3/27"].map(
-                  (date) => (
+                  return (
                     <div
-                      key={date}
+                      key={`${item.date}-${index}`}
                       style={{
-                        textAlign: "center",
-                        color: "#9b8367",
-                        fontSize: 11,
-                        fontWeight: 700,
+                        flex: 1,
+                        minWidth: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        gap: 10,
                       }}
                     >
-                      {date}
+                      <div
+                        style={{
+                          width: "100%",
+                          maxWidth: 44,
+                          height,
+                          borderRadius: 999,
+                          background:
+                            "linear-gradient(180deg, #d0a879 0%, #a16e3d 48%, #744a26 100%)",
+                          boxShadow: "0 12px 20px rgba(110, 73, 37, 0.14)",
+                        }}
+                      />
+                      <div
+                        style={{
+                          color: "#8a7156",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {item.date}
+                      </div>
                     </div>
-                  )
-                )}
-              </div>
+                  );
+                })
+              )}
             </div>
           </section>
         </div>
 
-        <section
+        <div
           style={{
-            marginTop: 24,
-            background: "#fbf7f1",
-            border: "1px solid #eadfce",
-            borderRadius: 34,
-            padding: 22,
-            boxShadow: "0 18px 40px rgba(61, 41, 22, 0.06)",
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+            gap: 18,
+            marginTop: 18,
           }}
         >
-          <div
+          <section
             style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.2fr)",
-              gap: 18,
+              borderRadius: 30,
+              background: "#fbf7f1",
+              border: "1px solid #eadfce",
+              padding: 20,
+              boxShadow: "0 16px 34px rgba(61, 41, 22, 0.06)",
             }}
           >
             <div
               style={{
-                borderRadius: 24,
-                background: "#fffdf9",
-                border: "1px solid #eadfcf",
-                padding: 20,
+                color: "#a58a6d",
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.14em",
+                marginBottom: 8,
               }}
             >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: "0.16em",
-                  color: "#a58a6d",
-                  marginBottom: 8,
-                }}
-              >
-                POLICY
-              </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 900,
-                  color: "#16110d",
-                  marginBottom: 10,
-                }}
-              >
-                운영 방침
-              </div>
-              <ul
-                style={{
-                  margin: 0,
-                  paddingLeft: 18,
-                  color: "#6e5946",
-                  fontSize: 14,
-                  lineHeight: 1.9,
-                  fontWeight: 600,
-                }}
-              >
-                <li>등록 정보는 간결하고 확인 가능한 항목 중심으로 노출</li>
-                <li>거래 시작 전 조건과 이전 범위를 반드시 확인</li>
-                <li>허위 매물, 중복 등록, 불분명한 정보는 운영 기준에 따라 조정</li>
-                <li>문의 이후 진행은 당사자 간 협의를 기준으로 이어짐</li>
-              </ul>
+              LIVE SNAPSHOT
             </div>
 
             <div
               style={{
-                borderRadius: 24,
-                background: "#fffdf9",
-                border: "1px solid #eadfcf",
-                padding: 20,
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: 14,
               }}
             >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: "0.16em",
-                  color: "#a58a6d",
-                  marginBottom: 8,
-                }}
-              >
-                TRADE FLOW
-              </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 900,
-                  color: "#16110d",
-                  marginBottom: 16,
-                }}
-              >
-                거래 진행 4단계
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                  gap: 12,
-                }}
-              >
-                {[
-                  { no: "01", title: "매물 확인" },
-                  { no: "02", title: "거래 문의" },
-                  { no: "03", title: "조건 협의" },
-                  { no: "04", title: "이전 완료" },
-                ].map((item) => (
+              {[
+                ["현재 공개 자산", String(activeListings)],
+                ["누적 등록 수", String(totalListings)],
+                ["거래 종료 수", String(soldListings)],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    borderRadius: 24,
+                    background: "#fffdf9",
+                    border: "1px solid #eadfce",
+                    padding: "18px 18px 16px",
+                  }}
+                >
                   <div
-                    key={item.no}
                     style={{
-                      borderRadius: 20,
-                      background: "#f8f1e7",
-                      border: "1px solid #eadfcf",
-                      padding: "16px 14px",
+                      color: "#9a846d",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      marginBottom: 10,
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "#aa9074",
-                        fontWeight: 900,
-                        marginBottom: 18,
-                      }}
-                    >
-                      {item.no}
-                    </div>
-                    <div
-                      style={{
-                        color: "#16110d",
-                        fontSize: 16,
-                        fontWeight: 900,
-                      }}
-                    >
-                      {item.title}
-                    </div>
+                    {label}
                   </div>
-                ))}
-              </div>
+                  <div
+                    style={{
+                      color: "#16110d",
+                      fontSize: 34,
+                      fontWeight: 900,
+                      letterSpacing: "-0.04em",
+                    }}
+                  >
+                    {value}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section style={{ marginTop: 28 }}>
+          <section
+            style={{
+              borderRadius: 30,
+              background: "#fbf7f1",
+              border: "1px solid #eadfce",
+              padding: 20,
+              boxShadow: "0 16px 34px rgba(61, 41, 22, 0.06)",
+            }}
+          >
+            <div
+              style={{
+                color: "#a58a6d",
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.14em",
+                marginBottom: 8,
+              }}
+            >
+              TRADE FLOW
+            </div>
+
+            <div
+              style={{
+                color: "#16110d",
+                fontSize: 28,
+                fontWeight: 900,
+                letterSpacing: "-0.04em",
+                marginBottom: 16,
+              }}
+            >
+              거래 진행 4단계
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gap: 12,
+              }}
+            >
+              {[
+                ["01", "매물 확인"],
+                ["02", "거래 문의"],
+                ["03", "조건 협의"],
+                ["04", "이전 완료"],
+              ].map(([no, label]) => (
+                <div
+                  key={no}
+                  style={{
+                    borderRadius: 20,
+                    background: "#fffdf9",
+                    border: "1px solid #eadfce",
+                    padding: "18px 16px 16px",
+                  }}
+                >
+                  <div
+                    style={{
+                      color: "#a58a6d",
+                      fontSize: 12,
+                      fontWeight: 900,
+                      marginBottom: 10,
+                    }}
+                  >
+                    {no}
+                  </div>
+                  <div
+                    style={{
+                      color: "#16110d",
+                      fontSize: 16,
+                      fontWeight: 900,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <section style={{ marginTop: 24 }}>
           <div
             style={{
               display: "flex",
-              alignItems: "end",
               justifyContent: "space-between",
-              gap: 16,
+              gap: 12,
+              alignItems: "center",
               marginBottom: 14,
+              flexWrap: "wrap",
             }}
           >
             <div>
               <div
                 style={{
+                  color: "#a58a6d",
                   fontSize: 12,
                   fontWeight: 900,
-                  letterSpacing: "0.16em",
-                  color: "#a58a6d",
+                  letterSpacing: "0.14em",
                   marginBottom: 6,
                 }}
               >
                 LIVE LISTINGS
               </div>
-              <h2
+              <div
                 style={{
-                  margin: 0,
                   color: "#16110d",
                   fontSize: 28,
                   fontWeight: 900,
@@ -563,14 +677,14 @@ export default async function HomePage() {
                 }}
               >
                 최신 등록 자산
-              </h2>
+              </div>
             </div>
 
             <Link
               href="/listings"
               style={{
-                height: 40,
-                padding: "0 14px",
+                height: 42,
+                padding: "0 16px",
                 borderRadius: 999,
                 display: "inline-flex",
                 alignItems: "center",
@@ -579,7 +693,7 @@ export default async function HomePage() {
                 background: "#fffdf9",
                 border: "1px solid #e1d4c3",
                 color: "#2f2417",
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 900,
               }}
             >
@@ -587,121 +701,26 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          {activeListings.length > 0 ? (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: 16,
-              }}
-            >
-              {activeListings.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/listings/${item.id}`}
-                  style={{
-                    textDecoration: "none",
-                    color: "inherit",
-                  }}
-                >
-                  <article
-                    style={{
-                      height: "100%",
-                      borderRadius: 28,
-                      background: "#fbf7f1",
-                      border: "1px solid #eadfce",
-                      padding: 20,
-                      boxShadow: "0 14px 34px rgba(61, 41, 22, 0.06)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        height: 32,
-                        padding: "0 12px",
-                        borderRadius: 999,
-                        background: "#f2e8db",
-                        color: "#7f684f",
-                        fontSize: 12,
-                        fontWeight: 800,
-                        marginBottom: 16,
-                      }}
-                    >
-                      {item.category || "기타"}
-                    </div>
-
-                    <div
-                      style={{
-                        color: "#16110d",
-                        fontSize: 22,
-                        fontWeight: 900,
-                        lineHeight: 1.2,
-                        letterSpacing: "-0.03em",
-                        minHeight: 54,
-                      }}
-                    >
-                      {item.title || "제목 없음"}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 18,
-                        color: "#2f2417",
-                        fontSize: 26,
-                        fontWeight: 900,
-                        letterSpacing: "-0.04em",
-                      }}
-                    >
-                      {priceLabel(item.price)}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 14,
-                        color: "#8a7156",
-                        fontSize: 13,
-                        fontWeight: 700,
-                      }}
-                    >
-                      상태: {item.status || "-"}
-                    </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-          ) : (
+          {latestListings.length === 0 ? (
             <div
               style={{
                 borderRadius: 30,
                 background: "#fbf7f1",
                 border: "1px solid #eadfce",
-                padding: "50px 24px",
+                padding: "40px 24px",
                 textAlign: "center",
-                boxShadow: "0 14px 34px rgba(61, 41, 22, 0.06)",
+                boxShadow: "0 16px 34px rgba(61, 41, 22, 0.06)",
               }}
             >
               <div
                 style={{
                   color: "#16110d",
-                  fontSize: 28,
+                  fontSize: 22,
                   fontWeight: 900,
                   marginBottom: 10,
-                  letterSpacing: "-0.03em",
                 }}
               >
                 등록된 자산이 없습니다
-              </div>
-              <div
-                style={{
-                  color: "#7c6852",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  lineHeight: 1.7,
-                  marginBottom: 22,
-                }}
-              >
-                첫 자산을 등록하고 거래 흐름을 시작하세요.
               </div>
               <Link
                 href="/listings/create"
@@ -717,11 +736,130 @@ export default async function HomePage() {
                   color: "#fffaf2",
                   fontSize: 14,
                   fontWeight: 900,
-                  boxShadow: "0 10px 22px rgba(47, 36, 23, 0.18)",
                 }}
               >
                 자산등록
               </Link>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: 16,
+              }}
+            >
+              {latestListings.map((item) => {
+                const tone = statusTone(item.status);
+
+                return (
+                  <Link
+                    key={item.id}
+                    href={`/listings/${item.id}`}
+                    style={{
+                      textDecoration: "none",
+                      color: "inherit",
+                    }}
+                  >
+                    <article
+                      style={{
+                        borderRadius: 28,
+                        background: "#fbf7f1",
+                        border: "1px solid #eadfce",
+                        padding: 20,
+                        boxShadow: "0 16px 34px rgba(61, 41, 22, 0.06)",
+                        minHeight: 220,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          alignItems: "center",
+                          marginBottom: 16,
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            height: 30,
+                            padding: "0 12px",
+                            borderRadius: 999,
+                            background: "#f2e8db",
+                            color: "#7f684f",
+                            fontSize: 12,
+                            fontWeight: 900,
+                          }}
+                        >
+                          {item.category || "기타"}
+                        </span>
+
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            height: 30,
+                            padding: "0 12px",
+                            borderRadius: 999,
+                            background: tone.background,
+                            color: tone.color,
+                            fontSize: 12,
+                            fontWeight: 900,
+                          }}
+                        >
+                          {statusLabel(item.status)}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          color: "#16110d",
+                          fontSize: 30,
+                          fontWeight: 900,
+                          letterSpacing: "-0.05em",
+                          lineHeight: 1.05,
+                          marginBottom: 18,
+                          minHeight: 66,
+                          wordBreak: "keep-all",
+                        }}
+                      >
+                        {item.title || "제목 없음"}
+                      </div>
+
+                      <div
+                        style={{
+                          color: "#1f1510",
+                          fontSize: 20,
+                          fontWeight: 900,
+                          letterSpacing: "-0.03em",
+                          marginBottom: 16,
+                        }}
+                      >
+                        {formatPrice(item.price)}
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          alignItems: "center",
+                          color: "#8a7156",
+                          fontSize: 12,
+                          fontWeight: 800,
+                        }}
+                      >
+                        <span>{formatDate(item.created_at)}</span>
+                        <span>조회 {item.view_count ?? 0}</span>
+                      </div>
+                    </article>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>
