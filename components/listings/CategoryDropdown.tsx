@@ -13,6 +13,8 @@ type CategoryDropdownProps = {
   required?: boolean;
   disabled?: boolean;
   categories?: string[];
+  showCategoryLabel?: boolean;
+  showTypeLabel?: boolean;
 };
 
 export default function CategoryDropdown({
@@ -20,6 +22,8 @@ export default function CategoryDropdown({
   defaultValue,
   required = false,
   disabled = false,
+  showCategoryLabel = false,
+  showTypeLabel = true,
 }: CategoryDropdownProps) {
   const initialResolved = useMemo(() => {
     const found = findGroupByTypeLabel(defaultValue);
@@ -92,7 +96,7 @@ export default function CategoryDropdown({
       <input type="hidden" name="category_type" value={selectedType?.label ?? ""} />
 
       <div style={fieldBlock}>
-        <label style={labelStyle}>카테고리</label>
+        {showCategoryLabel ? <label style={labelStyle}>카테고리</label> : null}
 
         <div style={selectWrap}>
           <select
@@ -119,7 +123,7 @@ export default function CategoryDropdown({
       </div>
 
       <div style={fieldBlock}>
-        <label style={labelStyle}>타입</label>
+        {showTypeLabel ? <label style={labelStyle}>타입</label> : null}
 
         <div ref={typeMenuRef} style={{ position: "relative" }}>
           <button
