@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const footerLinks = [
+const POLICY_LINKS = [
   { href: "/terms", label: "이용약관" },
   { href: "/privacy", label: "개인정보처리방침" },
   { href: "/advertising-policy", label: "광고 운영정책" },
@@ -10,164 +10,209 @@ const footerLinks = [
 
 export default function Footer() {
   return (
-    <footer
-      style={{
-        marginTop: 48,
-        borderTop: "1px solid #e7dccd",
-        background: "#f6f1e7",
-      }}
-    >
-      <style>{`
-        .msell-footer-top {
-          display: flex;
-          justify-content: space-between;
-          gap: 24px;
-          flex-wrap: wrap;
-          align-items: flex-start;
-        }
-
-        .msell-footer-links {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-          flex: 1;
-        }
-
-        .msell-footer-link {
-          height: 40px;
-          padding: 0 16px;
-          border-radius: 999px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          text-decoration: none;
-          background: #fffdf9;
-          border: 1px solid #e3d5c3;
-          color: #5e4a38;
-          font-size: 13px;
-          font-weight: 800;
-          white-space: nowrap;
-        }
-
-        @media (max-width: 768px) {
-          .msell-footer-top {
-            flex-direction: column;
-            gap: 24px;
-          }
-
-          .msell-footer-links {
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-          }
-
-          .msell-footer-link {
-            width: 100%;
-            min-height: 48px;
-            height: 48px;
-            font-size: 15px;
-          }
-        }
-      `}</style>
-
-      <div
-        style={{
-          maxWidth: 1180,
-          margin: "0 auto",
-          padding: "28px 20px 34px",
-        }}
-      >
-        <div className="msell-footer-top">
-          <div style={{ minWidth: 260 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 8,
-              }}
-            >
-              <span
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 10,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "#2f2417",
-                  color: "#fffaf2",
-                  fontSize: 16,
-                  fontWeight: 900,
-                }}
-              >
-                M
-              </span>
-
-              <div>
-                <div
-                  style={{
-                    color: "#16110d",
-                    fontSize: 18,
-                    fontWeight: 900,
-                    letterSpacing: "-0.03em",
-                  }}
-                >
-                  Msell
-                </div>
-
-                <div
-                  style={{
-                    color: "#8a7156",
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: "0.08em",
-                  }}
-                >
+    <>
+      <footer className="msell-footer">
+        <div className="msell-footer__inner">
+          <div className="msell-footer__brand">
+            <div className="msell-footer__brand-row">
+              <div className="msell-footer__logo">M</div>
+              <div className="msell-footer__brand-copy">
+                <strong className="msell-footer__brand-name">Msell</strong>
+                <span className="msell-footer__brand-sub">
                   DIGITAL ASSET MARKETPLACE
-                </div>
+                </span>
               </div>
             </div>
 
-            <p
-              style={{
-                margin: 0,
-                color: "#8a7156",
-                fontSize: 13,
-                lineHeight: 1.8,
-                fontWeight: 600,
-              }}
-            >
+            <p className="msell-footer__desc">
               Msell은 디지털 자산 거래 정보를 등록하고
               <br />
               거래 당사자 간 연결을 돕는 플랫폼입니다.
             </p>
           </div>
 
-          <div className="msell-footer-links">
-            {footerLinks.map((item) => (
-              <Link key={item.href} href={item.href} className="msell-footer-link">
+          <nav className="msell-footer__nav" aria-label="Footer policy links">
+            {POLICY_LINKS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="msell-footer__link"
+              >
                 {item.label}
               </Link>
             ))}
-          </div>
+          </nav>
         </div>
+      </footer>
 
-        <div
-          style={{
-            marginTop: 18,
-            paddingTop: 16,
-            borderTop: "1px solid #eadfce",
-            color: "#9a8268",
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
-          © 2026 Msell. All rights reserved.
-        </div>
-      </div>
-    </footer>
+      <style>{`
+        .msell-footer {
+          width: 100%;
+          border-top: 1px solid #e6d9c8;
+          background: #f6f1e7;
+        }
+
+        .msell-footer__inner {
+          width: 100%;
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 26px 20px 34px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+          box-sizing: border-box;
+        }
+
+        .msell-footer__brand {
+          min-width: 0;
+          display: grid;
+          gap: 14px;
+        }
+
+        .msell-footer__brand-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .msell-footer__logo {
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          background: #3a2212;
+          color: #ffffff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+          font-weight: 900;
+          line-height: 1;
+          flex-shrink: 0;
+          box-shadow: 0 8px 18px rgba(58, 34, 18, 0.14);
+        }
+
+        .msell-footer__brand-copy {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .msell-footer__brand-name {
+          color: #1f140c;
+          font-size: 24px;
+          line-height: 1;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+        }
+
+        .msell-footer__brand-sub {
+          color: #9a7a57;
+          font-size: 14px;
+          line-height: 1.2;
+          font-weight: 900;
+          letter-spacing: 0.14em;
+        }
+
+        .msell-footer__desc {
+          margin: 0;
+          color: #8d7458;
+          font-size: 16px;
+          line-height: 1.75;
+          font-weight: 700;
+        }
+
+        .msell-footer__nav {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 12px;
+          max-width: 720px;
+        }
+
+        .msell-footer__link {
+          min-height: 52px;
+          padding: 0 24px;
+          border-radius: 999px;
+          border: 1px solid #e2d2bd;
+          background: rgba(255, 255, 255, 0.72);
+          color: #3a2212;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          text-decoration: none;
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 1.2;
+          transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+          box-sizing: border-box;
+        }
+
+        .msell-footer__link:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 10px 20px rgba(58, 34, 18, 0.08);
+          background: #ffffff;
+        }
+
+        @media (max-width: 900px) {
+          .msell-footer__inner {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .msell-footer__nav {
+            width: 100%;
+            justify-content: flex-start;
+            max-width: none;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .msell-footer__inner {
+            padding: 24px 16px calc(132px + env(safe-area-inset-bottom, 0px));
+            gap: 20px;
+          }
+
+          .msell-footer__brand-row {
+            gap: 12px;
+          }
+
+          .msell-footer__logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 13px;
+            font-size: 24px;
+          }
+
+          .msell-footer__brand-name {
+            font-size: 22px;
+          }
+
+          .msell-footer__brand-sub {
+            font-size: 13px;
+            letter-spacing: 0.12em;
+          }
+
+          .msell-footer__desc {
+            font-size: 14px;
+            line-height: 1.7;
+          }
+
+          .msell-footer__nav {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .msell-footer__link {
+            width: 100%;
+            min-height: 58px;
+            padding: 0 18px;
+            font-size: 15px;
+          }
+        }
+      `}</style>
+    </>
   );
 }
