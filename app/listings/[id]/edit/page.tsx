@@ -34,6 +34,12 @@ type PageProps = {
   }>;
   searchParams: Promise<{
     error?: string;
+    title?: string;
+    category?: string;
+    price?: string;
+    transfer_method?: string;
+    description?: string;
+    status?: string;
   }>;
 };
 
@@ -52,13 +58,32 @@ function extractDescriptionBody(description?: string | null) {
   return description.replace(/^\[이전 방식\]\s*.+\n\n?/m, "").trim();
 }
 
+function normalizeStatus(input?: string | null) {
+  const raw = (input || "").trim().toLowerCase();
+
+  const map: Record<string, string> = {
+    active: "active",
+    draft: "draft",
+    hidden: "hidden",
+    sold: "sold",
+    closed: "sold",
+    "거래가능": "active",
+    "임시저장": "draft",
+    "숨김": "hidden",
+    "거래종료": "sold",
+  };
+
+  return map[raw] || raw || "active";
+}
+
 export default async function ListingEditPage({
   params,
   searchParams,
 }: PageProps) {
   const { id } = await params;
-  const { error: rawError } = await searchParams;
-  const error = decodeValue(rawError);
+  const query = await searchParams;
+
+  const error = decodeValue(query?.error);
 
   const supabase = await supabaseServer();
 
@@ -80,33 +105,45 @@ export default async function ListingEditPage({
     redirect("/my/listings");
   }
 
-  const sellerId =
-    listing.seller_id ??
-    listing.user_id ??
-    listing.owner_id ??
-    listing.profile_id ??
+  const ownerId =
+    listing.seller_id ||
+    listing.user_id ||
+    listing.owner_id ||
+    listing.profile_id ||
     null;
 
-  if (sellerId && sellerId !== user.id) {
+  if (ownerId && ownerId !== user.id) {
     redirect("/my/listings");
   }
 
   const title =
-    typeof listing.title === "string" ? listing.title : "";
+    decodeValue(query?.title) ||
+    (typeof listing.title === "string" ? listing.title : "");
+
   const category =
-    typeof listing.category === "string" ? listing.category : "";
+    decodeValue(query?.category) ||
+    (typeof listing.category === "string" ? listing.category : "");
+
   const price =
-    typeof listing.price === "number"
+    decodeValue(query?.price) ||
+    (typeof listing.price === "number"
       ? String(listing.price)
       : typeof listing.price === "string"
-      ? listing.price
-      : "";
-  const status =
-    typeof listing.status === "string" ? listing.status : "active";
+        ? listing.price
+        : "");
+
   const rawDescription =
     typeof listing.description === "string" ? listing.description : "";
-  const transferMethod = extractTransferMethod(rawDescription);
-  const description = extractDescriptionBody(rawDescription);
+
+  const transferMethod =
+    decodeValue(query?.transfer_method) || extractTransferMethod(rawDescription);
+
+  const description =
+    decodeValue(query?.description) || extractDescriptionBody(rawDescription);
+
+  const status =
+    normalizeStatus(decodeValue(query?.status)) ||
+    normalizeStatus(typeof listing.status === "string" ? listing.status : "active");
 
   return (
     <main
@@ -276,12 +313,7 @@ export default async function ListingEditPage({
                   gap: 16,
                 }}
               >
-                <label
-                  style={{
-                    display: "block",
-                    gridColumn: "1 / -1",
-                  }}
-                >
+                <label style={{ display: "block", gridColumn: "1 / -1" }}>
                   <div
                     style={{
                       marginBottom: 8,
@@ -296,7 +328,6 @@ export default async function ListingEditPage({
                     type="text"
                     name="title"
                     defaultValue={title}
-                    placeholder="예: 수익화 완료 유튜브 채널"
                     required
                     style={{
                       width: "100%",
@@ -349,7 +380,6 @@ export default async function ListingEditPage({
                     min="0"
                     step="1"
                     defaultValue={price}
-                    placeholder="예: 1500000"
                     required
                     style={{
                       width: "100%",
@@ -366,12 +396,7 @@ export default async function ListingEditPage({
                   />
                 </label>
 
-                <label
-                  style={{
-                    display: "block",
-                    gridColumn: "1 / -1",
-                  }}
-                >
+                <label style={{ display: "block", gridColumn: "1 / -1" }}>
                   <div
                     style={{
                       marginBottom: 8,
@@ -386,7 +411,6 @@ export default async function ListingEditPage({
                     type="text"
                     name="transfer_method"
                     defaultValue={transferMethod}
-                    placeholder="예: 계정 이메일 양도 / 관리자 권한 이전 / 도메인 이전"
                     style={{
                       width: "100%",
                       height: 60,
@@ -402,12 +426,7 @@ export default async function ListingEditPage({
                   />
                 </label>
 
-                <label
-                  style={{
-                    display: "block",
-                    gridColumn: "1 / -1",
-                  }}
-                >
+                <label style={{ display: "block", gridColumn: "1 / -1" }}>
                   <div
                     style={{
                       marginBottom: 8,
@@ -421,7 +440,6 @@ export default async function ListingEditPage({
                   <textarea
                     name="description"
                     defaultValue={description}
-                    placeholder="운영 기간, 수익 구조, 팔로워/구독자 상태, 인수인계 범위를 구체적으로 적어 주세요."
                     rows={11}
                     style={{
                       width: "100%",
@@ -567,7 +585,7 @@ export default async function ListingEditPage({
                   },
                   {
                     title: "상태",
-                    body: "비공개 보관은 임시저장 또는 숨김 사용",
+                    body: "거래 종료는 sold, 임시저장은 draft, 숨김은 hidden으로 저장됩니다.",
                   },
                 ].map((item) => (
                   <div
