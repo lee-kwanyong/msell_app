@@ -5,6 +5,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Props = {
   next?: string;
+  mode?: "login" | "signup";
 };
 
 type ProviderKey = "google" | "kakao" | "naver";
@@ -54,46 +55,54 @@ function NaverLogo() {
   );
 }
 
-const SOCIAL_META: Record<
-  ProviderKey,
-  {
-    label: string;
-    background: string;
-    color: string;
-    border: string;
-    logo: JSX.Element;
-    shadow: string;
-  }
-> = {
-  google: {
-    label: "구글로 계속하기",
-    background: "#ffffff",
-    color: "#1f140c",
-    border: "1px solid #e5ddd2",
-    logo: <GoogleLogo />,
-    shadow: "0 8px 18px rgba(47, 36, 23, 0.04)",
-  },
-  kakao: {
-    label: "카카오로 계속하기",
-    background: "#FEE500",
-    color: "#3A1D1D",
-    border: "1px solid #e8d238",
-    logo: <KakaoLogo />,
-    shadow: "0 8px 18px rgba(58, 29, 29, 0.08)",
-  },
-  naver: {
-    label: "네이버로 계속하기",
-    background: "#03C75A",
-    color: "#ffffff",
-    border: "1px solid #03C75A",
-    logo: <NaverLogo />,
-    shadow: "0 8px 18px rgba(3, 199, 90, 0.16)",
-  },
-};
+function getSocialMeta(mode: "login" | "signup") {
+  const suffix = mode === "signup" ? "회원가입" : "계속하기";
 
-export default function AuthGateway({ next = "/account" }: Props) {
+  return {
+    google: {
+      label: `구글로 ${suffix}`,
+      background: "#ffffff",
+      color: "#1f140c",
+      border: "1px solid #e5ddd2",
+      logo: <GoogleLogo />,
+      shadow: "0 8px 18px rgba(47, 36, 23, 0.04)",
+    },
+    kakao: {
+      label: `카카오로 ${suffix}`,
+      background: "#FEE500",
+      color: "#3A1D1D",
+      border: "1px solid #e8d238",
+      logo: <KakaoLogo />,
+      shadow: "0 8px 18px rgba(58, 29, 29, 0.08)",
+    },
+    naver: {
+      label: `네이버로 ${suffix}`,
+      background: "#03C75A",
+      color: "#ffffff",
+      border: "1px solid #03C75A",
+      logo: <NaverLogo />,
+      shadow: "0 8px 18px rgba(3, 199, 90, 0.16)",
+    },
+  } satisfies Record<
+    ProviderKey,
+    {
+      label: string;
+      background: string;
+      color: string;
+      border: string;
+      logo: JSX.Element;
+      shadow: string;
+    }
+  >;
+}
+
+export default function AuthGateway({
+  next = "/account",
+  mode = "login",
+}: Props) {
   const [pending, setPending] = useState<ProviderKey | null>(null);
   const [error, setError] = useState("");
+  const SOCIAL_META = getSocialMeta(mode);
 
   async function signIn(providerKey: ProviderKey) {
     try {
