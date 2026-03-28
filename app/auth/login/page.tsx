@@ -2,32 +2,19 @@ import Link from "next/link";
 import { loginAction } from "./actions";
 import AuthGateway from "@/components/auth/AuthGateway";
 
-type SearchParams =
-  | Promise<Record<string, string | string[] | undefined>>
-  | Record<string, string | string[] | undefined>
-  | undefined;
+type PageProps = {
+  searchParams?: Promise<{
+    next?: string;
+    error?: string;
+    message?: string;
+  }>;
+};
 
-function pickParam(
-  value: string | string[] | undefined,
-  fallback = ""
-): string {
-  if (Array.isArray(value)) return value[0] ?? fallback;
-  return value ?? fallback;
-}
-
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams?: SearchParams;
-}) {
-  const resolved =
-    searchParams && typeof (searchParams as Promise<Record<string, string | string[] | undefined>>).then === "function"
-      ? await searchParams
-      : (searchParams as Record<string, string | string[] | undefined> | undefined) ?? {};
-
-  const next = pickParam(resolved?.next, "/account");
-  const error = pickParam(resolved?.error, "");
-  const message = pickParam(resolved?.message, "");
+export default async function LoginPage({ searchParams }: PageProps) {
+  const resolved = (await searchParams) ?? {};
+  const next = resolved.next || "/account";
+  const error = resolved.error || "";
+  const message = resolved.message || "";
 
   return (
     <>
@@ -54,8 +41,7 @@ export default async function LoginPage({
               width: "100%",
               borderRadius: 28,
               border: "1px solid #e7d9c8",
-              background:
-                "linear-gradient(180deg, #fffdfa 0%, #fcf8f1 100%)",
+              background: "linear-gradient(180deg, #fffdfa 0%, #fcf8f1 100%)",
               boxShadow: "0 24px 60px rgba(47, 36, 23, 0.08)",
               padding: "22px 22px 24px",
             }}
@@ -124,10 +110,7 @@ export default async function LoginPage({
               </div>
             ) : null}
 
-            <form
-              action={loginAction}
-              style={{ display: "grid", gap: 12 }}
-            >
+            <form action={loginAction} style={{ display: "grid", gap: 12 }}>
               <input type="hidden" name="next" value={next} />
 
               <label
@@ -202,8 +185,7 @@ export default async function LoginPage({
                   marginTop: 2,
                   border: "none",
                   borderRadius: 999,
-                  background:
-                    "linear-gradient(180deg, #2f1d10 0%, #23140a 100%)",
+                  background: "linear-gradient(180deg, #2f1d10 0%, #23140a 100%)",
                   color: "#ffffff",
                   fontSize: 14,
                   fontWeight: 900,
