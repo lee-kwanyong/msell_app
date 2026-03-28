@@ -136,8 +136,8 @@ export default async function HomePage() {
 
         .home-snapshot-grid {
           display: grid;
-          grid-template-columns: 1fr;
-          gap: 12px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
         }
 
         .home-listings-grid {
@@ -156,10 +156,6 @@ export default async function HomePage() {
           .home-top-grid,
           .home-lower-grid {
             grid-template-columns: 1fr;
-          }
-
-          .home-snapshot-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
 
@@ -513,7 +509,7 @@ export default async function HomePage() {
             background: "#fbf8f3",
             border: "1px solid #d8c8b2",
             borderRadius: 24,
-            padding: 20,
+            padding: 16,
           }}
         >
           <div
@@ -532,19 +528,19 @@ export default async function HomePage() {
             <div
               style={{
                 border: "1px solid #d8c8b2",
-                borderRadius: 18,
+                borderRadius: 16,
                 background: "#fff",
-                padding: 16,
+                padding: "14px 14px 12px",
               }}
             >
-              <div style={{ color: "#7a6550", fontSize: 11, fontWeight: 700 }}>
+              <div style={{ color: "#7a6550", fontSize: 10, fontWeight: 700 }}>
                 현재 공개 자산
               </div>
               <div
                 style={{
-                  marginTop: 10,
+                  marginTop: 8,
                   color: "#0f0a05",
-                  fontSize: 42,
+                  fontSize: 26,
                   lineHeight: 1,
                   fontWeight: 900,
                 }}
@@ -556,19 +552,19 @@ export default async function HomePage() {
             <div
               style={{
                 border: "1px solid #d8c8b2",
-                borderRadius: 18,
+                borderRadius: 16,
                 background: "#fff",
-                padding: 16,
+                padding: "14px 14px 12px",
               }}
             >
-              <div style={{ color: "#7a6550", fontSize: 11, fontWeight: 700 }}>
+              <div style={{ color: "#7a6550", fontSize: 10, fontWeight: 700 }}>
                 누적 등록 수
               </div>
               <div
                 style={{
-                  marginTop: 10,
+                  marginTop: 8,
                   color: "#0f0a05",
-                  fontSize: 42,
+                  fontSize: 26,
                   lineHeight: 1,
                   fontWeight: 900,
                 }}
@@ -580,19 +576,19 @@ export default async function HomePage() {
             <div
               style={{
                 border: "1px solid #d8c8b2",
-                borderRadius: 18,
+                borderRadius: 16,
                 background: "#fff",
-                padding: 16,
+                padding: "14px 14px 12px",
               }}
             >
-              <div style={{ color: "#7a6550", fontSize: 11, fontWeight: 700 }}>
+              <div style={{ color: "#7a6550", fontSize: 10, fontWeight: 700 }}>
                 거래 종료 수
               </div>
               <div
                 style={{
-                  marginTop: 10,
+                  marginTop: 8,
                   color: "#0f0a05",
-                  fontSize: 42,
+                  fontSize: 26,
                   lineHeight: 1,
                   fontWeight: 900,
                 }}
