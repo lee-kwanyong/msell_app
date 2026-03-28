@@ -15,8 +15,8 @@ function pickOwnerId(listing: Record<string, any>) {
   );
 }
 
-function encodeError(message: string) {
-  return encodeURIComponent(message);
+function buildErrorPath(basePath: string, message: string) {
+  return `${basePath}?error=${encodeURIComponent(message)}`;
 }
 
 export async function POST(request: Request) {
@@ -34,13 +34,10 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const listingId = String(formData.get("listing_id") || "").trim();
-    const returnTo = String(formData.get("return_to") || "").trim();
+    const returnTo = String(formData.get("return_to") || "").trim() || "/listings";
 
     if (!listingId) {
-      return redirectTo(
-        request,
-        `${returnTo || "/listings"}?error=${encodeError("missing_listing_id")}`
-      );
+      return redirectTo(request, buildErrorPath(returnTo, "missing_listing_id"));
     }
 
     const { data: listing, error: listingError } = await supabase
@@ -50,25 +47,19 @@ export async function POST(request: Request) {
       .single();
 
     if (listingError || !listing) {
-      return redirectTo(
-        request,
-        `${returnTo || "/listings"}?error=${encodeError("listing_not_found")}`
-      );
+      return redirectTo(request, buildErrorPath(returnTo, "listing_not_found"));
     }
 
     const sellerId = pickOwnerId(listing);
 
     if (!sellerId) {
-      return redirectTo(
-        request,
-        `${returnTo || `/listings/${listingId}`}?error=${encodeError("missing_seller_id")}`
-      );
+      return redirectTo(request, buildErrorPath(returnTo, "missing_seller_id"));
     }
 
     if (sellerId === user.id) {
       return redirectTo(
         request,
-        `${returnTo || `/listings/${listingId}`}?error=${encodeError("cannot_deal_with_own_listing")}`
+        buildErrorPath(returnTo, "cannot_deal_with_own_listing")
       );
     }
 
@@ -85,7 +76,10 @@ export async function POST(request: Request) {
     if (existingDealsError) {
       return redirectTo(
         request,
-        `${returnTo || `/listings/${listingId}`}?error=${encodeError(existingDealsError.message)}`
+        buildErrorPath(
+          returnTo,
+          `existing_deal_check_failed:${existingDealsError.message}`
+        )
       );
     }
 
@@ -94,35 +88,26 @@ export async function POST(request: Request) {
       return redirectTo(request, `/deal/${existingDeal.id}`);
     }
 
-    const payloadVariants: Record<string, any>[] = [
-      {
-        listing_id: listingId,
-        seller_id: sellerId,
-        buyer_id: buyerId,
-        status: "open",
-      },
-      {
-        listing_id: listingId,
-        seller_id: sellerId,
-        buyer_id: buyerId,
-      },
-      {
-        listing_id: listingId,
-        seller_id: sellerId,
-        buyer_id: buyerId,
-        status: "pending",
-      },
-      {
-        listing_id: listingId,
-        seller_id: sellerId,
-        buyer_id: buyerId,
-        status: "active",
-      },
+    const basePayload: Record<string, any> = {
+      listing_id: listingId,
+      seller_id: sellerId,
+      buyer_id: buyerId,
+    };
+
+    const payloadCandidates: Record<string, any>[] = [
+      { ...basePayload },
+      { ...basePayload, status: "pending" },
+      { ...basePayload, status: "open" },
+      { ...basePayload, status: "requested" },
+      { ...basePayload, status: "waiting" },
+      { ...basePayload, status: "inquiry" },
+      { ...basePayload, status: "initiated" },
     ];
 
+    let createdDealId: string | null = null;
     let lastErrorMessage = "failed_to_create_deal";
 
-    for (const payload of payloadVariants) {
+    for (const payload of payloadCandidates) {
       const { data: createdDeal, error: createDealError } = await supabase
         .from("deals")
         .insert(payload)
@@ -130,62 +115,29 @@ export async function POST(request: Request) {
         .single();
 
       if (!createDealError && createdDeal?.id) {
-        return redirectTo(request, `/deal/${createdDeal.id}`);
+        createdDealId = createdDeal.id;
+        break;
       }
 
-      if (createDealError) {
-        lastErrorMessage = createDealError.message;
-
-        if (
-          createDealError.message.toLowerCase().includes("duplicate") ||
-          createDealError.message.toLowerCase().includes("unique")
-        ) {
-          const { data: duplicatedDeals } = await supabase
-            .from("deals")
-            .select("id")
-            .eq("listing_id", listingId)
-            .eq("seller_id", sellerId)
-            .eq("buyer_id", buyerId)
-            .limit(1);
-
-          if (duplicatedDeals?.[0]?.id) {
-            return redirectTo(request, `/deal/${duplicatedDeals[0].id}`);
-          }
-        }
-
-        if (
-          createDealError.message.includes("column") &&
-          createDealError.message.includes("does not exist")
-        ) {
-          continue;
-        }
-
-        if (
-          createDealError.message.toLowerCase().includes("null value") ||
-          createDealError.message.toLowerCase().includes("violates not-null")
-        ) {
-          continue;
-        }
-
-        if (
-          createDealError.message.toLowerCase().includes("invalid input value for enum")
-        ) {
-          continue;
-        }
-      }
+      lastErrorMessage =
+        createDealError?.message || createDealError?.code || "failed_to_create_deal";
     }
 
-    return redirectTo(
-      request,
-      `${returnTo || `/listings/${listingId}`}?error=${encodeError(lastErrorMessage)}`
-    );
+    if (!createdDealId) {
+      return redirectTo(
+        request,
+        buildErrorPath(returnTo, `failed_to_create_deal:${lastErrorMessage}`)
+      );
+    }
+
+    return redirectTo(request, `/deal/${createdDealId}`);
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "failed_to_create_deal";
+      error instanceof Error ? error.message : "unexpected_deal_create_error";
 
     return redirectTo(
       request,
-      `/listings?error=${encodeError(message)}`
+      buildErrorPath("/listings", `failed_to_create_deal:${message}`)
     );
   }
 }
