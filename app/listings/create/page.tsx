@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { supabaseServer } from "@/lib/supabase/server";
 import CategoryDropdown from "@/components/listings/CategoryDropdown";
 
 type SearchParams = Promise<{
   error?: string;
+  message?: string;
   title?: string;
   category?: string;
   price?: string;
@@ -13,594 +12,351 @@ type SearchParams = Promise<{
   status?: string;
 }>;
 
-const CATEGORY_OPTIONS = [
-  "유튜브 채널",
-  "인스타그램 계정",
-  "틱톡 계정",
-  "블로그",
-  "카페",
-  "도메인",
-  "웹사이트",
-  "쇼핑몰",
-  "앱",
-  "전자책",
-  "강의",
-  "커뮤니티",
-  "뉴스레터",
-  "디지털 상품",
-  "기타",
-];
+function decodeValue(value?: string) {
+  if (!value) return "";
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
-const STATUS_OPTIONS = [
-  { value: "active", label: "거래가능" },
-  { value: "draft", label: "임시저장" },
-  { value: "hidden", label: "숨김" },
-  { value: "sold", label: "거래종료" },
-];
-
-function valueOf(value?: string) {
-  return value ? decodeURIComponent(value) : "";
+function field(inputStyle?: React.CSSProperties): React.CSSProperties {
+  return {
+    width: "100%",
+    borderRadius: 16,
+    border: "1px solid #d8c8b2",
+    background: "#fffdf9",
+    color: "#2f2417",
+    fontSize: 15,
+    fontWeight: 700,
+    outline: "none",
+    ...inputStyle,
+  };
 }
 
 export default async function CreateListingPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams?: SearchParams;
 }) {
-  const params = await searchParams;
+  const resolved = (await searchParams) ?? {};
 
-  const error = valueOf(params?.error);
-  const title = valueOf(params?.title);
-  const category = valueOf(params?.category);
-  const price = valueOf(params?.price);
-  const transferMethod = valueOf(params?.transfer_method);
-  const description = valueOf(params?.description);
-  const status = valueOf(params?.status) || "active";
-
-  const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/login?next=/listings/create");
-  }
+  const error = decodeValue(resolved.error || resolved.message);
+  const defaultTitle = decodeValue(resolved.title);
+  const defaultCategory = decodeValue(resolved.category);
+  const defaultPrice = decodeValue(resolved.price);
+  const defaultTransferMethod = decodeValue(resolved.transfer_method);
+  const defaultDescription = decodeValue(resolved.description);
+  const defaultStatus = decodeValue(resolved.status) || "active";
 
   return (
     <main
       style={{
         minHeight: "100vh",
         background: "#f6f1e7",
-        padding: "32px 20px 96px",
+        padding: "28px 16px 120px",
       }}
     >
       <div
         style={{
-          maxWidth: 1180,
+          maxWidth: 860,
           margin: "0 auto",
+          display: "grid",
+          gap: 18,
         }}
       >
-        <section
+        <div
           style={{
-            background:
-              "linear-gradient(135deg, #2b1d12 0%, #4a2f1b 52%, #77502d 100%)",
-            borderRadius: 34,
-            padding: 30,
-            color: "#fffaf2",
-            border: "1px solid rgba(255,255,255,0.1)",
-            boxShadow: "0 24px 64px rgba(55, 35, 17, 0.16)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
           }}
         >
-          <div
+          <div>
+            <div
+              style={{
+                color: "#8a7156",
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.08em",
+                marginBottom: 8,
+              }}
+            >
+              LISTING CREATE
+            </div>
+            <h1
+              style={{
+                margin: 0,
+                color: "#1f140c",
+                fontSize: 34,
+                lineHeight: 1.15,
+                fontWeight: 900,
+                letterSpacing: "-0.03em",
+              }}
+            >
+              자산 등록
+            </h1>
+          </div>
+
+          <Link
+            href="/listings"
             style={{
-              fontSize: 12,
-              fontWeight: 900,
-              letterSpacing: "0.16em",
-              opacity: 0.8,
-              marginBottom: 14,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: 44,
+              padding: "0 18px",
+              borderRadius: 999,
+              background: "#fffdf9",
+              border: "1px solid #d8c8b2",
+              color: "#5e4a38",
+              textDecoration: "none",
+              fontSize: 14,
+              fontWeight: 800,
             }}
           >
-            CREATE LISTING
+            거래목록으로
+          </Link>
+        </div>
+
+        {error ? (
+          <div
+            style={{
+              borderRadius: 18,
+              border: "1px solid #efc7c1",
+              background: "#fff4f2",
+              color: "#8b2f23",
+              padding: "14px 16px",
+              fontSize: 14,
+              fontWeight: 800,
+              lineHeight: 1.6,
+            }}
+          >
+            {error}
+          </div>
+        ) : null}
+
+        <form
+          action="/api/listings/create"
+          method="post"
+          style={{
+            display: "grid",
+            gap: 16,
+            background: "#f2eadf",
+            border: "1px solid #dbcdb9",
+            borderRadius: 28,
+            padding: 18,
+          }}
+        >
+          <div style={{ display: "grid", gap: 8 }}>
+            <label
+              htmlFor="title"
+              style={{
+                fontSize: 14,
+                fontWeight: 900,
+                color: "#2f2417",
+              }}
+            >
+              제목
+            </label>
+            <input
+              id="title"
+              name="title"
+              type="text"
+              required
+              defaultValue={defaultTitle}
+              placeholder="예: 수익화 완료 유튜브 채널"
+              style={field({
+                height: 56,
+                padding: "0 16px",
+              })}
+            />
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <label
+              style={{
+                fontSize: 14,
+                fontWeight: 900,
+                color: "#2f2417",
+              }}
+            >
+              카테고리
+            </label>
+
+            <CategoryDropdown
+              name="category"
+              defaultValue={defaultCategory}
+              required
+              showCategoryLabel={false}
+              showTypeLabel={true}
+            />
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <label
+              htmlFor="price"
+              style={{
+                fontSize: 14,
+                fontWeight: 900,
+                color: "#2f2417",
+              }}
+            >
+              희망 가격
+            </label>
+            <input
+              id="price"
+              name="price"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="1"
+              required
+              defaultValue={defaultPrice}
+              placeholder="예: 1500000"
+              style={field({
+                height: 56,
+                padding: "0 16px",
+              })}
+            />
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <label
+              htmlFor="transfer_method"
+              style={{
+                fontSize: 14,
+                fontWeight: 900,
+                color: "#2f2417",
+              }}
+            >
+              이전 방식
+            </label>
+            <input
+              id="transfer_method"
+              name="transfer_method"
+              type="text"
+              required
+              defaultValue={defaultTransferMethod}
+              placeholder="예: 계정 이메일 양도 / 관리자 권한 이전 / 도메인 이전"
+              style={field({
+                height: 56,
+                padding: "0 16px",
+              })}
+            />
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <label
+              htmlFor="description"
+              style={{
+                fontSize: 14,
+                fontWeight: 900,
+                color: "#2f2417",
+              }}
+            >
+              설명
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              required
+              defaultValue={defaultDescription}
+              placeholder="운영 기간, 수익 구조, 팔로워/구독자 상태, 인수인계 범위를 구체적으로 적어 주세요."
+              style={field({
+                minHeight: 180,
+                padding: "16px",
+                resize: "vertical",
+                lineHeight: 1.7,
+              })}
+            />
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <label
+              htmlFor="status"
+              style={{
+                fontSize: 14,
+                fontWeight: 900,
+                color: "#2f2417",
+              }}
+            >
+              상태
+            </label>
+            <select
+              id="status"
+              name="status"
+              defaultValue={defaultStatus}
+              style={field({
+                height: 56,
+                padding: "0 16px",
+                appearance: "none",
+                WebkitAppearance: "none",
+                MozAppearance: "none",
+              })}
+            >
+              <option value="active">거래가능</option>
+              <option value="hidden">숨김</option>
+              <option value="draft">임시저장</option>
+              <option value="sold">거래종료</option>
+            </select>
           </div>
 
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
-              gap: 20,
-              alignItems: "flex-end",
+              gap: 10,
+              justifyContent: "flex-end",
               flexWrap: "wrap",
+              paddingTop: 4,
             }}
           >
-            <div style={{ maxWidth: 720 }}>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 48,
-                  lineHeight: 1.02,
-                  fontWeight: 900,
-                  letterSpacing: "-0.04em",
-                }}
-              >
-                자산 등록
-              </h1>
-              <p
-                style={{
-                  margin: "14px 0 0",
-                  fontSize: 15,
-                  lineHeight: 1.75,
-                  color: "rgba(255,250,242,0.86)",
-                  fontWeight: 600,
-                }}
-              >
-                자산 제목, 카테고리, 가격, 이전 방식, 설명만 정확하게 입력하면
-                바로 거래 화면으로 연결할 수 있습니다.
-              </p>
-            </div>
-
-            <div
+            <Link
+              href="/listings"
               style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 110,
+                height: 48,
+                padding: "0 18px",
+                borderRadius: 999,
+                background: "#fffdf9",
+                border: "1px solid #d8c8b2",
+                color: "#5e4a38",
+                textDecoration: "none",
+                fontSize: 14,
+                fontWeight: 800,
               }}
             >
-              <Link
-                href="/listings"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: 44,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  textDecoration: "none",
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: "#fffaf2",
-                  border: "1px solid rgba(255,255,255,0.18)",
-                  background: "rgba(255,255,255,0.08)",
-                }}
-              >
-                목록으로
-              </Link>
+              취소
+            </Link>
 
-              <Link
-                href="/my/listings"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: 44,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  textDecoration: "none",
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: "#2f2417",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "#f3e6d3",
-                }}
-              >
-                내 자산으로 이동
-              </Link>
-            </div>
+            <button
+              type="submit"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 130,
+                height: 48,
+                padding: "0 18px",
+                borderRadius: 999,
+                border: "none",
+                background: "#2f2417",
+                color: "#fffaf2",
+                fontSize: 14,
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              자산 등록하기
+            </button>
           </div>
-        </section>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.45fr) minmax(300px, 0.78fr)",
-            gap: 24,
-            marginTop: 24,
-            alignItems: "start",
-          }}
-        >
-          <section
-            style={{
-              background: "#fbf7f1",
-              border: "1px solid #eadfce",
-              borderRadius: 32,
-              padding: 22,
-              boxShadow: "0 18px 44px rgba(61, 41, 22, 0.06)",
-            }}
-          >
-            {error ? (
-              <div
-                style={{
-                  marginBottom: 16,
-                  borderRadius: 18,
-                  border: "1px solid #efc0c0",
-                  background: "#fff4f4",
-                  color: "#b42318",
-                  padding: "14px 16px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  lineHeight: 1.6,
-                  wordBreak: "break-word",
-                }}
-              >
-                {error}
-              </div>
-            ) : null}
-
-            <form method="post" action="/api/listings/create">
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
-                <label
-                  style={{
-                    display: "block",
-                    gridColumn: "1 / -1",
-                  }}
-                >
-                  <div
-                    style={{
-                      marginBottom: 8,
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "#7f684f",
-                    }}
-                  >
-                    제목
-                  </div>
-                  <input
-                    type="text"
-                    name="title"
-                    defaultValue={title}
-                    placeholder="예: 수익화 완료 유튜브 채널"
-                    required
-                    style={{
-                      width: "100%",
-                      height: 60,
-                      borderRadius: 18,
-                      border: "1px solid #eadfcf",
-                      background: "#fffdf9",
-                      padding: "0 18px",
-                      color: "#24190f",
-                      fontSize: 16,
-                      fontWeight: 700,
-                      outline: "none",
-                    }}
-                  />
-                </label>
-
-                <label style={{ display: "block" }}>
-                  <div
-                    style={{
-                      marginBottom: 8,
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "#7f684f",
-                    }}
-                  >
-                    카테고리
-                  </div>
-                  <CategoryDropdown
-                    name="category"
-                    defaultValue={category}
-                    categories={CATEGORY_OPTIONS}
-                  />
-                </label>
-
-                <label style={{ display: "block" }}>
-                  <div
-                    style={{
-                      marginBottom: 8,
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "#7f684f",
-                    }}
-                  >
-                    희망 가격
-                  </div>
-                  <input
-                    type="number"
-                    name="price"
-                    min="0"
-                    step="1"
-                    defaultValue={price}
-                    placeholder="예: 1500000"
-                    required
-                    style={{
-                      width: "100%",
-                      height: 60,
-                      borderRadius: 18,
-                      border: "1px solid #eadfcf",
-                      background: "#fffdf9",
-                      padding: "0 18px",
-                      color: "#24190f",
-                      fontSize: 16,
-                      fontWeight: 700,
-                      outline: "none",
-                    }}
-                  />
-                </label>
-
-                <label
-                  style={{
-                    display: "block",
-                    gridColumn: "1 / -1",
-                  }}
-                >
-                  <div
-                    style={{
-                      marginBottom: 8,
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "#7f684f",
-                    }}
-                  >
-                    이전 방식
-                  </div>
-                  <input
-                    type="text"
-                    name="transfer_method"
-                    defaultValue={transferMethod}
-                    placeholder="예: 계정 이메일 양도 / 관리자 권한 이전 / 도메인 이전"
-                    style={{
-                      width: "100%",
-                      height: 60,
-                      borderRadius: 18,
-                      border: "1px solid #eadfcf",
-                      background: "#fffdf9",
-                      padding: "0 18px",
-                      color: "#24190f",
-                      fontSize: 16,
-                      fontWeight: 700,
-                      outline: "none",
-                    }}
-                  />
-                </label>
-
-                <label
-                  style={{
-                    display: "block",
-                    gridColumn: "1 / -1",
-                  }}
-                >
-                  <div
-                    style={{
-                      marginBottom: 8,
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "#7f684f",
-                    }}
-                  >
-                    설명
-                  </div>
-                  <textarea
-                    name="description"
-                    defaultValue={description}
-                    placeholder="운영 기간, 수익 구조, 팔로워/구독자 상태, 인수인계 범위를 구체적으로 적어 주세요."
-                    rows={11}
-                    style={{
-                      width: "100%",
-                      borderRadius: 20,
-                      border: "1px solid #eadfcf",
-                      background: "#fffdf9",
-                      padding: "16px 18px",
-                      color: "#24190f",
-                      fontSize: 15,
-                      fontWeight: 600,
-                      outline: "none",
-                      resize: "vertical",
-                      lineHeight: 1.7,
-                    }}
-                  />
-                </label>
-
-                <label style={{ display: "block" }}>
-                  <div
-                    style={{
-                      marginBottom: 8,
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "#7f684f",
-                    }}
-                  >
-                    상태
-                  </div>
-                  <select
-                    name="status"
-                    defaultValue={status}
-                    style={{
-                      width: "100%",
-                      height: 60,
-                      borderRadius: 18,
-                      border: "1px solid #eadfcf",
-                      background: "#fffdf9",
-                      padding: "0 18px",
-                      color: "#24190f",
-                      fontSize: 16,
-                      fontWeight: 700,
-                      outline: "none",
-                    }}
-                  >
-                    {STATUS_OPTIONS.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "end",
-                    justifyContent: "flex-end",
-                  }}
-                >
-                  <button
-                    type="submit"
-                    style={{
-                      width: "100%",
-                      maxWidth: 240,
-                      height: 60,
-                      borderRadius: 18,
-                      border: 0,
-                      background: "#2f2417",
-                      color: "#fffaf2",
-                      fontSize: 16,
-                      fontWeight: 900,
-                      cursor: "pointer",
-                      boxShadow: "0 12px 26px rgba(47, 36, 23, 0.2)",
-                    }}
-                  >
-                    등록하기
-                  </button>
-                </div>
-              </div>
-            </form>
-          </section>
-
-          <aside
-            style={{
-              display: "grid",
-              gap: 18,
-            }}
-          >
-            <section
-              style={{
-                background: "#fbf7f1",
-                border: "1px solid #eadfce",
-                borderRadius: 28,
-                padding: 18,
-                boxShadow: "0 14px 36px rgba(61, 41, 22, 0.06)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 900,
-                  color: "#2f2417",
-                  marginBottom: 14,
-                }}
-              >
-                등록 가이드
-              </div>
-
-              <div style={{ display: "grid", gap: 12 }}>
-                {[
-                  {
-                    title: "제목",
-                    body: "자산의 핵심이 바로 보이도록 짧고 명확하게 작성",
-                  },
-                  {
-                    title: "설명",
-                    body: "운영 이력, 수익 구조, 이전 범위를 중심으로 작성",
-                  },
-                  {
-                    title: "가격",
-                    body: "실제 희망 거래가를 숫자로 입력",
-                  },
-                  {
-                    title: "상태",
-                    body: "공개 판매는 거래가능, 보관은 임시저장 또는 숨김 사용",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.title}
-                    style={{
-                      borderRadius: 18,
-                      background: "#fffdf9",
-                      border: "1px solid #eadfcf",
-                      padding: "14px 14px 12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 900,
-                        color: "#2f2417",
-                        marginBottom: 6,
-                      }}
-                    >
-                      {item.title}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        lineHeight: 1.65,
-                        color: "#6f5b46",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {item.body}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section
-              style={{
-                background: "#fbf7f1",
-                border: "1px solid #eadfce",
-                borderRadius: 28,
-                padding: 18,
-                boxShadow: "0 14px 36px rgba(61, 41, 22, 0.06)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 900,
-                  color: "#2f2417",
-                  marginBottom: 14,
-                }}
-              >
-                빠른 이동
-              </div>
-
-              <div style={{ display: "grid", gap: 12 }}>
-                <Link
-                  href="/listings"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 54,
-                    borderRadius: 18,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    color: "#2f2417",
-                    fontSize: 15,
-                    fontWeight: 800,
-                    textDecoration: "none",
-                  }}
-                >
-                  거래목록
-                </Link>
-
-                <Link
-                  href="/my/listings"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 54,
-                    borderRadius: 18,
-                    background: "#fffdf9",
-                    border: "1px solid #eadfcf",
-                    color: "#2f2417",
-                    fontSize: 15,
-                    fontWeight: 800,
-                    textDecoration: "none",
-                  }}
-                >
-                  내 매물
-                </Link>
-              </div>
-            </section>
-          </aside>
-        </div>
+        </form>
       </div>
     </main>
   );
