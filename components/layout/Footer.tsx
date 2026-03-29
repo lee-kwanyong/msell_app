@@ -25,9 +25,7 @@ export default function Footer() {
             </div>
 
             <p className="msell-footer__desc">
-              Msell은 디지털 자산 거래 정보를 등록하고
-              <br />
-              거래 당사자 간 연결을 돕는 플랫폼입니다.
+              Msell은 디지털 자산 거래 정보를 등록하고 거래 당사자 간 연결을 돕는 플랫폼입니다.
             </p>
           </div>
 
@@ -124,10 +122,21 @@ export default function Footer() {
 
         .msell-footer__nav {
           display: flex;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           justify-content: flex-end;
+          align-items: center;
           gap: 12px;
           max-width: 720px;
+          min-width: 0;
+          overflow-x: auto;
+          overflow-y: hidden;
+          white-space: nowrap;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .msell-footer__nav::-webkit-scrollbar {
+          display: none;
         }
 
         .msell-footer__link {
@@ -147,6 +156,7 @@ export default function Footer() {
           line-height: 1.2;
           transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
           box-sizing: border-box;
+          flex: 0 0 auto;
         }
 
         .msell-footer__link:hover {
@@ -200,16 +210,17 @@ export default function Footer() {
           }
 
           .msell-footer__nav {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            gap: 10px;
           }
 
           .msell-footer__link {
-            width: 100%;
-            min-height: 58px;
+            width: auto;
+            min-height: 46px;
             padding: 0 18px;
-            font-size: 15px;
+            font-size: 14px;
           }
         }
       `}</style>
