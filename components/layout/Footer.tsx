@@ -56,51 +56,52 @@ export default function Footer() {
           width: 100%;
           max-width: 1280px;
           margin: 0 auto;
-          padding: 26px 20px 34px;
+          padding: 22px 20px 28px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 24px;
+          gap: 20px;
           box-sizing: border-box;
         }
 
         .msell-footer__brand {
-          min-width: 0;
+          flex: 0 0 360px;
+          min-width: 320px;
           display: grid;
-          gap: 14px;
+          gap: 12px;
         }
 
         .msell-footer__brand-row {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 12px;
         }
 
         .msell-footer__logo {
-          width: 44px;
-          height: 44px;
-          border-radius: 14px;
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
           background: #3a2212;
           color: #ffffff;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 28px;
+          font-size: 20px;
           font-weight: 900;
           line-height: 1;
           flex-shrink: 0;
-          box-shadow: 0 8px 18px rgba(58, 34, 18, 0.14);
+          box-shadow: 0 6px 14px rgba(58, 34, 18, 0.12);
         }
 
         .msell-footer__brand-copy {
           min-width: 0;
           display: grid;
-          gap: 2px;
+          gap: 1px;
         }
 
         .msell-footer__brand-name {
           color: #1f140c;
-          font-size: 24px;
+          font-size: 18px;
           line-height: 1;
           font-weight: 900;
           letter-spacing: -0.03em;
@@ -108,42 +109,35 @@ export default function Footer() {
 
         .msell-footer__brand-sub {
           color: #9a7a57;
-          font-size: 14px;
+          font-size: 11px;
           line-height: 1.2;
           font-weight: 900;
-          letter-spacing: 0.14em;
+          letter-spacing: 0.12em;
         }
 
         .msell-footer__desc {
           margin: 0;
           color: #8d7458;
-          font-size: 16px;
-          line-height: 1.75;
+          font-size: 13px;
+          line-height: 1.6;
           font-weight: 700;
         }
 
         .msell-footer__nav {
+          flex: 1 1 auto;
+          min-width: 0;
           display: flex;
           flex-wrap: nowrap;
           justify-content: flex-end;
           align-items: center;
-          gap: 12px;
-          max-width: 720px;
-          min-width: 0;
-          overflow-x: auto;
-          overflow-y: hidden;
+          gap: 8px;
+          overflow: hidden;
           white-space: nowrap;
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-
-        .msell-footer__nav::-webkit-scrollbar {
-          display: none;
         }
 
         .msell-footer__link {
-          min-height: 52px;
-          padding: 0 24px;
+          min-height: 40px;
+          padding: 0 14px;
           border-radius: 999px;
           border: 1px solid #e2d2bd;
           background: rgba(255, 255, 255, 0.72);
@@ -153,9 +147,10 @@ export default function Footer() {
           justify-content: center;
           text-align: center;
           text-decoration: none;
-          font-size: 15px;
+          font-size: 12px;
           font-weight: 800;
-          line-height: 1.2;
+          line-height: 1;
+          letter-spacing: -0.01em;
           transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
           box-sizing: border-box;
           flex: 0 0 auto;
@@ -163,66 +158,75 @@ export default function Footer() {
 
         .msell-footer__link:hover {
           transform: translateY(-1px);
-          box-shadow: 0 10px 20px rgba(58, 34, 18, 0.08);
+          box-shadow: 0 8px 18px rgba(58, 34, 18, 0.08);
           background: #ffffff;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1100px) {
           .msell-footer__inner {
             align-items: flex-start;
             flex-direction: column;
           }
 
+          .msell-footer__brand {
+            flex: none;
+            min-width: 0;
+            width: 100%;
+          }
+
           .msell-footer__nav {
             width: 100%;
             justify-content: flex-start;
-            max-width: none;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 2px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+
+          .msell-footer__nav::-webkit-scrollbar {
+            display: none;
           }
         }
 
         @media (max-width: 640px) {
           .msell-footer__inner {
-            padding: 24px 16px calc(132px + env(safe-area-inset-bottom, 0px));
-            gap: 20px;
+            padding: 20px 16px calc(112px + env(safe-area-inset-bottom, 0px));
+            gap: 16px;
           }
 
           .msell-footer__brand-row {
-            gap: 12px;
-          }
-
-          .msell-footer__logo {
-            width: 40px;
-            height: 40px;
-            border-radius: 13px;
-            font-size: 24px;
-          }
-
-          .msell-footer__brand-name {
-            font-size: 22px;
-          }
-
-          .msell-footer__brand-sub {
-            font-size: 13px;
-            letter-spacing: 0.12em;
-          }
-
-          .msell-footer__desc {
-            font-size: 14px;
-            line-height: 1.7;
-          }
-
-          .msell-footer__nav {
-            display: flex;
-            flex-wrap: nowrap;
-            justify-content: flex-start;
             gap: 10px;
           }
 
+          .msell-footer__logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            font-size: 18px;
+          }
+
+          .msell-footer__brand-name {
+            font-size: 17px;
+          }
+
+          .msell-footer__brand-sub {
+            font-size: 10px;
+          }
+
+          .msell-footer__desc {
+            font-size: 12px;
+            line-height: 1.55;
+          }
+
+          .msell-footer__nav {
+            gap: 8px;
+          }
+
           .msell-footer__link {
-            width: auto;
-            min-height: 46px;
-            padding: 0 18px;
-            font-size: 14px;
+            min-height: 36px;
+            padding: 0 12px;
+            font-size: 11px;
           }
         }
       `}</style>
