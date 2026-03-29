@@ -25,7 +25,9 @@ export default function Footer() {
             </div>
 
             <p className="msell-footer__desc">
-              Msell은 디지털 자산 거래 정보를 등록하고 거래 당사자 간 연결을 돕는 플랫폼입니다.
+              Msell은 디지털 자산 거래 정보를 등록하고
+              <br />
+              거래 당사자 간 연결을 돕는 플랫폼입니다.
             </p>
           </div>
 
