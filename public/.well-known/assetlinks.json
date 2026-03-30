@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.msell.twa",
+      "sha256_cert_fingerprints": [
+        "E7:B3:A3:5C:83:5D:2D:B1:B6:6C:51:8B:1C:0F:1E:FC:44:69:81:B6:BB:4C:86:27:BD:E5:8D:8A:AA:D5:74:E7"
+      ]
+    }
+  }
+]
