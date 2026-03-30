@@ -1,11 +1,10 @@
-
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type ListingRow = {
   id: string;
   title: string | null;
-  category: string | null;
+  listing_type: string | null;
   price: number | string | null;
   status: string | null;
   created_at: string | null;
@@ -31,30 +30,30 @@ function formatDate(value: string | null | undefined) {
   return `${yy}. ${mm}. ${dd}.`;
 }
 
-function categoryMeta(category?: string | null) {
-  switch (category) {
-    case "YouTube Channel":
+function categoryMeta(listingType?: string | null) {
+  switch (listingType) {
+    case "youtube_channel":
       return { short: "YT", bg: "#fff1f2", color: "#b91c1c", label: "YouTube Channel" };
-    case "Instagram Account":
+    case "instagram_account":
       return { short: "IG", bg: "#fdf0f7", color: "#b83b7c", label: "Instagram Account" };
-    case "TikTok Account":
+    case "tiktok_account":
       return { short: "TT", bg: "#eefcff", color: "#0f766e", label: "TikTok Account" };
-    case "Website / Blog":
+    case "website_blog":
       return { short: "WB", bg: "#eff6ff", color: "#1d4ed8", label: "Website / Blog" };
-    case "Store / Commerce":
+    case "store_commerce":
       return { short: "SC", bg: "#fefce8", color: "#a16207", label: "Store / Commerce" };
-    case "SaaS / App":
+    case "saas_app":
       return { short: "SA", bg: "#ecfdf5", color: "#15803d", label: "SaaS / App" };
-    case "Domain":
+    case "domain":
       return { short: "DM", bg: "#f3f4f6", color: "#111827", label: "Domain" };
-    case "Newsletter / Community":
+    case "newsletter_community":
       return { short: "NC", bg: "#fff7ed", color: "#c2410c", label: "Newsletter / Community" };
-    case "Course / Digital Content":
+    case "course_digital_content":
       return { short: "CD", bg: "#eef2ff", color: "#3730a3", label: "Course / Digital Content" };
-    case "Marketing Asset":
+    case "marketing_asset":
       return { short: "MA", bg: "#ecfccb", color: "#4d7c0f", label: "Marketing Asset" };
     default:
-      return { short: "ETC", bg: "#f4ede3", color: "#6b4e33", label: category || "기타" };
+      return { short: "ETC", bg: "#f4ede3", color: "#6b4e33", label: "기타" };
   }
 }
 
@@ -76,14 +75,14 @@ export default async function HomePage() {
   const PUBLIC_HOME_STATUSES = ["active", "reserved"];
 
   const [
-    { data: latestListings },
-    { count: activeCount },
-    { count: totalListingCount },
-    { count: totalDealCount },
+    latestListingsResult,
+    activeCountResult,
+    totalListingCountResult,
+    totalDealCountResult,
   ] = await Promise.all([
     supabase
       .from("listings")
-      .select("id,title,category,price,status,created_at,view_count,price_negotiable")
+      .select("id,title,listing_type,price,status,created_at,view_count,price_negotiable")
       .in("status", PUBLIC_HOME_STATUSES)
       .order("created_at", { ascending: false })
       .limit(8),
@@ -102,7 +101,13 @@ export default async function HomePage() {
       .select("*", { count: "exact", head: true }),
   ]);
 
-  const listings: ListingRow[] = Array.isArray(latestListings) ? latestListings : [];
+  const listings: ListingRow[] = Array.isArray(latestListingsResult.data)
+    ? (latestListingsResult.data as ListingRow[])
+    : [];
+
+  const activeCount = activeCountResult.count ?? 0;
+  const totalListingCount = totalListingCountResult.count ?? 0;
+  const totalDealCount = totalDealCountResult.count ?? 0;
   const todayTrendValue = listings.length > 0 ? listings.length : 0;
 
   return (
@@ -546,7 +551,7 @@ export default async function HomePage() {
                   fontWeight: 900,
                 }}
               >
-                {activeCount ?? 0}
+                {activeCount}
               </div>
             </div>
 
@@ -570,7 +575,7 @@ export default async function HomePage() {
                   fontWeight: 900,
                 }}
               >
-                {totalListingCount ?? 0}
+                {totalListingCount}
               </div>
             </div>
 
@@ -594,7 +599,7 @@ export default async function HomePage() {
                   fontWeight: 900,
                 }}
               >
-                {totalDealCount ?? 0}
+                {totalDealCount}
               </div>
             </div>
           </div>
@@ -670,7 +675,7 @@ export default async function HomePage() {
         ) : (
           <div className="home-listings-grid">
             {listings.map((item) => {
-              const meta = categoryMeta(item.category);
+              const meta = categoryMeta(item.listing_type);
               const status = statusLabel(item.status);
 
               return (
@@ -742,7 +747,14 @@ export default async function HomePage() {
                         </span>
                       </div>
 
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 6,
+                          flexWrap: "wrap",
+                          justifyContent: "flex-end",
+                        }}
+                      >
                         <span
                           style={{
                             display: "inline-flex",
