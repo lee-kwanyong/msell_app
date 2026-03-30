@@ -5,13 +5,17 @@ import { supabaseServer } from "@/lib/supabase/server";
 type SearchParams = Promise<{
   status?: string;
   q?: string;
+  deleted?: string;
+  error?: string;
 }>;
 
 type ListingRow = {
   id: string;
+  seller_id?: string | null;
   user_id?: string | null;
   title?: string | null;
   category?: string | null;
+  listing_type?: string | null;
   price?: number | string | null;
   status?: string | null;
   created_at?: string | null;
@@ -104,6 +108,10 @@ function firstText(...values: Array<string | null | undefined>) {
   return "";
 }
 
+function categoryLabel(row: ListingRow) {
+  return firstText(row.category, row.listing_type, "기타");
+}
+
 export default async function MyListingsPage({
   searchParams,
 }: {
@@ -112,6 +120,8 @@ export default async function MyListingsPage({
   const resolved = (await searchParams) ?? {};
   const keyword = resolved.q?.trim() || "";
   const status = resolved.status?.trim() || "all";
+  const deleted = resolved.deleted === "1";
+  const errorCode = resolved.error?.trim() || "";
 
   const supabase = await supabaseServer();
   const {
@@ -125,7 +135,8 @@ export default async function MyListingsPage({
   let query = supabase
     .from("listings")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("seller_id", user.id)
+    .neq("status", "archived")
     .order("created_at", { ascending: false });
 
   if (status !== "all") {
@@ -134,7 +145,7 @@ export default async function MyListingsPage({
 
   if (keyword) {
     query = query.or(
-      `title.ilike.%${keyword}%,description.ilike.%${keyword}%,category.ilike.%${keyword}%`
+      `title.ilike.%${keyword}%,description.ilike.%${keyword}%,category.ilike.%${keyword}%,listing_type.ilike.%${keyword}%`
     );
   }
 
@@ -148,7 +159,7 @@ export default async function MyListingsPage({
     return {
       id: row.id,
       title: firstText(row.title, "제목 없음"),
-      category: firstText(row.category, "기타"),
+      category: categoryLabel(row),
       priceText: formatPrice(row.price),
       status: row.status || "active",
       statusText: statusLabel(row.status),
@@ -163,6 +174,15 @@ export default async function MyListingsPage({
   const activeCount = cards.filter((item) => item.status === "active").length;
   const reservedCount = cards.filter((item) => item.status === "reserved").length;
   const soldCount = cards.filter((item) => item.status === "sold").length;
+
+  const errorMessage =
+    errorCode === "listing_not_found"
+      ? "삭제할 자산을 찾지 못했습니다."
+      : errorCode === "forbidden"
+        ? "본인 자산만 삭제할 수 있습니다."
+        : errorCode === "delete_failed"
+          ? "삭제 처리 중 오류가 발생했습니다."
+          : "";
 
   return (
     <>
@@ -202,9 +222,22 @@ export default async function MyListingsPage({
           </div>
         </section>
 
+        {deleted ? (
+          <section className="msell-my-listings-alert is-success">
+            글이 삭제되었습니다.
+          </section>
+        ) : null}
+
+        {errorMessage ? (
+          <section className="msell-my-listings-alert is-error">
+            {errorMessage}
+          </section>
+        ) : null}
+
         <section className="msell-my-listings-filter">
           <form action="/my/listings" className="msell-my-listings-filter-form">
             <div className="msell-my-listings-searchbox">
+              <input type="hidden" name="status" value={status} />
               <input
                 type="text"
                 name="q"
@@ -255,10 +288,7 @@ export default async function MyListingsPage({
             <div className="msell-my-listings-empty-card">
               <strong>등록된 자산이 없습니다.</strong>
               <p>새 자산을 등록하면 여기서 상태와 내용을 관리할 수 있습니다.</p>
-              <Link
-                href="/listings/create"
-                className="msell-my-listings-empty-btn"
-              >
+              <Link href="/listings/create" className="msell-my-listings-empty-btn">
                 자산 등록
               </Link>
             </div>
@@ -269,10 +299,7 @@ export default async function MyListingsPage({
           <section className="msell-my-listings-grid">
             {cards.map((item) => (
               <article key={item.id} className="msell-my-listings-card">
-                <Link
-                  href={`/listings/${item.id}`}
-                  className="msell-my-listings-card-main"
-                >
+                <Link href={`/listings/${item.id}`} className="msell-my-listings-card-main">
                   <div className="msell-my-listings-card-top">
                     <div className="msell-my-listings-card-copy">
                       <div className="msell-my-listings-card-meta">
@@ -318,10 +345,7 @@ export default async function MyListingsPage({
                 </Link>
 
                 <div className="msell-my-listings-card-actions">
-                  <Link
-                    href={`/listings/${item.id}`}
-                    className="msell-my-listings-secondary"
-                  >
+                  <Link href={`/listings/${item.id}`} className="msell-my-listings-secondary">
                     상세보기
                   </Link>
                   <Link
@@ -523,6 +547,12 @@ export default async function MyListingsPage({
           border: 1px solid #efc7c7;
           background: #fff5f5;
           color: #8b2e2e;
+        }
+
+        .msell-my-listings-alert.is-success {
+          border: 1px solid #cfe7d3;
+          background: #f4fbf5;
+          color: #256c2f;
         }
 
         .msell-my-listings-empty-card {
