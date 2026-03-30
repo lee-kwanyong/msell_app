@@ -12,12 +12,13 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
   const formData = await request.formData();
   const listingId = String(formData.get("listing_id") || formData.get("id") || "").trim();
 
-  if (!user) {
+  if (userError || !user) {
     return NextResponse.redirect(
       `${origin}/auth/login?next=${encodeURIComponent("/my/listings")}`,
       { status: 303 }
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     });
   }
 
-  if (listing.status === "archived" || listing.status === "hidden") {
+  if (listing.status === "archived") {
     return NextResponse.redirect(`${origin}/my/listings?deleted=1`, {
       status: 303,
     });
@@ -56,14 +57,15 @@ export async function POST(request: Request) {
 
   const { error: updateError } = await supabase
     .from("listings")
-    .update({ status: "hidden" })
+    .update({ status: "archived" })
     .eq("id", listingId)
     .eq("seller_id", user.id);
 
   if (updateError) {
-    return NextResponse.redirect(`${origin}/my/listings?error=delete_failed`, {
-      status: 303,
-    });
+    return NextResponse.redirect(
+      `${origin}/listings/${listingId}/edit?error=${encodeURIComponent(updateError.message)}`,
+      { status: 303 }
+    );
   }
 
   const { data: deals } = await supabase
@@ -80,16 +82,21 @@ export async function POST(request: Request) {
   );
 
   if (targetUserIds.length > 0) {
-    await supabase.from("notifications").insert(
-      targetUserIds.map((targetUserId) => ({
-        user_id: targetUserId,
-        actor_id: user.id,
-        listing_id: listingId,
-        type: "listing_deleted",
-        title: "등록글 삭제",
-        body: `${listing.title || "등록글"}이 더 이상 공개되지 않습니다.`,
-      }))
-    );
+    try {
+      await supabase.from("notifications").insert(
+        targetUserIds.map((targetUserId) => ({
+          user_id: targetUserId,
+          type: "listing_deleted",
+          title: "등록글 삭제",
+          body: `${listing.title || "등록글"}이 더 이상 공개되지 않습니다.`,
+          deal_id: null,
+          message_id: null,
+          is_read: false,
+        }))
+      );
+    } catch {
+      // 삭제 자체는 성공 처리
+    }
   }
 
   return NextResponse.redirect(`${origin}/my/listings?deleted=1`, {

@@ -1,19 +1,15 @@
 "use client";
 
 type DeleteListingButtonProps = {
-  formAction?: string;
   label?: string;
 };
 
 export default function DeleteListingButton({
-  formAction = "/api/listings/delete",
   label = "글 삭제",
 }: DeleteListingButtonProps) {
   return (
     <button
       type="submit"
-      formAction={formAction}
-      formMethod="post"
       onClick={(e) => {
         const ok = window.confirm("정말 삭제하시겠습니까?");
         if (!ok) {
@@ -24,6 +20,7 @@ export default function DeleteListingButton({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
+        width: "100%",
         minWidth: 130,
         height: 48,
         padding: "0 18px",

@@ -48,10 +48,17 @@ function radioCardStyle(selected: boolean): React.CSSProperties {
 
 export default async function EditListingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const errorMessage = resolvedSearchParams.error
+    ? decodeURIComponent(resolvedSearchParams.error)
+    : "";
+
   const supabase = await supabaseServer();
 
   const {
@@ -93,8 +100,12 @@ export default async function EditListingPage({
             grid-template-columns: 1fr !important;
           }
 
-          .edit-action-row {
+          .edit-bottom-row {
             grid-template-columns: 1fr !important;
+          }
+
+          .edit-right-actions {
+            grid-template-columns: 1fr 1fr !important;
           }
         }
       `}</style>
@@ -163,6 +174,23 @@ export default async function EditListingPage({
           </Link>
         </div>
 
+        {errorMessage ? (
+          <div
+            style={{
+              borderRadius: 18,
+              border: "1px solid #efc7c1",
+              background: "#fff4f2",
+              color: "#8b2f23",
+              padding: "14px 16px",
+              fontSize: 14,
+              fontWeight: 800,
+              lineHeight: 1.6,
+            }}
+          >
+            {errorMessage}
+          </div>
+        ) : null}
+
         <form
           action="/api/listings/update"
           method="post"
@@ -176,7 +204,6 @@ export default async function EditListingPage({
           }}
         >
           <input type="hidden" name="id" value={listing.id} />
-          <input type="hidden" name="listing_id" value={listing.id} />
 
           <div style={{ display: "grid", gap: 8 }}>
             <label htmlFor="title" style={{ fontSize: 14, fontWeight: 900, color: "#2f2417" }}>
@@ -322,58 +349,72 @@ export default async function EditListingPage({
           </div>
 
           <div
-            className="edit-action-row"
+            className="edit-bottom-row"
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr auto auto",
+              gridTemplateColumns: "1fr auto",
               gap: 10,
               alignItems: "center",
               paddingTop: 4,
             }}
           >
-            <DeleteListingButton formAction="/api/listings/delete" label="글 삭제" />
+            <div>
+              <form action="/api/listings/delete" method="post">
+                <input type="hidden" name="listing_id" value={listing.id} />
+                <DeleteListingButton label="글 삭제" />
+              </form>
+            </div>
 
-            <Link
-              href={`/listings/${id}`}
+            <div
+              className="edit-right-actions"
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: 110,
-                height: 48,
-                padding: "0 18px",
-                borderRadius: 999,
-                background: "#fffdf9",
-                border: "1px solid #d8c8b2",
-                color: "#5e4a38",
-                textDecoration: "none",
-                fontSize: 14,
-                fontWeight: 800,
+                display: "grid",
+                gridTemplateColumns: "auto auto",
+                gap: 10,
               }}
             >
-              취소
-            </Link>
+              <Link
+                href={`/listings/${id}`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 110,
+                  height: 48,
+                  padding: "0 18px",
+                  borderRadius: 999,
+                  background: "#fffdf9",
+                  border: "1px solid #d8c8b2",
+                  color: "#5e4a38",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 800,
+                }}
+              >
+                취소
+              </Link>
 
-            <button
-              type="submit"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: 130,
-                height: 48,
-                padding: "0 18px",
-                borderRadius: 999,
-                border: "none",
-                background: "#2f2417",
-                color: "#fffaf2",
-                fontSize: 14,
-                fontWeight: 900,
-                cursor: "pointer",
-              }}
-            >
-              수정 저장
-            </button>
+              <button
+                type="submit"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 130,
+                  height: 48,
+                  padding: "0 18px",
+                  borderRadius: 999,
+                  border: "none",
+                  background: "#2f2417",
+                  color: "#fffaf2",
+                  fontSize: 14,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                수정 저장
+              </button>
+            </div>
           </div>
         </form>
       </div>
