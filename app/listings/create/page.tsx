@@ -1,114 +1,116 @@
-import Link from "next/link";
-import CategoryDropdown from "@/components/listings/CategoryDropdown";
+import Link from 'next/link'
+import CategoryDropdown from '@/components/listings/CategoryDropdown'
+import { createListingAction } from './actions'
 
 type SearchParams = Promise<{
-  error?: string;
-  message?: string;
-  title?: string;
-  category?: string;
-  price?: string;
-  price_negotiable?: string;
-  transfer_method?: string;
-  description?: string;
-  status?: string;
-}>;
+  error?: string
+  message?: string
+  title?: string
+  category?: string
+  price?: string
+  price_negotiable?: string
+  transfer_method?: string
+  description?: string
+  status?: string
+}>
 
 function decodeValue(value?: string) {
-  if (!value) return "";
+  if (!value) return ''
   try {
-    return decodeURIComponent(value);
+    return decodeURIComponent(value)
   } catch {
-    return value;
+    return value
   }
 }
 
 function field(inputStyle?: React.CSSProperties): React.CSSProperties {
   return {
-    width: "100%",
+    width: '100%',
     borderRadius: 16,
-    border: "1px solid #d8c8b2",
-    background: "#fffdf9",
-    color: "#2f2417",
+    border: '1px solid #d8c8b2',
+    background: '#fffdf9',
+    color: '#2f2417',
     fontSize: 15,
     fontWeight: 700,
-    outline: "none",
+    outline: 'none',
     ...inputStyle,
-  };
+  }
 }
 
 function cardStyle(): React.CSSProperties {
   return {
-    background: "#f2eadf",
-    border: "1px solid #dbcdb9",
+    background: '#f2eadf',
+    border: '1px solid #dbcdb9',
     borderRadius: 28,
     padding: 18,
-  };
+  }
 }
 
 function helperItemStyle(): React.CSSProperties {
   return {
     borderRadius: 18,
-    border: "1px solid #d8c8b2",
-    background: "#f7f2ea",
-    padding: "16px 16px",
-  };
+    border: '1px solid #d8c8b2',
+    background: '#f7f2ea',
+    padding: '16px 16px',
+  }
 }
 
 function quickLinkStyle(): React.CSSProperties {
   return {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     minHeight: 52,
     borderRadius: 18,
-    border: "1px solid #d8c8b2",
-    background: "#fffdf9",
-    color: "#2f2417",
-    textDecoration: "none",
+    border: '1px solid #d8c8b2',
+    background: '#fffdf9',
+    color: '#2f2417',
+    textDecoration: 'none',
     fontSize: 15,
     fontWeight: 900,
-  };
+  }
 }
 
 function radioCardStyle(selected: boolean): React.CSSProperties {
   return {
-    display: "flex",
-    alignItems: "center",
+    display: 'flex',
+    alignItems: 'center',
     gap: 10,
     minHeight: 56,
-    padding: "0 16px",
+    padding: '0 16px',
     borderRadius: 16,
-    border: `1px solid ${selected ? "#2f2417" : "#d8c8b2"}`,
-    background: selected ? "#f7efe4" : "#fffdf9",
-    cursor: "pointer",
+    border: `1px solid ${selected ? '#2f2417' : '#d8c8b2'}`,
+    background: selected ? '#f7efe4' : '#fffdf9',
+    cursor: 'pointer',
     fontSize: 14,
     fontWeight: 800,
-    color: "#2f2417",
-  };
+    color: '#2f2417',
+  }
 }
 
 export default async function CreateListingPage({
   searchParams,
 }: {
-  searchParams?: SearchParams;
+  searchParams?: SearchParams
 }) {
-  const resolved = (await searchParams) ?? {};
+  const resolved = (await searchParams) ?? {}
 
-  const error = decodeValue(resolved.error || resolved.message);
-  const defaultTitle = decodeValue(resolved.title);
-  const defaultCategory = decodeValue(resolved.category);
-  const defaultPrice = decodeValue(resolved.price);
-  const defaultPriceNegotiable = decodeValue(resolved.price_negotiable || "false") === "true";
-  const defaultTransferMethod = decodeValue(resolved.transfer_method);
-  const defaultDescription = decodeValue(resolved.description);
-  const defaultStatus = decodeValue(resolved.status) || "active";
+  const error = decodeValue(resolved.error || resolved.message)
+  const defaultTitle = decodeValue(resolved.title)
+  const defaultCategory = decodeValue(resolved.category)
+  const defaultPrice = decodeValue(resolved.price)
+  const defaultPriceNegotiable =
+    decodeValue(resolved.price_negotiable || 'false') === 'true'
+  const defaultTransferMethod = decodeValue(resolved.transfer_method)
+  const defaultDescription = decodeValue(resolved.description)
+  const defaultStatus = decodeValue(resolved.status) || 'active'
 
   return (
     <main
       style={{
-        minHeight: "100vh",
-        background: "#f6f1e7",
-        padding: "28px 16px 120px",
+        minHeight: '100vh',
+        background: '#f6f1e7',
+        padding: '28px 16px 120px',
       }}
     >
       <style>{`
@@ -152,27 +154,27 @@ export default async function CreateListingPage({
       <div
         style={{
           maxWidth: 1180,
-          margin: "0 auto",
-          display: "grid",
+          margin: '0 auto',
+          display: 'grid',
           gap: 18,
         }}
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             gap: 12,
-            flexWrap: "wrap",
+            flexWrap: 'wrap',
           }}
         >
           <div>
             <div
               style={{
-                color: "#8a7156",
+                color: '#8a7156',
                 fontSize: 12,
                 fontWeight: 900,
-                letterSpacing: "0.08em",
+                letterSpacing: '0.08em',
                 marginBottom: 8,
               }}
             >
@@ -181,11 +183,11 @@ export default async function CreateListingPage({
             <h1
               style={{
                 margin: 0,
-                color: "#1f140c",
+                color: '#1f140c',
                 fontSize: 34,
                 lineHeight: 1.15,
                 fontWeight: 900,
-                letterSpacing: "-0.03em",
+                letterSpacing: '-0.03em',
               }}
             >
               자산 등록
@@ -195,16 +197,16 @@ export default async function CreateListingPage({
           <Link
             href="/listings"
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               height: 44,
-              padding: "0 18px",
+              padding: '0 18px',
               borderRadius: 999,
-              background: "#fffdf9",
-              border: "1px solid #d8c8b2",
-              color: "#5e4a38",
-              textDecoration: "none",
+              background: '#fffdf9',
+              border: '1px solid #d8c8b2',
+              color: '#5e4a38',
+              textDecoration: 'none',
               fontSize: 14,
               fontWeight: 800,
             }}
@@ -217,10 +219,10 @@ export default async function CreateListingPage({
           <div
             style={{
               borderRadius: 18,
-              border: "1px solid #efc7c1",
-              background: "#fff4f2",
-              color: "#8b2f23",
-              padding: "14px 16px",
+              border: '1px solid #efc7c1',
+              background: '#fff4f2',
+              color: '#8b2f23',
+              padding: '14px 16px',
               fontSize: 14,
               fontWeight: 800,
               lineHeight: 1.6,
@@ -233,21 +235,20 @@ export default async function CreateListingPage({
         <div className="create-layout">
           <div className="create-main">
             <form
-              action="/api/listings/create"
-              method="post"
+              action={createListingAction}
               style={{
                 ...cardStyle(),
-                display: "grid",
+                display: 'grid',
                 gap: 16,
               }}
             >
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: 'grid', gap: 8 }}>
                 <label
                   htmlFor="title"
                   style={{
                     fontSize: 14,
                     fontWeight: 900,
-                    color: "#2f2417",
+                    color: '#2f2417',
                   }}
                 >
                   제목
@@ -261,7 +262,7 @@ export default async function CreateListingPage({
                   placeholder="예: 수익화 완료 유튜브 채널"
                   style={field({
                     height: 56,
-                    padding: "0 16px",
+                    padding: '0 16px',
                   })}
                 />
               </div>
@@ -278,19 +279,19 @@ export default async function CreateListingPage({
               <div
                 className="price-negotiable-row"
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "minmax(0, 1fr) 260px",
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1fr) 260px',
                   gap: 16,
-                  alignItems: "start",
+                  alignItems: 'start',
                 }}
               >
-                <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: 'grid', gap: 8 }}>
                   <label
                     htmlFor="price"
                     style={{
                       fontSize: 14,
                       fontWeight: 900,
-                      color: "#2f2417",
+                      color: '#2f2417',
                     }}
                   >
                     희망 가격
@@ -307,23 +308,29 @@ export default async function CreateListingPage({
                     placeholder="예: 1500000"
                     style={field({
                       height: 56,
-                      padding: "0 16px",
+                      padding: '0 16px',
                     })}
                   />
                 </div>
 
-                <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: 'grid', gap: 8 }}>
                   <div
                     style={{
                       fontSize: 14,
                       fontWeight: 900,
-                      color: "#2f2417",
+                      color: '#2f2417',
                     }}
                   >
                     금액 협의
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 10,
+                    }}
+                  >
                     <label style={radioCardStyle(defaultPriceNegotiable)}>
                       <input
                         type="radio"
@@ -349,13 +356,13 @@ export default async function CreateListingPage({
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: 'grid', gap: 8 }}>
                 <label
                   htmlFor="transfer_method"
                   style={{
                     fontSize: 14,
                     fontWeight: 900,
-                    color: "#2f2417",
+                    color: '#2f2417',
                   }}
                 >
                   이전 방식
@@ -369,18 +376,18 @@ export default async function CreateListingPage({
                   placeholder="예: 계정 이메일 양도 / 관리자 권한 이전 / 도메인 이전"
                   style={field({
                     height: 56,
-                    padding: "0 16px",
+                    padding: '0 16px',
                   })}
                 />
               </div>
 
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: 'grid', gap: 8 }}>
                 <label
                   htmlFor="description"
                   style={{
                     fontSize: 14,
                     fontWeight: 900,
-                    color: "#2f2417",
+                    color: '#2f2417',
                   }}
                 >
                   설명
@@ -393,20 +400,20 @@ export default async function CreateListingPage({
                   placeholder="운영 기간, 핵심 지표, 수익 구조, 인수인계 범위를 구체적으로 적어 주세요."
                   style={field({
                     minHeight: 180,
-                    padding: "16px",
-                    resize: "vertical",
+                    padding: '16px',
+                    resize: 'vertical',
                     lineHeight: 1.7,
                   })}
                 />
               </div>
 
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: 'grid', gap: 8 }}>
                 <label
                   htmlFor="status"
                   style={{
                     fontSize: 14,
                     fontWeight: 900,
-                    color: "#2f2417",
+                    color: '#2f2417',
                   }}
                 >
                   상태
@@ -417,10 +424,10 @@ export default async function CreateListingPage({
                   defaultValue={defaultStatus}
                   style={field({
                     height: 56,
-                    padding: "0 16px",
-                    appearance: "none",
-                    WebkitAppearance: "none",
-                    MozAppearance: "none",
+                    padding: '0 16px',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
                   })}
                 >
                   <option value="active">거래가능</option>
@@ -432,27 +439,27 @@ export default async function CreateListingPage({
 
               <div
                 style={{
-                  display: "flex",
+                  display: 'flex',
                   gap: 10,
-                  justifyContent: "flex-end",
-                  flexWrap: "wrap",
+                  justifyContent: 'flex-end',
+                  flexWrap: 'wrap',
                   paddingTop: 4,
                 }}
               >
                 <Link
                   href="/listings"
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     minWidth: 110,
                     height: 48,
-                    padding: "0 18px",
+                    padding: '0 18px',
                     borderRadius: 999,
-                    background: "#fffdf9",
-                    border: "1px solid #d8c8b2",
-                    color: "#5e4a38",
-                    textDecoration: "none",
+                    background: '#fffdf9',
+                    border: '1px solid #d8c8b2',
+                    color: '#5e4a38',
+                    textDecoration: 'none',
                     fontSize: 14,
                     fontWeight: 800,
                   }}
@@ -463,19 +470,19 @@ export default async function CreateListingPage({
                 <button
                   type="submit"
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     minWidth: 130,
                     height: 48,
-                    padding: "0 18px",
+                    padding: '0 18px',
                     borderRadius: 999,
-                    border: "none",
-                    background: "#2f2417",
-                    color: "#fffaf2",
+                    border: 'none',
+                    background: '#2f2417',
+                    color: '#fffaf2',
                     fontSize: 14,
                     fontWeight: 900,
-                    cursor: "pointer",
+                    cursor: 'pointer',
                   }}
                 >
                   자산 등록하기
@@ -488,7 +495,7 @@ export default async function CreateListingPage({
             <section style={cardStyle()}>
               <div
                 style={{
-                  color: "#1f140c",
+                  color: '#1f140c',
                   fontSize: 16,
                   fontWeight: 900,
                   marginBottom: 14,
@@ -497,11 +504,11 @@ export default async function CreateListingPage({
                 등록 가이드
               </div>
 
-              <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
                 <div style={helperItemStyle()}>
                   <div
                     style={{
-                      color: "#2f2417",
+                      color: '#2f2417',
                       fontSize: 14,
                       fontWeight: 900,
                       marginBottom: 6,
@@ -511,7 +518,7 @@ export default async function CreateListingPage({
                   </div>
                   <div
                     style={{
-                      color: "#6f5a46",
+                      color: '#6f5a46',
                       fontSize: 14,
                       lineHeight: 1.7,
                       fontWeight: 700,
@@ -524,7 +531,7 @@ export default async function CreateListingPage({
                 <div style={helperItemStyle()}>
                   <div
                     style={{
-                      color: "#2f2417",
+                      color: '#2f2417',
                       fontSize: 14,
                       fontWeight: 900,
                       marginBottom: 6,
@@ -534,7 +541,7 @@ export default async function CreateListingPage({
                   </div>
                   <div
                     style={{
-                      color: "#6f5a46",
+                      color: '#6f5a46',
                       fontSize: 14,
                       lineHeight: 1.7,
                       fontWeight: 700,
@@ -547,7 +554,7 @@ export default async function CreateListingPage({
                 <div style={helperItemStyle()}>
                   <div
                     style={{
-                      color: "#2f2417",
+                      color: '#2f2417',
                       fontSize: 14,
                       fontWeight: 900,
                       marginBottom: 6,
@@ -557,7 +564,7 @@ export default async function CreateListingPage({
                   </div>
                   <div
                     style={{
-                      color: "#6f5a46",
+                      color: '#6f5a46',
                       fontSize: 14,
                       lineHeight: 1.7,
                       fontWeight: 700,
@@ -570,7 +577,7 @@ export default async function CreateListingPage({
                 <div style={helperItemStyle()}>
                   <div
                     style={{
-                      color: "#2f2417",
+                      color: '#2f2417',
                       fontSize: 14,
                       fontWeight: 900,
                       marginBottom: 6,
@@ -580,7 +587,7 @@ export default async function CreateListingPage({
                   </div>
                   <div
                     style={{
-                      color: "#6f5a46",
+                      color: '#6f5a46',
                       fontSize: 14,
                       lineHeight: 1.7,
                       fontWeight: 700,
@@ -595,7 +602,7 @@ export default async function CreateListingPage({
             <section style={cardStyle()}>
               <div
                 style={{
-                  color: "#1f140c",
+                  color: '#1f140c',
                   fontSize: 16,
                   fontWeight: 900,
                   marginBottom: 14,
@@ -604,7 +611,7 @@ export default async function CreateListingPage({
                 빠른 이동
               </div>
 
-              <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
                 <Link href="/listings" style={quickLinkStyle()}>
                   거래목록
                 </Link>
@@ -617,5 +624,5 @@ export default async function CreateListingPage({
         </div>
       </div>
     </main>
-  );
+  )
 }
