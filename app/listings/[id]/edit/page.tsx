@@ -71,7 +71,7 @@ export default async function EditListingPage({
     notFound();
   }
 
-  if (listing.user_id !== user.id) {
+  if (listing.seller_id !== user.id) {
     redirect(`/listings/${id}`);
   }
 
@@ -89,6 +89,10 @@ export default async function EditListingPage({
       <style>{`
         @media (max-width: 640px) {
           .edit-price-row {
+            grid-template-columns: 1fr !important;
+          }
+
+          .edit-action-row {
             grid-template-columns: 1fr !important;
           }
         }
@@ -188,7 +192,7 @@ export default async function EditListingPage({
 
           <CategoryDropdown
             name="category"
-            defaultValue={listing.category ?? ""}
+            defaultValue={listing.category ?? listing.listing_type ?? ""}
             required
             showCategoryLabel={true}
             showTypeLabel={true}
@@ -316,14 +320,42 @@ export default async function EditListingPage({
           </div>
 
           <div
+            className="edit-action-row"
             style={{
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns: "1fr auto auto",
               gap: 10,
-              justifyContent: "flex-end",
-              flexWrap: "wrap",
+              alignItems: "center",
               paddingTop: 4,
             }}
           >
+            <button
+              type="submit"
+              formAction="/api/listings/delete"
+              formMethod="post"
+              onClick={(e) => {
+                const ok = window.confirm("이 자산을 삭제하시겠습니까?");
+                if (!ok) e.preventDefault();
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 130,
+                height: 48,
+                padding: "0 18px",
+                borderRadius: 999,
+                border: "1px solid #d7b9b4",
+                background: "#fff4f2",
+                color: "#8b2f23",
+                fontSize: 14,
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              글 삭제
+            </button>
+
             <Link
               href={`/listings/${id}`}
               style={{

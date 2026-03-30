@@ -1,97 +1,53 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 
-function getOrigin(request: Request) {
-  const url = new URL(request.url);
-  return `${url.protocol}//${url.host}`;
-}
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const supabase = await supabaseServer();
-  const origin = getOrigin(request);
+  const formData = await request.formData();
+  const id = String(formData.get("id") || "").trim();
+
+  if (!id) {
+    return NextResponse.redirect(new URL("/my/listings", request.url), 303);
+  }
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  const formData = await request.formData();
-  const listingId = String(formData.get("listing_id") || "").trim();
-
-  if (!user) {
+  if (userError || !user) {
     return NextResponse.redirect(
-      `${origin}/auth/login?next=${encodeURIComponent("/my/listings")}`,
-      { status: 303 }
+      new URL(`/auth/login?next=/listings/${id}/edit`, request.url),
+      303
     );
-  }
-
-  if (!listingId) {
-    return NextResponse.redirect(`${origin}/my/listings?error=listing_not_found`, {
-      status: 303,
-    });
   }
 
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, user_id, title, status")
-    .eq("id", listingId)
+    .select("id,seller_id")
+    .eq("id", id)
     .single();
 
   if (listingError || !listing) {
-    return NextResponse.redirect(`${origin}/my/listings?error=listing_not_found`, {
-      status: 303,
-    });
+    return NextResponse.redirect(new URL("/my/listings", request.url), 303);
   }
 
-  if (listing.user_id !== user.id) {
-    return NextResponse.redirect(`${origin}/my/listings?error=forbidden`, {
-      status: 303,
-    });
+  if (listing.seller_id !== user.id) {
+    return NextResponse.redirect(new URL(`/listings/${id}`, request.url), 303);
   }
 
-  if (listing.status === "deleted") {
-    return NextResponse.redirect(`${origin}/my/listings?deleted=1`, {
-      status: 303,
-    });
-  }
-
-  const { error: updateError } = await supabase
+  const { error: deleteError } = await supabase
     .from("listings")
-    .update({ status: "deleted" })
-    .eq("id", listingId);
+    .delete()
+    .eq("id", id)
+    .eq("seller_id", user.id);
 
-  if (updateError) {
-    return NextResponse.redirect(`${origin}/my/listings?error=delete_failed`, {
-      status: 303,
-    });
-  }
-
-  const { data: deals } = await supabase
-    .from("deals")
-    .select("buyer_id")
-    .eq("listing_id", listingId);
-
-  const targetUserIds = Array.from(
-    new Set(
-      (deals || [])
-        .map((deal) => deal.buyer_id)
-        .filter((buyerId) => !!buyerId && buyerId !== user.id)
-    )
-  );
-
-  if (targetUserIds.length > 0) {
-    await supabase.from("notifications").insert(
-      targetUserIds.map((targetUserId) => ({
-        user_id: targetUserId,
-        actor_id: user.id,
-        listing_id: listingId,
-        type: "listing_deleted",
-        title: "등록글 삭제",
-        body: `${listing.title || "등록글"}이 더 이상 공개되지 않습니다.`,
-      }))
+  if (deleteError) {
+    return NextResponse.redirect(
+      new URL(`/listings/${id}/edit?error=${encodeURIComponent(deleteError.message)}`, request.url),
+      303
     );
   }
 
-  return NextResponse.redirect(`${origin}/my/listings?deleted=1`, {
-    status: 303,
-  });
+  return NextResponse.redirect(new URL("/my/listings", request.url), 303);
 }
