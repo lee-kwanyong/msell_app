@@ -4,7 +4,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 type ListingRow = {
   id: string;
   title: string | null;
-  listing_type: string | null;
+  listing_type?: string | null;
+  category?: string | null;
   price: number | string | null;
   status: string | null;
   created_at: string | null;
@@ -30,30 +31,52 @@ function formatDate(value: string | null | undefined) {
   return `${yy}. ${mm}. ${dd}.`;
 }
 
-function categoryMeta(listingType?: string | null) {
-  switch (listingType) {
+function categoryMeta(rawType?: string | null) {
+  const value = String(rawType || "").trim();
+
+  switch (value) {
     case "youtube_channel":
+    case "YouTube Channel":
       return { short: "YT", bg: "#fff1f2", color: "#b91c1c", label: "YouTube Channel" };
+
     case "instagram_account":
+    case "Instagram Account":
       return { short: "IG", bg: "#fdf0f7", color: "#b83b7c", label: "Instagram Account" };
+
     case "tiktok_account":
+    case "TikTok Account":
       return { short: "TT", bg: "#eefcff", color: "#0f766e", label: "TikTok Account" };
+
     case "website_blog":
+    case "Website / Blog":
       return { short: "WB", bg: "#eff6ff", color: "#1d4ed8", label: "Website / Blog" };
+
     case "store_commerce":
+    case "Store / Commerce":
       return { short: "SC", bg: "#fefce8", color: "#a16207", label: "Store / Commerce" };
+
     case "saas_app":
+    case "SaaS / App":
       return { short: "SA", bg: "#ecfdf5", color: "#15803d", label: "SaaS / App" };
+
     case "domain":
+    case "Domain":
       return { short: "DM", bg: "#f3f4f6", color: "#111827", label: "Domain" };
+
     case "newsletter_community":
+    case "Newsletter / Community":
       return { short: "NC", bg: "#fff7ed", color: "#c2410c", label: "Newsletter / Community" };
+
     case "course_digital_content":
+    case "Course / Digital Content":
       return { short: "CD", bg: "#eef2ff", color: "#3730a3", label: "Course / Digital Content" };
+
     case "marketing_asset":
+    case "Marketing Asset":
       return { short: "MA", bg: "#ecfccb", color: "#4d7c0f", label: "Marketing Asset" };
+
     default:
-      return { short: "ETC", bg: "#f4ede3", color: "#6b4e33", label: "기타" };
+      return { short: "ETC", bg: "#f4ede3", color: "#6b4e33", label: value || "기타" };
   }
 }
 
@@ -82,7 +105,7 @@ export default async function HomePage() {
   ] = await Promise.all([
     supabase
       .from("listings")
-      .select("id,title,listing_type,price,status,created_at,view_count,price_negotiable")
+      .select("*")
       .in("status", PUBLIC_HOME_STATUSES)
       .order("created_at", { ascending: false })
       .limit(8),
@@ -675,7 +698,7 @@ export default async function HomePage() {
         ) : (
           <div className="home-listings-grid">
             {listings.map((item) => {
-              const meta = categoryMeta(item.listing_type);
+              const meta = categoryMeta(item.listing_type || item.category);
               const status = statusLabel(item.status);
 
               return (
