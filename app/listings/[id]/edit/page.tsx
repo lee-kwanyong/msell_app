@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import CategoryDropdown from "@/components/listings/CategoryDropdown";
+import DeleteListingButton from "@/components/listings/DeleteListingButton";
 import { supabaseServer } from "@/lib/supabase/server";
 
 function field(inputStyle?: React.CSSProperties): React.CSSProperties {
@@ -175,6 +176,7 @@ export default async function EditListingPage({
           }}
         >
           <input type="hidden" name="id" value={listing.id} />
+          <input type="hidden" name="listing_id" value={listing.id} />
 
           <div style={{ display: "grid", gap: 8 }}>
             <label htmlFor="title" style={{ fontSize: 14, fontWeight: 900, color: "#2f2417" }}>
@@ -329,32 +331,7 @@ export default async function EditListingPage({
               paddingTop: 4,
             }}
           >
-            <button
-              type="submit"
-              formAction="/api/listings/delete"
-              formMethod="post"
-              onClick={(e) => {
-                const ok = window.confirm("이 자산을 삭제하시겠습니까?");
-                if (!ok) e.preventDefault();
-              }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: 130,
-                height: 48,
-                padding: "0 18px",
-                borderRadius: 999,
-                border: "1px solid #d7b9b4",
-                background: "#fff4f2",
-                color: "#8b2f23",
-                fontSize: 14,
-                fontWeight: 900,
-                cursor: "pointer",
-              }}
-            >
-              글 삭제
-            </button>
+            <DeleteListingButton formAction="/api/listings/delete" label="글 삭제" />
 
             <Link
               href={`/listings/${id}`}
