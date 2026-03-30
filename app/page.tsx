@@ -157,6 +157,13 @@ export default async function HomePage() {
           align-items: stretch;
         }
 
+        .home-install-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 16px;
+          margin-top: 16px;
+        }
+
         .home-trade-flow-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -175,6 +182,36 @@ export default async function HomePage() {
           gap: 16px;
         }
 
+        .home-install-steps {
+          display: grid;
+          gap: 10px;
+          margin-top: 14px;
+        }
+
+        .home-install-step {
+          display: grid;
+          grid-template-columns: 28px minmax(0, 1fr);
+          gap: 10px;
+          align-items: start;
+          padding: 12px 14px;
+          border: 1px solid #d8c8b2;
+          border-radius: 16px;
+          background: #fffdfa;
+        }
+
+        .home-install-step-no {
+          width: 28px;
+          height: 28px;
+          border-radius: 999px;
+          background: #efe4d4;
+          color: #6f5843;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
         @media (max-width: 1100px) {
           .home-listings-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -183,7 +220,8 @@ export default async function HomePage() {
 
         @media (max-width: 980px) {
           .home-top-grid,
-          .home-lower-grid {
+          .home-lower-grid,
+          .home-install-grid {
             grid-template-columns: 1fr;
           }
         }
@@ -625,6 +663,184 @@ export default async function HomePage() {
                 {totalDealCount}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-install-grid">
+        <div
+          style={{
+            background: "#fbf8f3",
+            border: "1px solid #d8c8b2",
+            borderRadius: 24,
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              color: "#aa7a4a",
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              marginBottom: 8,
+            }}
+          >
+            IPHONE INSTALL
+          </div>
+
+          <div
+            style={{
+              color: "#1a120b",
+              fontSize: 20,
+              fontWeight: 900,
+              marginBottom: 6,
+            }}
+          >
+            아이폰에 설치하기
+          </div>
+
+          <div
+            style={{
+              color: "#7a6550",
+              fontSize: 14,
+              lineHeight: 1.7,
+              fontWeight: 600,
+            }}
+          >
+            Safari에서 홈 화면에 추가하면 앱처럼 바로 실행할 수 있습니다.
+          </div>
+
+          <div className="home-install-steps">
+            {[
+              "아이폰 Safari에서 msell.app 접속",
+              "하단 공유 버튼 선택",
+              "홈 화면에 추가 선택",
+              "이름 확인 후 추가",
+            ].map((text, index) => (
+              <div key={text} className="home-install-step">
+                <span className="home-install-step-no">{index + 1}</span>
+                <div
+                  style={{
+                    color: "#2f2417",
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    fontWeight: 800,
+                  }}
+                >
+                  {text}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "#fbf8f3",
+            border: "1px solid #d8c8b2",
+            borderRadius: 24,
+            padding: 20,
+            display: "grid",
+            gap: 14,
+          }}
+        >
+          <div
+            style={{
+              color: "#aa7a4a",
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+            }}
+          >
+            APP STATUS
+          </div>
+
+          <div
+            style={{
+              color: "#1a120b",
+              fontSize: 20,
+              fontWeight: 900,
+            }}
+          >
+            현재 설치 방식
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                border: "1px solid #d8c8b2",
+                borderRadius: 18,
+                background: "#fffdfa",
+                padding: "14px 16px",
+              }}
+            >
+              <div
+                style={{
+                  color: "#2f2417",
+                  fontSize: 14,
+                  fontWeight: 900,
+                  marginBottom: 4,
+                }}
+              >
+                아이폰
+              </div>
+              <div
+                style={{
+                  color: "#7a6550",
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  fontWeight: 700,
+                }}
+              >
+                Safari에서 홈 화면에 추가하는 설치형 웹앱
+              </div>
+            </div>
+
+            <div
+              style={{
+                border: "1px solid #d8c8b2",
+                borderRadius: 18,
+                background: "#fffdfa",
+                padding: "14px 16px",
+              }}
+            >
+              <div
+                style={{
+                  color: "#2f2417",
+                  fontSize: 14,
+                  fontWeight: 900,
+                  marginBottom: 4,
+                }}
+              >
+                안드로이드
+              </div>
+              <div
+                style={{
+                  color: "#7a6550",
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  fontWeight: 700,
+                }}
+              >
+                플레이스토어 업로드 준비 완료
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              color: "#7a6550",
+              fontSize: 12,
+              lineHeight: 1.7,
+              fontWeight: 700,
+            }}
+          >
+            앱스토어 정식 등록형 iOS 앱은 다음 단계에서 별도로 진행합니다.
           </div>
         </div>
       </section>
