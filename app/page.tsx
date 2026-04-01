@@ -13,11 +13,29 @@ type ListingRow = {
   price_negotiable?: boolean | null;
 };
 
+type CategoryTrendRow = {
+  key: string;
+  label: string;
+  amount: number;
+};
+
 function formatPrice(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") return "-";
   const num = Number(value);
   if (Number.isNaN(num)) return String(value);
   return `₩ ${num.toLocaleString("ko-KR")}`;
+}
+
+function formatCompactWon(value: number) {
+  if (value >= 100000000) {
+    return `₩ ${(value / 100000000).toFixed(value % 100000000 === 0 ? 0 : 1)}억`;
+  }
+
+  if (value >= 10000) {
+    return `₩ ${(value / 10000).toLocaleString("ko-KR")}만`;
+  }
+
+  return `₩ ${value.toLocaleString("ko-KR")}`;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -93,6 +111,33 @@ function statusLabel(status?: string | null) {
   }
 }
 
+function buildCategoryTrend(listings: ListingRow[]): CategoryTrendRow[] {
+  const totals = new Map<string, CategoryTrendRow>();
+
+  for (const item of listings) {
+    const meta = categoryMeta(item.listing_type || item.category);
+    const rawPrice = Number(item.price);
+
+    if (Number.isNaN(rawPrice) || rawPrice <= 0) continue;
+
+    const existing = totals.get(meta.label);
+
+    if (existing) {
+      existing.amount += rawPrice;
+    } else {
+      totals.set(meta.label, {
+        key: meta.short,
+        label: meta.label,
+        amount: rawPrice,
+      });
+    }
+  }
+
+  return Array.from(totals.values())
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5);
+}
+
 export default async function HomePage() {
   const supabase = await supabaseServer();
   const PUBLIC_HOME_STATUSES = ["active", "reserved"];
@@ -131,7 +176,12 @@ export default async function HomePage() {
   const activeCount = activeCountResult.count ?? 0;
   const totalListingCount = totalListingCountResult.count ?? 0;
   const totalDealCount = totalDealCountResult.count ?? 0;
-  const todayTrendValue = listings.length > 0 ? listings.length : 0;
+
+  const categoryTrend = buildCategoryTrend(listings);
+  const maxTrendAmount =
+    categoryTrend.length > 0
+      ? Math.max(...categoryTrend.map((item) => item.amount))
+      : 0;
 
   return (
     <main
@@ -180,6 +230,7 @@ export default async function HomePage() {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 16px;
+          align-items: stretch;
         }
 
         .home-install-steps {
@@ -212,6 +263,143 @@ export default async function HomePage() {
           font-weight: 900;
         }
 
+        .home-listing-link {
+          display: block;
+          height: 100%;
+          text-decoration: none;
+          color: inherit;
+        }
+
+        .home-listing-card {
+          height: 100%;
+          min-height: 272px;
+          border: 1px solid #d8c8b2;
+          background: #fbf8f3;
+          border-radius: 24px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+        }
+
+        .home-listing-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .home-listing-title-wrap {
+          margin-top: 18px;
+          min-height: 108px;
+          display: flex;
+          align-items: flex-start;
+        }
+
+        .home-listing-title {
+          margin: 0;
+          color: #100a05;
+          font-size: 28px;
+          line-height: 1.2;
+          fontWeight: 900;
+          letter-spacing: -0.03em;
+          word-break: break-word;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .home-listing-bottom {
+          margin-top: auto;
+          padding-top: 20px;
+        }
+
+        .home-listing-price {
+          color: #100a05;
+          font-size: 22px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+        }
+
+        .home-listing-meta {
+          margin-top: 18px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          color: #7a6550;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .home-category-trend {
+          display: grid;
+          gap: 12px;
+          margin-top: 4px;
+        }
+
+        .home-category-trend-item {
+          display: grid;
+          gap: 8px;
+        }
+
+        .home-category-trend-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .home-category-trend-label {
+          min-width: 0;
+          color: #2f2417;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.3;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .home-category-trend-value {
+          flex-shrink: 0;
+          color: #7a6550;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .home-category-trend-track {
+          width: 100%;
+          height: 12px;
+          border-radius: 999px;
+          background: #f1e7d8;
+          overflow: hidden;
+        }
+
+        .home-category-trend-bar {
+          height: 100%;
+          border-radius: 999px;
+          background: linear-gradient(90deg, rgba(205,150,92,0.95) 0%, rgba(145,93,41,1) 100%);
+        }
+
+        .home-category-trend-empty {
+          border: 1px dashed #d8c8b2;
+          border-radius: 18px;
+          background: #fffdfa;
+          min-height: 220px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          text-align: center;
+          color: #7a6550;
+          font-size: 14px;
+          font-weight: 700;
+          line-height: 1.7;
+        }
+
         @media (max-width: 1100px) {
           .home-listings-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -237,6 +425,27 @@ export default async function HomePage() {
 
           .home-listings-grid {
             grid-template-columns: 1fr;
+          }
+
+          .home-listing-card {
+            min-height: 236px;
+          }
+
+          .home-listing-title-wrap {
+            min-height: auto;
+          }
+
+          .home-listing-title {
+            font-size: 24px;
+            -webkit-line-clamp: 2;
+          }
+
+          .home-category-trend-label {
+            font-size: 12px;
+          }
+
+          .home-category-trend-value {
+            font-size: 11px;
           }
         }
       `}</style>
@@ -434,7 +643,7 @@ export default async function HomePage() {
                   marginTop: 4,
                 }}
               >
-                거래금액 추이
+                카테고리별 거래금액
               </div>
             </div>
 
@@ -451,46 +660,43 @@ export default async function HomePage() {
                 fontWeight: 800,
               }}
             >
-              최근 7건
+              최근 등록 기준
             </div>
           </div>
 
-          <div
-            style={{
-              borderRadius: 24,
-              border: "1px solid #d8c8b2",
-              background: "#fffdfa",
-              flex: 1,
-              minHeight: 0,
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "center",
-              paddingBottom: 24,
-            }}
-          >
-            <div style={{ textAlign: "center" }}>
-              <div
-                style={{
-                  width: 42,
-                  height: Math.max(84, Math.min(190, todayTrendValue * 22)),
-                  margin: "0 auto",
-                  borderRadius: 999,
-                  background:
-                    "linear-gradient(180deg, rgba(205,150,92,0.95) 0%, rgba(145,93,41,1) 100%)",
-                }}
-              />
-              <div
-                style={{
-                  marginTop: 10,
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: "#7d664f",
-                }}
-              >
-                {formatDate(new Date().toISOString())}
-              </div>
+          {categoryTrend.length === 0 ? (
+            <div className="home-category-trend-empty">
+              카테고리별 금액을 표시할 데이터가 아직 없습니다.
             </div>
-          </div>
+          ) : (
+            <div className="home-category-trend">
+              {categoryTrend.map((item) => {
+                const width =
+                  maxTrendAmount > 0
+                    ? `${Math.max(14, (item.amount / maxTrendAmount) * 100)}%`
+                    : "0%";
+
+                return (
+                  <div key={item.label} className="home-category-trend-item">
+                    <div className="home-category-trend-head">
+                      <span className="home-category-trend-label">
+                        {item.label}
+                      </span>
+                      <span className="home-category-trend-value">
+                        {formatCompactWon(item.amount)}
+                      </span>
+                    </div>
+                    <div className="home-category-trend-track">
+                      <div
+                        className="home-category-trend-bar"
+                        style={{ width }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -921,33 +1127,10 @@ export default async function HomePage() {
                 <Link
                   key={item.id}
                   href={`/listings/${item.id}`}
-                  style={{
-                    textDecoration: "none",
-                    color: "inherit",
-                    display: "block",
-                  }}
+                  className="home-listing-link"
                 >
-                  <article
-                    style={{
-                      minHeight: 228,
-                      border: "1px solid #d8c8b2",
-                      background: "#fbf8f3",
-                      borderRadius: 24,
-                      padding: 16,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: 10,
-                        flexWrap: "wrap",
-                      }}
-                    >
+                  <article className="home-listing-card">
+                    <div className="home-listing-top">
                       <div
                         style={{
                           display: "inline-flex",
@@ -1028,45 +1211,18 @@ export default async function HomePage() {
                       </div>
                     </div>
 
-                    <div style={{ marginTop: 18 }}>
-                      <h3
-                        style={{
-                          margin: 0,
-                          color: "#100a05",
-                          fontSize: 28,
-                          lineHeight: 1.2,
-                          fontWeight: 900,
-                          letterSpacing: "-0.03em",
-                          wordBreak: "break-word",
-                        }}
-                      >
+                    <div className="home-listing-title-wrap">
+                      <h3 className="home-listing-title">
                         {item.title || "제목 없음"}
                       </h3>
                     </div>
 
-                    <div style={{ marginTop: 20 }}>
-                      <div
-                        style={{
-                          color: "#100a05",
-                          fontSize: 22,
-                          fontWeight: 900,
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
+                    <div className="home-listing-bottom">
+                      <div className="home-listing-price">
                         {formatPrice(item.price)}
                       </div>
 
-                      <div
-                        style={{
-                          marginTop: 18,
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          color: "#7a6550",
-                          fontSize: 12,
-                          fontWeight: 800,
-                        }}
-                      >
+                      <div className="home-listing-meta">
                         <span>{formatDate(item.created_at)}</span>
                         <span>조회 {item.view_count ?? 0}</span>
                       </div>
