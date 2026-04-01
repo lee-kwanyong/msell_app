@@ -4,8 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 type ListingRow = {
   id: string;
   title: string | null;
-  listing_type?: string | null;
-  category?: string | null;
+  category: string | null;
   price: number | string | null;
   status: string | null;
   created_at: string | null;
@@ -31,52 +30,30 @@ function formatDate(value: string | null | undefined) {
   return `${yy}. ${mm}. ${dd}.`;
 }
 
-function categoryMeta(rawType?: string | null) {
-  const value = String(rawType || "").trim();
-
-  switch (value) {
-    case "youtube_channel":
+function categoryMeta(category?: string | null) {
+  switch (category) {
     case "YouTube Channel":
       return { short: "YT", bg: "#fff1f2", color: "#b91c1c", label: "YouTube Channel" };
-
-    case "instagram_account":
     case "Instagram Account":
       return { short: "IG", bg: "#fdf0f7", color: "#b83b7c", label: "Instagram Account" };
-
-    case "tiktok_account":
     case "TikTok Account":
       return { short: "TT", bg: "#eefcff", color: "#0f766e", label: "TikTok Account" };
-
-    case "website_blog":
     case "Website / Blog":
       return { short: "WB", bg: "#eff6ff", color: "#1d4ed8", label: "Website / Blog" };
-
-    case "store_commerce":
     case "Store / Commerce":
       return { short: "SC", bg: "#fefce8", color: "#a16207", label: "Store / Commerce" };
-
-    case "saas_app":
     case "SaaS / App":
       return { short: "SA", bg: "#ecfdf5", color: "#15803d", label: "SaaS / App" };
-
-    case "domain":
     case "Domain":
       return { short: "DM", bg: "#f3f4f6", color: "#111827", label: "Domain" };
-
-    case "newsletter_community":
     case "Newsletter / Community":
       return { short: "NC", bg: "#fff7ed", color: "#c2410c", label: "Newsletter / Community" };
-
-    case "course_digital_content":
     case "Course / Digital Content":
       return { short: "CD", bg: "#eef2ff", color: "#3730a3", label: "Course / Digital Content" };
-
-    case "marketing_asset":
     case "Marketing Asset":
       return { short: "MA", bg: "#ecfccb", color: "#4d7c0f", label: "Marketing Asset" };
-
     default:
-      return { short: "ETC", bg: "#f4ede3", color: "#6b4e33", label: value || "기타" };
+      return { short: "ETC", bg: "#f4ede3", color: "#6b4e33", label: category || "기타" };
   }
 }
 
@@ -98,14 +75,14 @@ export default async function HomePage() {
   const PUBLIC_HOME_STATUSES = ["active", "reserved"];
 
   const [
-    latestListingsResult,
-    activeCountResult,
-    totalListingCountResult,
-    totalDealCountResult,
+    { data: latestListings },
+    { count: activeCount },
+    { count: totalListingCount },
+    { count: totalDealCount },
   ] = await Promise.all([
     supabase
       .from("listings")
-      .select("*")
+      .select("id,title,category,price,status,created_at,view_count,price_negotiable")
       .in("status", PUBLIC_HOME_STATUSES)
       .order("created_at", { ascending: false })
       .limit(8),
@@ -124,13 +101,7 @@ export default async function HomePage() {
       .select("*", { count: "exact", head: true }),
   ]);
 
-  const listings: ListingRow[] = Array.isArray(latestListingsResult.data)
-    ? (latestListingsResult.data as ListingRow[])
-    : [];
-
-  const activeCount = activeCountResult.count ?? 0;
-  const totalListingCount = totalListingCountResult.count ?? 0;
-  const totalDealCount = totalDealCountResult.count ?? 0;
+  const listings: ListingRow[] = Array.isArray(latestListings) ? latestListings : [];
   const todayTrendValue = listings.length > 0 ? listings.length : 0;
 
   return (
@@ -157,13 +128,6 @@ export default async function HomePage() {
           align-items: stretch;
         }
 
-        .home-install-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-          gap: 16px;
-          margin-top: 16px;
-        }
-
         .home-trade-flow-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -182,36 +146,6 @@ export default async function HomePage() {
           gap: 16px;
         }
 
-        .home-install-steps {
-          display: grid;
-          gap: 10px;
-          margin-top: 14px;
-        }
-
-        .home-install-step {
-          display: grid;
-          grid-template-columns: 28px minmax(0, 1fr);
-          gap: 10px;
-          align-items: start;
-          padding: 12px 14px;
-          border: 1px solid #d8c8b2;
-          border-radius: 16px;
-          background: #fffdfa;
-        }
-
-        .home-install-step-no {
-          width: 28px;
-          height: 28px;
-          border-radius: 999px;
-          background: #efe4d4;
-          color: #6f5843;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-          font-weight: 900;
-        }
-
         @media (max-width: 1100px) {
           .home-listings-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -220,8 +154,7 @@ export default async function HomePage() {
 
         @media (max-width: 980px) {
           .home-top-grid,
-          .home-lower-grid,
-          .home-install-grid {
+          .home-lower-grid {
             grid-template-columns: 1fr;
           }
         }
@@ -282,9 +215,9 @@ export default async function HomePage() {
                 color: "#1f140c",
               }}
             >
-              디지털 자산
+              유튜브 채널 · 인스타 계정 · 사이트
               <br />
-              마켓플레이스
+              디지털 자산 거래 마켓
             </h1>
 
             <p
@@ -296,9 +229,10 @@ export default async function HomePage() {
                 fontWeight: 600,
               }}
             >
-              복잡한 디지털 자산 거래를 위한 프라이빗 마켓
+              유튜브 채널, 인스타그램 계정, 웹사이트, 뉴스레터, 도메인 같은 디지털 자산을
+              등록하고 1:1 딜룸에서 조건을 협의할 수 있습니다.
               <br />
-              공개 노출이 부담스럽고 조건 조율이 중요한 거래를 위해, 매칭부터 협의까지 더 정제된 흐름을 제공합니다.
+              공개 장터보다 조용하고, 일반 커뮤니티보다 거래에 집중된 흐름을 제공합니다.
             </p>
 
             <div
@@ -359,9 +293,9 @@ export default async function HomePage() {
             }}
           >
             {[
-              { title: "빠른 등록", body: "핵심 정보 중심" },
-              { title: "안전한 문의", body: "딜룸 연결" },
-              { title: "명확한 이전", body: "절차 가시화" },
+              { title: "유튜브 · SNS", body: "채널 · 계정 거래" },
+              { title: "웹 · SaaS", body: "사이트 · 앱 매물" },
+              { title: "1:1 딜룸", body: "조건 협의 집중" },
             ].map((item) => (
               <div
                 key={item.title}
@@ -612,7 +546,7 @@ export default async function HomePage() {
                   fontWeight: 900,
                 }}
               >
-                {activeCount}
+                {activeCount ?? 0}
               </div>
             </div>
 
@@ -636,7 +570,7 @@ export default async function HomePage() {
                   fontWeight: 900,
                 }}
               >
-                {totalListingCount}
+                {totalListingCount ?? 0}
               </div>
             </div>
 
@@ -660,187 +594,9 @@ export default async function HomePage() {
                   fontWeight: 900,
                 }}
               >
-                {totalDealCount}
+                {totalDealCount ?? 0}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="home-install-grid">
-        <div
-          style={{
-            background: "#fbf8f3",
-            border: "1px solid #d8c8b2",
-            borderRadius: 24,
-            padding: 20,
-          }}
-        >
-          <div
-            style={{
-              color: "#aa7a4a",
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-              marginBottom: 8,
-            }}
-          >
-            IPHONE INSTALL
-          </div>
-
-          <div
-            style={{
-              color: "#1a120b",
-              fontSize: 20,
-              fontWeight: 900,
-              marginBottom: 6,
-            }}
-          >
-            아이폰에 설치하기
-          </div>
-
-          <div
-            style={{
-              color: "#7a6550",
-              fontSize: 14,
-              lineHeight: 1.7,
-              fontWeight: 600,
-            }}
-          >
-            Safari에서 홈 화면에 추가하면 앱처럼 바로 실행할 수 있습니다.
-          </div>
-
-          <div className="home-install-steps">
-            {[
-              "아이폰 Safari에서 msell.app 접속",
-              "하단 공유 버튼 선택",
-              "홈 화면에 추가 선택",
-              "이름 확인 후 추가",
-            ].map((text, index) => (
-              <div key={text} className="home-install-step">
-                <span className="home-install-step-no">{index + 1}</span>
-                <div
-                  style={{
-                    color: "#2f2417",
-                    fontSize: 14,
-                    lineHeight: 1.6,
-                    fontWeight: 800,
-                  }}
-                >
-                  {text}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: "#fbf8f3",
-            border: "1px solid #d8c8b2",
-            borderRadius: 24,
-            padding: 20,
-            display: "grid",
-            gap: 14,
-          }}
-        >
-          <div
-            style={{
-              color: "#aa7a4a",
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-            }}
-          >
-            APP STATUS
-          </div>
-
-          <div
-            style={{
-              color: "#1a120b",
-              fontSize: 20,
-              fontWeight: 900,
-            }}
-          >
-            현재 설치 방식
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gap: 10,
-            }}
-          >
-            <div
-              style={{
-                border: "1px solid #d8c8b2",
-                borderRadius: 18,
-                background: "#fffdfa",
-                padding: "14px 16px",
-              }}
-            >
-              <div
-                style={{
-                  color: "#2f2417",
-                  fontSize: 14,
-                  fontWeight: 900,
-                  marginBottom: 4,
-                }}
-              >
-                아이폰
-              </div>
-              <div
-                style={{
-                  color: "#7a6550",
-                  fontSize: 13,
-                  lineHeight: 1.7,
-                  fontWeight: 700,
-                }}
-              >
-                Safari에서 홈 화면에 추가하는 설치형 웹앱
-              </div>
-            </div>
-
-            <div
-              style={{
-                border: "1px solid #d8c8b2",
-                borderRadius: 18,
-                background: "#fffdfa",
-                padding: "14px 16px",
-              }}
-            >
-              <div
-                style={{
-                  color: "#2f2417",
-                  fontSize: 14,
-                  fontWeight: 900,
-                  marginBottom: 4,
-                }}
-              >
-                안드로이드
-              </div>
-              <div
-                style={{
-                  color: "#7a6550",
-                  fontSize: 13,
-                  lineHeight: 1.7,
-                  fontWeight: 700,
-                }}
-              >
-                플레이스토어 업로드 준비 완료
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              color: "#7a6550",
-              fontSize: 12,
-              lineHeight: 1.7,
-              fontWeight: 700,
-            }}
-          >
-            앱스토어 정식 등록형 iOS 앱은 다음 단계에서 별도로 진행합니다.
           </div>
         </div>
       </section>
@@ -914,7 +670,7 @@ export default async function HomePage() {
         ) : (
           <div className="home-listings-grid">
             {listings.map((item) => {
-              const meta = categoryMeta(item.listing_type || item.category);
+              const meta = categoryMeta(item.category);
               const status = statusLabel(item.status);
 
               return (
@@ -986,14 +742,7 @@ export default async function HomePage() {
                         </span>
                       </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 6,
-                          flexWrap: "wrap",
-                          justifyContent: "flex-end",
-                        }}
-                      >
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
                         <span
                           style={{
                             display: "inline-flex",

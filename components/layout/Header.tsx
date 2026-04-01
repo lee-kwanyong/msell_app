@@ -1,28 +1,11 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("ko-KR").format(value);
-}
-
 export default async function Header() {
   const supabase = await supabaseServer();
-
-  const [
-    {
-      data: { user },
-    },
-    { data: siteStats },
-  ] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from("site_stats")
-      .select("total_visitors")
-      .eq("id", 1)
-      .maybeSingle(),
-  ]);
-
-  const totalVisitors = Number(siteStats?.total_visitors ?? 0);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
     <>
@@ -63,13 +46,6 @@ export default async function Header() {
                     로그아웃
                   </button>
                 </form>
-
-                <div className="msell-header__visitor-chip" title="누적 방문자 수">
-                  <span className="msell-header__visitor-label">방문</span>
-                  <strong className="msell-header__visitor-value">
-                    {formatNumber(totalVisitors)}
-                  </strong>
-                </div>
               </>
             ) : (
               <>
@@ -79,12 +55,6 @@ export default async function Header() {
                 <Link href="/auth/signup" className="msell-header__primary">
                   회원가입
                 </Link>
-                <div className="msell-header__visitor-chip" title="누적 방문자 수">
-                  <span className="msell-header__visitor-label">방문</span>
-                  <strong className="msell-header__visitor-value">
-                    {formatNumber(totalVisitors)}
-                  </strong>
-                </div>
               </>
             )}
           </div>
@@ -240,34 +210,6 @@ export default async function Header() {
           margin: 0;
         }
 
-        .msell-header__visitor-chip {
-          min-height: 42px;
-          padding: 0 14px;
-          border-radius: 999px;
-          border: 1px solid #dccbb4;
-          background: #efe4d4;
-          color: #2f2417;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          white-space: nowrap;
-          box-sizing: border-box;
-        }
-
-        .msell-header__visitor-label {
-          color: #8c6c49;
-          font-size: 12px;
-          font-weight: 800;
-        }
-
-        .msell-header__visitor-value {
-          color: #1f140c;
-          font-size: 14px;
-          line-height: 1;
-          font-weight: 900;
-          letter-spacing: -0.02em;
-        }
-
         @media (max-width: 1080px) {
           .msell-header__inner {
             flex-wrap: wrap;
@@ -307,8 +249,7 @@ export default async function Header() {
           }
 
           .msell-header__ghost,
-          .msell-header__primary,
-          .msell-header__visitor-chip {
+          .msell-header__primary {
             min-height: 38px;
             padding: 0 12px;
           }
@@ -320,14 +261,6 @@ export default async function Header() {
           .msell-header__nav-link {
             min-height: 38px;
             padding: 0 12px;
-            font-size: 13px;
-          }
-
-          .msell-header__visitor-label {
-            font-size: 11px;
-          }
-
-          .msell-header__visitor-value {
             font-size: 13px;
           }
         }
