@@ -97,7 +97,7 @@ function formatDate(value: string | null | undefined) {
   const yy = String(date.getFullYear()).slice(2);
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   const dd = String(date.getDate()).padStart(2, "0");
-  return `${yy}. ${mm}. ${dd}.`;
+  return `${yy}.${mm}.${dd}`;
 }
 
 function categoryMeta(rawType?: string | null) {
@@ -106,51 +106,51 @@ function categoryMeta(rawType?: string | null) {
   switch (value) {
     case "youtube_channel":
     case "YouTube Channel":
-      return { short: "YT", bg: "#fff1f2", color: "#b91c1c", label: "유튜브" };
+      return { short: "유튜브", bg: "#fff1f2", color: "#b91c1c", label: "유튜브" };
 
     case "youtube_shorts":
     case "YouTube Shorts":
     case "유튜브쇼츠":
-      return { short: "YS", bg: "#fff7ed", color: "#c2410c", label: "유튜브쇼츠" };
+      return { short: "유튜브쇼츠", bg: "#fff7ed", color: "#c2410c", label: "유튜브쇼츠" };
 
     case "instagram_account":
     case "Instagram Account":
-      return { short: "IG", bg: "#fdf0f7", color: "#b83b7c", label: "인스타" };
+      return { short: "인스타", bg: "#fdf0f7", color: "#b83b7c", label: "인스타" };
 
     case "tiktok_account":
     case "TikTok Account":
-      return { short: "TT", bg: "#eefcff", color: "#0f766e", label: "틱톡" };
+      return { short: "틱톡", bg: "#eefcff", color: "#0f766e", label: "틱톡" };
 
     case "website_blog":
     case "Website / Blog":
-      return { short: "WB", bg: "#eff6ff", color: "#1d4ed8", label: "웹사이트" };
+      return { short: "웹사이트", bg: "#eff6ff", color: "#1d4ed8", label: "웹사이트" };
 
     case "store_commerce":
     case "Store / Commerce":
-      return { short: "SC", bg: "#fefce8", color: "#a16207", label: "커머스" };
+      return { short: "커머스", bg: "#fefce8", color: "#a16207", label: "커머스" };
 
     case "saas_app":
     case "SaaS / App":
-      return { short: "SA", bg: "#ecfdf5", color: "#15803d", label: "SaaS" };
+      return { short: "SaaS", bg: "#ecfdf5", color: "#15803d", label: "SaaS" };
 
     case "domain":
     case "Domain":
-      return { short: "DM", bg: "#f3f4f6", color: "#111827", label: "도메인" };
+      return { short: "도메인", bg: "#f3f4f6", color: "#111827", label: "도메인" };
 
     case "newsletter_community":
     case "Newsletter / Community":
-      return { short: "NC", bg: "#fff7ed", color: "#c2410c", label: "뉴스레터" };
+      return { short: "뉴스레터", bg: "#fff7ed", color: "#c2410c", label: "뉴스레터" };
 
     case "course_digital_content":
     case "Course / Digital Content":
-      return { short: "CD", bg: "#eef2ff", color: "#3730a3", label: "디지털콘텐츠" };
+      return { short: "디지털콘텐츠", bg: "#eef2ff", color: "#3730a3", label: "디지털콘텐츠" };
 
     case "marketing_asset":
     case "Marketing Asset":
-      return { short: "MA", bg: "#ecfccb", color: "#4d7c0f", label: "마케팅자산" };
+      return { short: "마케팅자산", bg: "#ecfccb", color: "#4d7c0f", label: "마케팅자산" };
 
     default:
-      return { short: "ETC", bg: "#f4ede3", color: "#6b4e33", label: value || "기타" };
+      return { short: "기타", bg: "#f4ede3", color: "#6b4e33", label: value || "기타" };
   }
 }
 
@@ -476,31 +476,47 @@ export default async function ListingsPage({
         .listings-bottom {
           margin-top: auto;
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 8px;
-          padding-top: 12px;
+          grid-template-columns: 52px 52px minmax(72px, 1fr);
+          gap: 6px;
+          padding-top: 10px;
+          align-items: stretch;
         }
 
         .listings-stat {
           border: 1px solid #e8ddd0;
-          border-radius: 14px;
+          border-radius: 12px;
           background: #f7f2ea;
-          padding: 10px 8px;
+          padding: 8px 6px;
           text-align: center;
+          min-height: 46px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
 
         .listings-stat-label {
           color: #9a7a57;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 800;
-          margin-bottom: 4px;
+          margin-bottom: 3px;
+          line-height: 1;
         }
 
         .listings-stat-value {
           color: #1f140c;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 900;
-          line-height: 1;
+          line-height: 1.1;
+        }
+
+        .listings-stat-date {
+          align-items: center;
+        }
+
+        .listings-stat-date .listings-stat-value {
+          font-size: 11px;
+          letter-spacing: 0;
+          white-space: nowrap;
         }
 
         .listings-empty {
@@ -563,6 +579,10 @@ export default async function ListingsPage({
 
           .listings-title {
             font-size: 20px;
+          }
+
+          .listings-bottom {
+            grid-template-columns: 56px 56px minmax(88px, 1fr);
           }
         }
       `}</style>
@@ -676,7 +696,7 @@ export default async function ListingsPage({
                       </div>
                     </div>
 
-                    <div className="listings-stat">
+                    <div className="listings-stat listings-stat-date">
                       <div className="listings-stat-label">등록</div>
                       <div className="listings-stat-value">
                         {formatDate(item.created_at)}
