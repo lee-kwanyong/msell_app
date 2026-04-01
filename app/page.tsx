@@ -194,7 +194,6 @@ export default async function HomePage() {
   const activeCount = activeCountResult.count ?? 0;
   const totalListingCount = totalListingCountResult.count ?? 0;
   const totalDealCount = totalDealCountResult.count ?? 0;
-  const todayTrendValue = listings.length > 0 ? listings.length : 0;
 
   const categoryTrend = buildCategoryTrend(listings);
   const maxTrendAmount =
@@ -428,6 +427,27 @@ export default async function HomePage() {
           word-break: keep-all;
         }
 
+        .hero-category-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 16px;
+        }
+
+        .hero-category-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 32px;
+          padding: 0 12px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.7);
+          border: 1px solid #d8c8b2;
+          color: #6c5843;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: -0.01em;
+        }
+
         @media (max-width: 1100px) {
           .home-listings-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -526,9 +546,9 @@ export default async function HomePage() {
                 color: "#1f140c",
               }}
             >
-              유튜브 채널 - 인스타 계정 - 도메인 거래
+              복잡한 디지털 자산 거래를 위한
               <br />
-              디지털 마켓플레이스
+              프라이빗 마켓
             </h1>
 
             <p
@@ -540,10 +560,18 @@ export default async function HomePage() {
                 fontWeight: 600,
               }}
             >
-              복잡한 디지털 자산 거래를 위한 프라이빗 마켓
-              <br />
               공개 노출이 부담스럽고 조건 조율이 중요한 거래를 위해, 매칭부터 협의까지 더 정제된 흐름을 제공합니다.
             </p>
+
+            <div className="hero-category-tags">
+              {["YouTube Channel", "Instagram Account", "Website", "Domain"].map(
+                (item) => (
+                  <span key={item} className="hero-category-tag">
+                    {item}
+                  </span>
+                )
+              )}
+            </div>
 
             <div
               style={{
