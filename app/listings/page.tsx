@@ -1,478 +1,694 @@
-import Link from 'next/link'
-import { supabaseServer } from '@/lib/supabase/server'
-import CategoryVisual from '@/components/listings/CategoryVisual'
+import Link from "next/link";
+import { supabaseServer } from "@/lib/supabase/server";
+
+type SearchParams = Promise<{
+  category?: string;
+}>;
 
 type ListingRow = {
-  id: string
-  title: string | null
-  category: string | null
-  price: number | null
-  status: string | null
-  created_at: string | null
-  view_count?: number | null
-  like_count?: number | null
-  inquiry_count?: number | null
-  description?: string | null
+  id: string;
+  title: string | null;
+  description?: string | null;
+  listing_type?: string | null;
+  category?: string | null;
+  price: number | string | null;
+  status: string | null;
+  created_at: string | null;
+  view_count?: number | null;
+  inquiry_count?: number | null;
+  price_negotiable?: boolean | null;
+};
+
+type CategoryFilter = {
+  key: string;
+  label: string;
+  aliases: string[];
+};
+
+const CATEGORY_FILTERS: CategoryFilter[] = [
+  { key: "all", label: "전체보기", aliases: [] },
+  {
+    key: "youtube",
+    label: "유튜브",
+    aliases: ["youtube", "youtube_channel", "YouTube Channel"],
+  },
+  {
+    key: "youtube_shorts",
+    label: "유튜브쇼츠",
+    aliases: ["youtube_shorts", "YouTube Shorts", "유튜브쇼츠"],
+  },
+  {
+    key: "instagram",
+    label: "인스타",
+    aliases: ["instagram", "instagram_account", "Instagram Account"],
+  },
+  {
+    key: "tiktok",
+    label: "틱톡",
+    aliases: ["tiktok", "tiktok_account", "TikTok Account"],
+  },
+  {
+    key: "domain",
+    label: "도메인",
+    aliases: ["domain", "Domain"],
+  },
+  {
+    key: "website",
+    label: "웹사이트",
+    aliases: ["website", "website_blog", "Website / Blog"],
+  },
+  {
+    key: "newsletter",
+    label: "뉴스레터",
+    aliases: [
+      "newsletter",
+      "newsletter_community",
+      "Newsletter / Community",
+    ],
+  },
+  {
+    key: "saas",
+    label: "SaaS",
+    aliases: ["saas", "saas_app", "SaaS / App"],
+  },
+  {
+    key: "marketing_asset",
+    label: "마케팅자산",
+    aliases: ["marketing_asset", "Marketing Asset"],
+  },
+];
+
+function normalizeValue(value?: string | null) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, "_");
 }
 
-function formatPrice(price: number | null | undefined) {
-  if (!price || Number.isNaN(price)) return '가격 협의'
-  return `${price.toLocaleString('ko-KR')}원`
+function formatPrice(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return "-";
+  const num = Number(value);
+  if (Number.isNaN(num)) return String(value);
+  return `${num.toLocaleString("ko-KR")}원`;
 }
 
 function formatDate(value: string | null | undefined) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '-'
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
 
-  return new Intl.DateTimeFormat('ko-KR', {
-    month: 'numeric',
-    day: 'numeric',
-  }).format(date)
+  const yy = String(date.getFullYear()).slice(2);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yy}. ${mm}. ${dd}.`;
 }
 
-function getStatusLabel(status?: string | null) {
-  switch (status) {
-    case 'active':
-      return '거래가능'
-    case 'draft':
-      return '임시저장'
-    case 'hidden':
-      return '숨김'
-    case 'pending_review':
-      return '검수대기'
-    case 'reserved':
-      return '예약중'
-    case 'sold':
-      return '거래종료'
-    case 'rejected':
-      return '반려'
-    case 'archived':
-      return '보관됨'
+function categoryMeta(rawType?: string | null) {
+  const value = String(rawType || "").trim();
+
+  switch (value) {
+    case "youtube_channel":
+    case "YouTube Channel":
+      return { short: "YT", bg: "#fff1f2", color: "#b91c1c", label: "유튜브" };
+
+    case "youtube_shorts":
+    case "YouTube Shorts":
+    case "유튜브쇼츠":
+      return { short: "YS", bg: "#fff7ed", color: "#c2410c", label: "유튜브쇼츠" };
+
+    case "instagram_account":
+    case "Instagram Account":
+      return { short: "IG", bg: "#fdf0f7", color: "#b83b7c", label: "인스타" };
+
+    case "tiktok_account":
+    case "TikTok Account":
+      return { short: "TT", bg: "#eefcff", color: "#0f766e", label: "틱톡" };
+
+    case "website_blog":
+    case "Website / Blog":
+      return { short: "WB", bg: "#eff6ff", color: "#1d4ed8", label: "웹사이트" };
+
+    case "store_commerce":
+    case "Store / Commerce":
+      return { short: "SC", bg: "#fefce8", color: "#a16207", label: "커머스" };
+
+    case "saas_app":
+    case "SaaS / App":
+      return { short: "SA", bg: "#ecfdf5", color: "#15803d", label: "SaaS" };
+
+    case "domain":
+    case "Domain":
+      return { short: "DM", bg: "#f3f4f6", color: "#111827", label: "도메인" };
+
+    case "newsletter_community":
+    case "Newsletter / Community":
+      return { short: "NC", bg: "#fff7ed", color: "#c2410c", label: "뉴스레터" };
+
+    case "course_digital_content":
+    case "Course / Digital Content":
+      return { short: "CD", bg: "#eef2ff", color: "#3730a3", label: "디지털콘텐츠" };
+
+    case "marketing_asset":
+    case "Marketing Asset":
+      return { short: "MA", bg: "#ecfccb", color: "#4d7c0f", label: "마케팅자산" };
+
     default:
-      return '상태확인'
+      return { short: "ETC", bg: "#f4ede3", color: "#6b4e33", label: value || "기타" };
   }
 }
 
-function getStatusStyle(status?: string | null) {
+function statusLabel(status?: string | null) {
   switch (status) {
-    case 'active':
-      return {
-        background: '#ecfdf5',
-        color: '#166534',
-        border: '1px solid rgba(22,101,52,0.12)',
-      }
-    case 'reserved':
-      return {
-        background: '#fff7ed',
-        color: '#9a3412',
-        border: '1px solid rgba(154,52,18,0.12)',
-      }
-    case 'sold':
-      return {
-        background: '#f3f4f6',
-        color: '#374151',
-        border: '1px solid rgba(55,65,81,0.10)',
-      }
+    case "reserved":
+      return "예약중";
+    case "sold":
+      return "거래종료";
+    case "active":
+      return "거래가능";
     default:
-      return {
-        background: '#f6f1e7',
-        color: '#5c4731',
-        border: '1px solid rgba(47,36,23,0.08)',
-      }
+      return "";
   }
 }
 
-export default async function ListingsPage() {
-  const supabase = await supabaseServer()
+function resolveCategoryValue(item: ListingRow) {
+  const category = String(item.category || "").trim();
+  const listingType = String(item.listing_type || "").trim();
 
-  const { data, error } = await supabase
-    .from('listings')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const genericListingTypes = new Set(["sell", "buy", "wanted", "wtb", "wts"]);
 
-  const rows = ((data as ListingRow[] | null) || []).filter((item) => {
-    const status = item.status || ''
-    return ['active', 'reserved', 'sold'].includes(status)
-  })
+  if (category) return category;
+  if (listingType && !genericListingTypes.has(listingType.toLowerCase())) {
+    return listingType;
+  }
+
+  return "기타";
+}
+
+function matchesCategory(item: ListingRow, selectedCategory: string) {
+  if (selectedCategory === "all") return true;
+
+  const filter = CATEGORY_FILTERS.find((entry) => entry.key === selectedCategory);
+  if (!filter) return true;
+
+  const value = normalizeValue(resolveCategoryValue(item));
+  return filter.aliases.some((alias) => normalizeValue(alias) === value);
+}
+
+function getFilterCount(listings: ListingRow[], filterKey: string) {
+  return listings.filter((item) => matchesCategory(item, filterKey)).length;
+}
+
+export default async function ListingsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const resolved = await searchParams;
+  const selectedCategory = CATEGORY_FILTERS.some(
+    (item) => item.key === resolved.category
+  )
+    ? (resolved.category as string)
+    : "all";
+
+  const supabase = await supabaseServer();
+  const PUBLIC_STATUSES = ["active", "reserved"];
+
+  const { data } = await supabase
+    .from("listings")
+    .select("*")
+    .in("status", PUBLIC_STATUSES)
+    .order("created_at", { ascending: false });
+
+  const allListings: ListingRow[] = Array.isArray(data) ? (data as ListingRow[]) : [];
+  const filteredListings = allListings.filter((item) =>
+    matchesCategory(item, selectedCategory)
+  );
 
   return (
     <main
       style={{
-        minHeight: '100vh',
-        background: '#f6f1e7',
+        maxWidth: 1200,
+        margin: "0 auto",
+        padding: "22px 24px 80px",
       }}
     >
-      <div
-        style={{
-          maxWidth: 1480,
-          margin: '0 auto',
-          padding: '28px 20px 60px',
-        }}
-      >
-        <section
-          style={{
-            borderRadius: 28,
-            background:
-              'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(246,241,231,0.92) 100%)',
-            border: '1px solid rgba(47,36,23,0.08)',
-            boxShadow: '0 18px 50px rgba(47,36,23,0.06)',
-            padding: '24px 22px',
-            marginBottom: 22,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              gap: 16,
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  borderRadius: 999,
-                  background: '#efe7da',
-                  color: '#6b5338',
-                  padding: '7px 12px',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: '-0.02em',
-                  marginBottom: 12,
-                }}
-              >
-                자산 마켓
-              </div>
+      <style>{`
+        .listings-header-card {
+          border: 1px solid #e3d4c1;
+          background: #fcfaf6;
+          border-radius: 28px;
+          padding: 18px 18px 20px;
+          box-shadow: 0 16px 34px rgba(47, 36, 23, 0.06);
+        }
 
-              <h1
-                style={{
-                  margin: 0,
-                  color: '#2f2417',
-                  fontSize: 30,
-                  lineHeight: 1.2,
-                  letterSpacing: '-0.04em',
-                  fontWeight: 800,
-                }}
-              >
-                거래 가능한 디지털 자산 목록
-              </h1>
+        .listings-top-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+        }
 
-              <p
-                style={{
-                  margin: '10px 0 0',
-                  color: '#6b5a47',
-                  fontSize: 15,
-                  lineHeight: 1.6,
-                }}
-              >
-                카테고리, 가격, 상태를 한눈에 보고 빠르게 문의를 시작할 수 있도록 정리했다.
-              </p>
-            </div>
+        .listings-badge {
+          display: inline-flex;
+          align-items: center;
+          min-height: 26px;
+          padding: 0 10px;
+          border-radius: 999px;
+          background: #f1e6d6;
+          color: #9a7a57;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.12em;
+        }
 
-            <Link
-              href="/listings/create"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: 48,
-                padding: '0 18px',
-                borderRadius: 14,
-                background: '#2f2417',
-                color: '#fff',
-                textDecoration: 'none',
-                fontWeight: 800,
-                fontSize: 14,
-                boxShadow: '0 10px 24px rgba(47,36,23,0.16)',
-              }}
-            >
-              자산 등록하기
-            </Link>
+        .listings-title {
+          margin: 14px 0 10px;
+          color: #1f140c;
+          font-size: 22px;
+          line-height: 1.2;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+        }
+
+        .listings-subtitle {
+          margin: 0;
+          color: #8f7658;
+          font-size: 13px;
+          line-height: 1.7;
+          font-weight: 700;
+        }
+
+        .listings-create-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 42px;
+          padding: 0 16px;
+          border-radius: 14px;
+          background: #2f1d10;
+          color: #fff;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 900;
+          box-shadow: 0 10px 24px rgba(47, 29, 16, 0.16);
+          white-space: nowrap;
+        }
+
+        .listings-filter-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 18px;
+        }
+
+        .listings-filter-chip {
+          min-height: 38px;
+          padding: 0 14px;
+          border-radius: 999px;
+          border: 1px solid #ddd0bd;
+          background: #fffdfa;
+          color: #6e5a47;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-size: 13px;
+          font-weight: 800;
+          transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+        }
+
+        .listings-filter-chip:hover {
+          transform: translateY(-1px);
+          background: #ffffff;
+        }
+
+        .listings-filter-chip.is-active {
+          background: #2f1d10;
+          border-color: #2f1d10;
+          color: #fff;
+          box-shadow: 0 10px 20px rgba(47, 36, 23, 0.12);
+        }
+
+        .listings-filter-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 20px;
+          height: 20px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.6);
+          color: inherit;
+          font-size: 11px;
+          font-weight: 900;
+          padding: 0 6px;
+          box-sizing: border-box;
+        }
+
+        .listings-filter-chip.is-active .listings-filter-count {
+          background: rgba(255,255,255,0.18);
+        }
+
+        .listings-grid {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 16px;
+          margin-top: 18px;
+        }
+
+        .listings-card-link {
+          display: block;
+          text-decoration: none;
+          color: inherit;
+          height: 100%;
+        }
+
+        .listings-card {
+          height: 100%;
+          min-height: 228px;
+          border: 1px solid #e3d4c1;
+          background: #fcfaf6;
+          border-radius: 24px;
+          padding: 12px;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 10px 24px rgba(47, 36, 23, 0.04);
+          transition: transform 0.16s ease, box-shadow 0.16s ease;
+        }
+
+        .listings-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 18px 32px rgba(47, 36, 23, 0.08);
+        }
+
+        .listings-card-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .listings-card-tags {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .listings-pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 24px;
+          padding: 0 8px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .listings-pill-status {
+          background: #eaf8ef;
+          color: #15803d;
+          border: 1px solid #cfead7;
+        }
+
+        .listings-pill-meta {
+          background: #f3ede5;
+          color: #7a6550;
+          border: 1px solid #e2d6c7;
+        }
+
+        .listings-title-wrap {
+          margin-top: 14px;
+          min-height: 64px;
+        }
+
+        .listings-card-title {
+          margin: 0;
+          color: #140d07;
+          font-size: 15px;
+          line-height: 1.35;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          word-break: break-word;
+        }
+
+        .listings-price-box {
+          margin-top: 14px;
+          border: 1px solid #e5d9cb;
+          border-radius: 16px;
+          background: #f7f2ea;
+          padding: 12px;
+        }
+
+        .listings-price-label {
+          color: #9a7a57;
+          font-size: 11px;
+          font-weight: 800;
+          margin-bottom: 6px;
+        }
+
+        .listings-price-value {
+          color: #140d07;
+          font-size: 18px;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 1.1;
+        }
+
+        .listings-description {
+          margin-top: 12px;
+          color: #7d664f;
+          font-size: 11px;
+          line-height: 1.55;
+          font-weight: 700;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          min-height: 52px;
+        }
+
+        .listings-bottom {
+          margin-top: auto;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+          padding-top: 12px;
+        }
+
+        .listings-stat {
+          border: 1px solid #e8ddd0;
+          border-radius: 14px;
+          background: #f7f2ea;
+          padding: 10px 8px;
+          text-align: center;
+        }
+
+        .listings-stat-label {
+          color: #9a7a57;
+          font-size: 10px;
+          font-weight: 800;
+          margin-bottom: 4px;
+        }
+
+        .listings-stat-value {
+          color: #1f140c;
+          font-size: 13px;
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .listings-empty {
+          margin-top: 18px;
+          border: 1px dashed #dccdb8;
+          background: #fcfaf6;
+          border-radius: 24px;
+          min-height: 180px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 24px;
+          color: #7a6550;
+          font-size: 15px;
+          font-weight: 700;
+          line-height: 1.7;
+        }
+
+        @media (max-width: 1180px) {
+          .listings-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 980px) {
+          .listings-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 760px) {
+          .listings-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .listings-top-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .listings-create-btn {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 540px) {
+          .listings-grid {
+            grid-template-columns: 1fr;
+          }
+
+          main {
+            padding: 16px 12px 110px !important;
+          }
+
+          .listings-header-card {
+            border-radius: 24px;
+            padding: 16px;
+          }
+
+          .listings-title {
+            font-size: 20px;
+          }
+        }
+      `}</style>
+
+      <section className="listings-header-card">
+        <div className="listings-top-row">
+          <div>
+            <div className="listings-badge">자산 마켓</div>
+            <h1 className="listings-title">거래 가능한 디지털 자산 목록</h1>
+            <p className="listings-subtitle">
+              카테고리, 가격, 상태를 한눈에 보고 빠르게 문의를 시작할 수 있도록 정리했다.
+            </p>
           </div>
-        </section>
 
-        <section
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-            gap: 14,
-          }}
-        >
-          {rows.map((item) => {
-            const statusStyle = getStatusStyle(item.status)
+          <Link href="/listings/create" className="listings-create-btn">
+            자산 등록하기
+          </Link>
+        </div>
+
+        <div className="listings-filter-row">
+          {CATEGORY_FILTERS.map((filter) => {
+            const href =
+              filter.key === "all"
+                ? "/listings"
+                : `/listings?category=${encodeURIComponent(filter.key)}`;
+
+            const count = getFilterCount(allListings, filter.key);
+            const isActive = selectedCategory === filter.key;
+
+            return (
+              <Link
+                key={filter.key}
+                href={href}
+                className={`listings-filter-chip${isActive ? " is-active" : ""}`}
+              >
+                <span>{filter.label}</span>
+                <span className="listings-filter-count">{count}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {filteredListings.length === 0 ? (
+        <div className="listings-empty">
+          선택한 카테고리에 해당하는 거래 가능한 자산이 아직 없습니다.
+        </div>
+      ) : (
+        <section className="listings-grid">
+          {filteredListings.map((item) => {
+            const meta = categoryMeta(resolveCategoryValue(item));
+            const status = statusLabel(item.status);
 
             return (
               <Link
                 key={item.id}
                 href={`/listings/${item.id}`}
-                style={{
-                  display: 'block',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                }}
+                className="listings-card-link"
               >
-                <article
-                  style={{
-                    height: '100%',
-                    borderRadius: 24,
-                    background: '#ffffff',
-                    border: '1px solid rgba(47,36,23,0.08)',
-                    boxShadow: '0 10px 28px rgba(47,36,23,0.05)',
-                    padding: 16,
-                    transition: 'transform 0.16s ease, box-shadow 0.16s ease',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      justifyContent: 'space-between',
-                      gap: 10,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <CategoryVisual category={item.category} size="sm" showLabel />
+                <article className="listings-card">
+                  <div className="listings-card-top">
+                    <div className="listings-card-tags">
+                      <span
+                        className="listings-pill listings-pill-meta"
+                        style={{
+                          background: meta.bg,
+                          color: meta.color,
+                          borderColor: `${meta.color}22`,
+                        }}
+                      >
+                        {meta.label}
+                      </span>
+                    </div>
 
-                    <span
-                      style={{
-                        ...statusStyle,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 999,
-                        minHeight: 28,
-                        padding: '0 10px',
-                        fontSize: 12,
-                        fontWeight: 800,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {getStatusLabel(item.status)}
-                    </span>
+                    {status ? (
+                      <span className="listings-pill listings-pill-status">
+                        {status}
+                      </span>
+                    ) : null}
                   </div>
 
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: 17,
-                      lineHeight: 1.35,
-                      fontWeight: 800,
-                      color: '#2f2417',
-                      letterSpacing: '-0.03em',
-                      minHeight: 46,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {item.title || '제목 없음'}
-                  </h2>
+                  <div className="listings-title-wrap">
+                    <h3 className="listings-card-title">
+                      {item.title || "제목 없음"}
+                    </h3>
+                  </div>
 
-                  <div
-                    style={{
-                      marginTop: 12,
-                      padding: '14px 14px 12px',
-                      borderRadius: 18,
-                      background: '#fbf8f2',
-                      border: '1px solid rgba(47,36,23,0.05)',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: '#8a755f',
-                        fontWeight: 700,
-                        marginBottom: 6,
-                      }}
-                    >
-                      희망 가격
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 22,
-                        lineHeight: 1.1,
-                        fontWeight: 900,
-                        color: '#2f2417',
-                        letterSpacing: '-0.04em',
-                      }}
-                    >
+                  <div className="listings-price-box">
+                    <div className="listings-price-label">희망 가격</div>
+                    <div className="listings-price-value">
                       {formatPrice(item.price)}
                     </div>
                   </div>
 
-                  <p
-                    style={{
-                      margin: '12px 0 0',
-                      color: '#7a6753',
-                      fontSize: 13,
-                      lineHeight: 1.55,
-                      minHeight: 42,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {item.description?.trim() || '등록된 설명이 아직 없습니다.'}
-                  </p>
+                  <div className="listings-description">
+                    {item.description || "등록된 설명이 없습니다."}
+                  </div>
 
-                  <div
-                    style={{
-                      marginTop: 14,
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                      gap: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        borderRadius: 14,
-                        background: '#f8f3eb',
-                        padding: '10px 8px',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: '#8d7760',
-                          fontWeight: 700,
-                          marginBottom: 4,
-                        }}
-                      >
-                        조회
-                      </div>
-                      <div
-                        style={{
-                          color: '#2f2417',
-                          fontSize: 14,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {(item.view_count || 0).toLocaleString('ko-KR')}
+                  <div className="listings-bottom">
+                    <div className="listings-stat">
+                      <div className="listings-stat-label">조회</div>
+                      <div className="listings-stat-value">
+                        {item.view_count ?? 0}
                       </div>
                     </div>
 
-                    <div
-                      style={{
-                        borderRadius: 14,
-                        background: '#f8f3eb',
-                        padding: '10px 8px',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: '#8d7760',
-                          fontWeight: 700,
-                          marginBottom: 4,
-                        }}
-                      >
-                        문의
-                      </div>
-                      <div
-                        style={{
-                          color: '#2f2417',
-                          fontSize: 14,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {(item.inquiry_count || 0).toLocaleString('ko-KR')}
+                    <div className="listings-stat">
+                      <div className="listings-stat-label">문의</div>
+                      <div className="listings-stat-value">
+                        {item.inquiry_count ?? 0}
                       </div>
                     </div>
 
-                    <div
-                      style={{
-                        borderRadius: 14,
-                        background: '#f8f3eb',
-                        padding: '10px 8px',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: '#8d7760',
-                          fontWeight: 700,
-                          marginBottom: 4,
-                        }}
-                      >
-                        등록
-                      </div>
-                      <div
-                        style={{
-                          color: '#2f2417',
-                          fontSize: 14,
-                          fontWeight: 800,
-                        }}
-                      >
+                    <div className="listings-stat">
+                      <div className="listings-stat-label">등록</div>
+                      <div className="listings-stat-value">
                         {formatDate(item.created_at)}
                       </div>
                     </div>
                   </div>
                 </article>
               </Link>
-            )
+            );
           })}
         </section>
-
-        {rows.length === 0 ? (
-          <section
-            style={{
-              marginTop: 18,
-              borderRadius: 24,
-              background: '#fff',
-              border: '1px solid rgba(47,36,23,0.08)',
-              padding: '38px 20px',
-              textAlign: 'center',
-              color: '#6f5d49',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 17,
-                fontWeight: 800,
-                color: '#2f2417',
-                marginBottom: 8,
-              }}
-            >
-              아직 표시할 자산이 없습니다.
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.6,
-              }}
-            >
-              첫 번째 등록을 올리고 거래 흐름을 시작해보세요.
-            </div>
-          </section>
-        ) : null}
-
-        {error ? (
-          <section
-            style={{
-              marginTop: 16,
-              borderRadius: 18,
-              background: '#fff1f2',
-              border: '1px solid rgba(190,24,93,0.12)',
-              color: '#9f1239',
-              padding: '14px 16px',
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            목록을 불러오는 중 문제가 발생했습니다.
-          </section>
-        ) : null}
-      </div>
+      )}
     </main>
-  )
+  );
 }
