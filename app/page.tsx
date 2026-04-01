@@ -282,9 +282,9 @@ export default async function HomePage() {
                 color: "#1f140c",
               }}
             >
-              유튜브 채널 - 인스타 계정 - 도메인 거래소
+              유튜브 채널 - 인스타 계정 - 도메인 거래
               <br />
-              마켓플레이스
+              디지털 마켓플레이스
             </h1>
 
             <p
