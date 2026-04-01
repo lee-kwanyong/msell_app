@@ -15,6 +15,7 @@ type ListingRow = {
 
 type CategoryTrendRow = {
   key: string;
+  short: string;
   label: string;
   amount: number;
 };
@@ -28,11 +29,13 @@ function formatPrice(value: number | string | null | undefined) {
 
 function formatCompactWon(value: number) {
   if (value >= 100000000) {
-    return `₩ ${(value / 100000000).toFixed(value % 100000000 === 0 ? 0 : 1)}억`;
+    const n = value / 100000000;
+    return `₩ ${n.toFixed(n % 1 === 0 ? 0 : 1)}억`;
   }
 
   if (value >= 10000) {
-    return `₩ ${(value / 10000).toLocaleString("ko-KR")}만`;
+    const n = value / 10000;
+    return `₩ ${n.toLocaleString("ko-KR")}만`;
   }
 
   return `₩ ${value.toLocaleString("ko-KR")}`;
@@ -55,43 +58,43 @@ function categoryMeta(rawType?: string | null) {
   switch (value) {
     case "youtube_channel":
     case "YouTube Channel":
-      return { short: "YT", bg: "#fff1f2", color: "#b91c1c", label: "YouTube Channel" };
+      return { short: "YT", bg: "#fff1f2", color: "#b91c1c", label: "YouTube" };
 
     case "instagram_account":
     case "Instagram Account":
-      return { short: "IG", bg: "#fdf0f7", color: "#b83b7c", label: "Instagram Account" };
+      return { short: "IG", bg: "#fdf0f7", color: "#b83b7c", label: "인스타" };
 
     case "tiktok_account":
     case "TikTok Account":
-      return { short: "TT", bg: "#eefcff", color: "#0f766e", label: "TikTok Account" };
+      return { short: "TT", bg: "#eefcff", color: "#0f766e", label: "틱톡" };
 
     case "website_blog":
     case "Website / Blog":
-      return { short: "WB", bg: "#eff6ff", color: "#1d4ed8", label: "Website / Blog" };
+      return { short: "WB", bg: "#eff6ff", color: "#1d4ed8", label: "웹사이트" };
 
     case "store_commerce":
     case "Store / Commerce":
-      return { short: "SC", bg: "#fefce8", color: "#a16207", label: "Store / Commerce" };
+      return { short: "SC", bg: "#fefce8", color: "#a16207", label: "커머스" };
 
     case "saas_app":
     case "SaaS / App":
-      return { short: "SA", bg: "#ecfdf5", color: "#15803d", label: "SaaS / App" };
+      return { short: "SA", bg: "#ecfdf5", color: "#15803d", label: "SaaS" };
 
     case "domain":
     case "Domain":
-      return { short: "DM", bg: "#f3f4f6", color: "#111827", label: "Domain" };
+      return { short: "DM", bg: "#f3f4f6", color: "#111827", label: "도메인" };
 
     case "newsletter_community":
     case "Newsletter / Community":
-      return { short: "NC", bg: "#fff7ed", color: "#c2410c", label: "Newsletter / Community" };
+      return { short: "NC", bg: "#fff7ed", color: "#c2410c", label: "뉴스레터" };
 
     case "course_digital_content":
     case "Course / Digital Content":
-      return { short: "CD", bg: "#eef2ff", color: "#3730a3", label: "Course / Digital Content" };
+      return { short: "CD", bg: "#eef2ff", color: "#3730a3", label: "디지털콘텐츠" };
 
     case "marketing_asset":
     case "Marketing Asset":
-      return { short: "MA", bg: "#ecfccb", color: "#4d7c0f", label: "Marketing Asset" };
+      return { short: "MA", bg: "#ecfccb", color: "#4d7c0f", label: "마케팅자산" };
 
     default:
       return { short: "ETC", bg: "#f4ede3", color: "#6b4e33", label: value || "기타" };
@@ -111,22 +114,37 @@ function statusLabel(status?: string | null) {
   }
 }
 
+function resolveCategoryValue(item: ListingRow) {
+  const category = String(item.category || "").trim();
+  const listingType = String(item.listing_type || "").trim();
+
+  const genericListingTypes = new Set(["sell", "buy", "wanted", "wtb", "wts"]);
+
+  if (category) return category;
+  if (listingType && !genericListingTypes.has(listingType.toLowerCase())) {
+    return listingType;
+  }
+
+  return "기타";
+}
+
 function buildCategoryTrend(listings: ListingRow[]): CategoryTrendRow[] {
   const totals = new Map<string, CategoryTrendRow>();
 
   for (const item of listings) {
-    const meta = categoryMeta(item.listing_type || item.category);
     const rawPrice = Number(item.price);
-
     if (Number.isNaN(rawPrice) || rawPrice <= 0) continue;
 
+    const categoryValue = resolveCategoryValue(item);
+    const meta = categoryMeta(categoryValue);
     const existing = totals.get(meta.label);
 
     if (existing) {
       existing.amount += rawPrice;
     } else {
       totals.set(meta.label, {
-        key: meta.short,
+        key: meta.label,
+        short: meta.short,
         label: meta.label,
         amount: rawPrice,
       });
@@ -135,7 +153,7 @@ function buildCategoryTrend(listings: ListingRow[]): CategoryTrendRow[] {
 
   return Array.from(totals.values())
     .sort((a, b) => b.amount - a.amount)
-    .slice(0, 5);
+    .slice(0, 6);
 }
 
 export default async function HomePage() {
@@ -176,6 +194,7 @@ export default async function HomePage() {
   const activeCount = activeCountResult.count ?? 0;
   const totalListingCount = totalListingCountResult.count ?? 0;
   const totalDealCount = totalDealCountResult.count ?? 0;
+  const todayTrendValue = listings.length > 0 ? listings.length : 0;
 
   const categoryTrend = buildCategoryTrend(listings);
   const maxTrendAmount =
@@ -302,7 +321,7 @@ export default async function HomePage() {
           color: #100a05;
           font-size: 28px;
           line-height: 1.2;
-          fontWeight: 900;
+          font-weight: 900;
           letter-spacing: -0.03em;
           word-break: break-word;
           display: -webkit-box;
@@ -333,71 +352,80 @@ export default async function HomePage() {
           font-weight: 800;
         }
 
-        .home-category-trend {
-          display: grid;
-          gap: 12px;
-          margin-top: 4px;
-        }
-
-        .home-category-trend-item {
-          display: grid;
-          gap: 8px;
-        }
-
-        .home-category-trend-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-        }
-
-        .home-category-trend-label {
-          min-width: 0;
-          color: #2f2417;
-          font-size: 13px;
-          font-weight: 800;
-          line-height: 1.3;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .home-category-trend-value {
-          flex-shrink: 0;
-          color: #7a6550;
-          font-size: 12px;
-          font-weight: 900;
-          white-space: nowrap;
-        }
-
-        .home-category-trend-track {
-          width: 100%;
-          height: 12px;
-          border-radius: 999px;
-          background: #f1e7d8;
-          overflow: hidden;
-        }
-
-        .home-category-trend-bar {
-          height: 100%;
-          border-radius: 999px;
-          background: linear-gradient(90deg, rgba(205,150,92,0.95) 0%, rgba(145,93,41,1) 100%);
-        }
-
-        .home-category-trend-empty {
-          border: 1px dashed #d8c8b2;
-          border-radius: 18px;
+        .home-category-columns-wrap {
+          flex: 1;
+          min-height: 0;
+          border-radius: 24px;
+          border: 1px solid #d8c8b2;
           background: #fffdfa;
+          padding: 18px 16px 14px;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+
+        .home-category-columns-empty {
           min-height: 220px;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
           text-align: center;
           color: #7a6550;
           font-size: 14px;
           font-weight: 700;
           line-height: 1.7;
+        }
+
+        .home-category-columns {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 14px;
+          align-items: end;
+          min-height: 240px;
+        }
+
+        .home-category-column {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 10px;
+          height: 100%;
+        }
+
+        .home-category-column-value {
+          color: #7a6550;
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1.2;
+          text-align: center;
+          word-break: keep-all;
+        }
+
+        .home-category-column-bar-wrap {
+          width: 100%;
+          height: 168px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+        }
+
+        .home-category-column-bar {
+          width: min(44px, 100%);
+          min-height: 16px;
+          border-radius: 14px 14px 8px 8px;
+          background: linear-gradient(180deg, rgba(205,150,92,0.95) 0%, rgba(145,93,41,1) 100%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+
+        .home-category-column-label {
+          color: #2f2417;
+          font-size: 12px;
+          font-weight: 900;
+          line-height: 1.3;
+          text-align: center;
+          word-break: keep-all;
         }
 
         @media (max-width: 1100px) {
@@ -440,11 +468,18 @@ export default async function HomePage() {
             -webkit-line-clamp: 2;
           }
 
-          .home-category-trend-label {
-            font-size: 12px;
+          .home-category-columns {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            row-gap: 18px;
+            min-height: auto;
           }
 
-          .home-category-trend-value {
+          .home-category-column-bar-wrap {
+            height: 120px;
+          }
+
+          .home-category-column-value,
+          .home-category-column-label {
             font-size: 11px;
           }
         }
@@ -664,39 +699,41 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {categoryTrend.length === 0 ? (
-            <div className="home-category-trend-empty">
-              카테고리별 금액을 표시할 데이터가 아직 없습니다.
-            </div>
-          ) : (
-            <div className="home-category-trend">
-              {categoryTrend.map((item) => {
-                const width =
-                  maxTrendAmount > 0
-                    ? `${Math.max(14, (item.amount / maxTrendAmount) * 100)}%`
-                    : "0%";
+          <div className="home-category-columns-wrap">
+            {categoryTrend.length === 0 ? (
+              <div className="home-category-columns-empty">
+                카테고리별 금액을 표시할 데이터가 아직 없습니다.
+              </div>
+            ) : (
+              <div className="home-category-columns">
+                {categoryTrend.map((item) => {
+                  const height =
+                    maxTrendAmount > 0
+                      ? Math.max(16, (item.amount / maxTrendAmount) * 168)
+                      : 16;
 
-                return (
-                  <div key={item.label} className="home-category-trend-item">
-                    <div className="home-category-trend-head">
-                      <span className="home-category-trend-label">
-                        {item.label}
-                      </span>
-                      <span className="home-category-trend-value">
+                  return (
+                    <div key={item.key} className="home-category-column">
+                      <div className="home-category-column-value">
                         {formatCompactWon(item.amount)}
-                      </span>
+                      </div>
+
+                      <div className="home-category-column-bar-wrap">
+                        <div
+                          className="home-category-column-bar"
+                          style={{ height }}
+                        />
+                      </div>
+
+                      <div className="home-category-column-label">
+                        {item.label}
+                      </div>
                     </div>
-                    <div className="home-category-trend-track">
-                      <div
-                        className="home-category-trend-bar"
-                        style={{ width }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -1120,7 +1157,7 @@ export default async function HomePage() {
         ) : (
           <div className="home-listings-grid">
             {listings.map((item) => {
-              const meta = categoryMeta(item.listing_type || item.category);
+              const meta = categoryMeta(resolveCategoryValue(item));
               const status = statusLabel(item.status);
 
               return (
